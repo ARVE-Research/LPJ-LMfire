@@ -236,7 +236,7 @@ integer :: j
 
 if (ismaster) then
 
-  write(*,*)'seeding with',in%lon,in%lat,geohash(in%lon,in%lat)
+  !write(*,*)'seeding with',in%lon,in%lat,geohash(in%lon,in%lat)
 
   call ran_seed(geohash(in%lon,in%lat),sv%met%rndst)
   
