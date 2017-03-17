@@ -297,11 +297,15 @@ real(sp) :: nbl			! normalized boundary length; for boundary between natural and
                                 ! the max. possible boundary length when having a chessboard-type distribution of kernels
 integer(sp) :: allnosnowdays                                  
 
+real(sp) :: clay_mean ! Moyenne du clay dans les differents tiles
+
 real(sp) :: forager_ppd
 real(sp) :: forager_fin
 real(sp) :: forager_fout
 real(sp) :: FDI
 real(sp) :: omega_o0
+
+real(sp) :: FRI20  !20-year mean fire return interval (inverse of burnedf20)
 
 real(sp), dimension(4) :: omega0
 
@@ -672,6 +676,36 @@ do i = 1,3 !ntiles
   !if (i == 2) then
   !  write(0,*)'ag litter -1',litter_ag_fast(8,1),litter_ag_slow(8,1)
   !end if
+
+! ====== NB special conditions for Canada version ONLY =====
+! set up limits to etablishment for special conditions
+
+clay_mean = (osv%tile(i)%soil%clay(1) + osv%tile(i)%soil%clay(3))/2
+
+if (clay_mean >= 20.) estab(1) = .false.
+if (clay_mean >= 13.) estab(3) = .false.
+if (clay_mean >= 18.) estab(4) = .false.
+if (clay_mean >= 23.) estab(8) = .false.
+
+if (afire_frac == 0.) estab(4) = .false.
+
+if (year > 1) then
+
+  burnedf20 = sum(osv%tile(i)%burnedf_buf) / real(climbuf)
+
+		if (burnedf20 > 0.) then
+				FRI20 = 1. / burnedf20
+		else
+				FRI20 = 100000.  !just choose some arbitrary big number
+		end if
+else
+  FRI20 = 100000.
+end if
+
+if (FRI20 < 50.) estab(1) = .false.
+if (FRI20 < 30.) estab(4) = .false.
+
+! ===== end special conditions =====
   
   call establishment(pftpar,present,survive,estab,nind,lm_ind,sm_ind,rm_ind,hm_ind,lm_sapl,sm_sapl,rm_sapl,hm_sapl,pft%tree, &
                      crownarea,fpc_grid,lai_ind,height,sla,wooddens,latosa,prec,reinickerp,litter_ag_fast,litter_ag_slow,litter_bg,  &
