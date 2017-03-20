@@ -19,6 +19,7 @@ use radiationmod,     only : elev_corr,calcPjj,radpet
 use alccmod,          only : harvest,alcc,tile_landuse
 use bioclimmod,       only : climate20,bioclim
 use spitfiremod,      only : spitfire,burnedbiomass,managedburn
+use budwormmod,       only : RateDevelopment,DevelopmentStatus
 use snowmod,          only : snow
 use hetrespmod,       only : littersom2,hetresp
 use lightmod,         only : light
@@ -117,6 +118,7 @@ real(sp) :: recoverf  !fraction of the gridcell that is recovering from land use
 real(sp) :: treefrac
 
 real(sp), dimension(7) :: soilpar
+real(sp), dimension(12):: rate				! Variable 1 pour calcul du taux de developpement
 
 !real, dimension(npft) :: gpp_temp
 !real, dimension(npft) :: npp_temp
@@ -270,6 +272,8 @@ real(sp), pointer, dimension(:) :: acflux_estab
 real(sp), pointer, dimension(:,:) :: anpp
 real(sp), pointer, dimension(:,:) :: agpp    !annual gridcell GPP (gC/m2)
 real(sp), pointer, dimension(:,:) :: lm_ind
+real(sp), pointer, dimension(:,:) :: lm_inc ! Pour incrementation budworm 
+real(sp), pointer, dimension(:,:) :: lm_old ! Pour budworm module 
 real(sp), pointer, dimension(:,:) :: hm_ind
 real(sp), pointer, dimension(:,:) :: sm_ind
 real(sp), pointer, dimension(:,:) :: rm_ind
@@ -297,15 +301,11 @@ real(sp) :: nbl			! normalized boundary length; for boundary between natural and
                                 ! the max. possible boundary length when having a chessboard-type distribution of kernels
 integer(sp) :: allnosnowdays                                  
 
-real(sp) :: clay_mean ! Moyenne du clay dans les differents tiles
-
 real(sp) :: forager_ppd
 real(sp) :: forager_fin
 real(sp) :: forager_fout
 real(sp) :: FDI
 real(sp) :: omega_o0
-
-real(sp) :: FRI20  !20-year mean fire return interval (inverse of burnedf20)
 
 real(sp), dimension(4) :: omega0
 
@@ -676,36 +676,6 @@ do i = 1,3 !ntiles
   !if (i == 2) then
   !  write(0,*)'ag litter -1',litter_ag_fast(8,1),litter_ag_slow(8,1)
   !end if
-
-! ====== NB special conditions for Canada version ONLY =====
-! set up limits to etablishment for special conditions
-
-clay_mean = (osv%tile(i)%soil%clay(1) + osv%tile(i)%soil%clay(3))/2
-
-if (clay_mean >= 20.) estab(1) = .false.
-if (clay_mean >= 13.) estab(3) = .false.
-if (clay_mean >= 18.) estab(4) = .false.
-if (clay_mean >= 23.) estab(8) = .false.
-
-if (afire_frac == 0.) estab(4) = .false.
-
-if (year > 1) then
-
-  burnedf20 = sum(osv%tile(i)%burnedf_buf) / real(climbuf)
-
-		if (burnedf20 > 0.) then
-				FRI20 = 1. / burnedf20
-		else
-				FRI20 = 100000.  !just choose some arbitrary big number
-		end if
-else
-  FRI20 = 100000.
-end if
-
-if (FRI20 < 50.) estab(1) = .false.
-if (FRI20 < 30.) estab(4) = .false.
-
-! ===== end special conditions =====
   
   call establishment(pftpar,present,survive,estab,nind,lm_ind,sm_ind,rm_ind,hm_ind,lm_sapl,sm_sapl,rm_sapl,hm_sapl,pft%tree, &
                      crownarea,fpc_grid,lai_ind,height,sla,wooddens,latosa,prec,reinickerp,litter_ag_fast,litter_ag_slow,litter_bg,  &
@@ -865,9 +835,13 @@ if (FRI20 < 30.) estab(4) = .false.
   !write(0,*)'flag D3a',hm_ind(:,1)
   !write(0,*)'flag D2b',lm_ind(:,1)
   
+  !lm_old = lm_ind(:,1)
+
   call allocation(pftpar,allom1,allom2,allom3,latosa,wooddens,reinickerp,pft%tree,sla,wscal,nind,bm_inc,lm_ind,sm_ind,     &
                   hm_ind,rm_ind,crownarea,fpc_grid,lai_ind,height,litter_ag_fast,litter_ag_slow,litter_bg,fpc_inc,present)
-                  
+  
+  !----------------------------------------------------------------------------------------------------------------------
+  
 !  if(i==2)   write(0,'(a,i3,9f14.4)') 'after allocation',i, litter_ag_fast(:,1)                               
                   
   !check validity of allocation and correct
@@ -957,7 +931,21 @@ if (FRI20 < 30.) estab(4) = .false.
   !landscape fractioning, based on assumption that subgrid-kernels will be randomely distributed; calculations based on a testgrid of 10000 sub-kernels
 
   call landscape_fractality(coverfrac, in%cellarea, avg_cont_area, totnat_area, avg_patch_number, median_distance, nbl) 
+ 
+  !----------------------------------------------------------------------------------------------------------------------
+  !Spruce budworm insect outbreak
   
+  !calculate final leafmass increment
+
+	d = 1
+	do m = 1,12
+		do dm = 1,ndaymonth(m)
+			call RateDevelopment(year,i,j,d,met_out(d),osv, rate)
+			call DevelopmentStatus(year,i,j,d,rate)
+			d = d + 1
+		end do
+	end do
+
   !---------------------------------------------------------------------------- 
   
 !  goto 20
