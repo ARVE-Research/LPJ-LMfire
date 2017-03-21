@@ -1,7 +1,7 @@
 module mpistatevarsmod
 
 use mpi
-use parametersmod, only : i2,i4,i8,sp,dp,npft,ncvar,climbuf,nspec
+use parametersmod, only : i2,i4,i8,sp,dp,npft,ncvar,climbuf,nspec,nistage,nisex,nirep
 use weathergenmod, only : metvars_out
 use orbitmod,      only : orbitpars
 
@@ -172,6 +172,10 @@ type subgrid
   !historical burned fraction (20 years) = 20 elements
   real(sp), dimension(climbuf) :: burnedf_buf
   real(sp), dimension(climbuf) :: forager_pd_buf
+  
+  !insect mass
+  real(sp), dimension(nistage,nisex,nirep) :: insectstate   !fraction of life stage completed (0-1)
+  real(sp), dimension(nistage,nisex,nirep) :: insectmass    !biomass of insects in each life stage (mg/m2)
 
 end type subgrid !14 + 2 + 216 + 27 + 243 + 6 + 25 + 20 + 20 = 573
 
@@ -230,6 +234,7 @@ logical, intent(in) :: ismaster
 
 integer :: i
 integer :: j
+integer :: k
 
 !---------
 !initialize the random number state based on random coordinates
@@ -343,6 +348,18 @@ forall (j=1:ncvar)
   sv%tile%cpool_fast(j)       = 0.   
   sv%tile%cpool_slow(j)       = 0.
   sv%tile%litter_decom_ave(j) = 0.
+end forall
+
+forall (k = 1:nirep)
+  forall (j = 1:nisex)
+    forall (i = 1:nistage)
+      sv%tile%insectstate(i,j,k) = 0.
+      sv%tile%insectmass(i,j,k)  = 0.
+    end forall
+
+    sv%tile%insectmass(i,j,1) = 0.03  !initialization mass of 1 l20 spruce budworm (mg)
+
+  end forall
 end forall
 
 sv%tile%livebiomass  = 0.

@@ -13,7 +13,7 @@ character(220) :: cfile_spinup  !a climate spinup file can be used alone for an 
 character(220) :: soilfile      !file containing sand, clay, and lithology
 character(220) :: topofile      !file containing elevation, slope, and land fraction
 character(220) :: pftfile       !file containing pftparameters
-character(220) :: budwormParamfile       !file containing pftparameters
+! character(220) :: budwormParamfile       !file containing pftparameters
 
 !optional input files
 character(220) :: cfile_transient = ''

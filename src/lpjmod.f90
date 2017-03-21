@@ -12,14 +12,14 @@ subroutine lpjcore(in,osv)
 
 use parametersmod,    only : sp,dp,npft,ncvar,ndaymonth,midday,pftpar,pft, &
                              lm_sapl,sm_sapl,rm_sapl,hm_sapl,sla,          &
-                             allom1,allom2,allom3,latosa,wooddens,reinickerp,lutype,climbuf,nhclass
+                             allom1,allom2,allom3,latosa,wooddens,reinickerp,lutype,climbuf,nhclass,nistage,nisex
 use mpistatevarsmod,  only : inputdata,statevars
 use weathergenmod,    only : metvars_in,metvars_out,rmsmooth,weathergen_driver,daily
 use radiationmod,     only : elev_corr,calcPjj,radpet
 use alccmod,          only : harvest,alcc,tile_landuse
 use bioclimmod,       only : climate20,bioclim
 use spitfiremod,      only : spitfire,burnedbiomass,managedburn
-use budwormmod,       only : RateDevelopment,DevelopmentStatus
+use budwormmod,       only : RateDevelopment,DevelopmentStatus, Oviposition
 use snowmod,          only : snow
 use hetrespmod,       only : littersom2,hetresp
 use lightmod,         only : light
@@ -118,7 +118,8 @@ real(sp) :: recoverf  !fraction of the gridcell that is recovering from land use
 real(sp) :: treefrac
 
 real(sp), dimension(7) :: soilpar
-real(sp), dimension(12):: rate				! Variable 1 pour calcul du taux de developpement
+real(sp), dimension(nistage,nisex):: rate				! Variable 1 pour calcul du taux de developpement
+logical, dimension(1:5,1:12):: presentTBE 			! Variable 2 pour calcul du taux de developpement
 
 !real, dimension(npft) :: gpp_temp
 !real, dimension(npft) :: npp_temp
@@ -143,6 +144,7 @@ real(sp) :: unusable
 
 real(sp) :: gdd         !current-year growing degree days
 real(sp) :: mtemp_max   !temperature of the warmest month (deg C)  
+real(sp) :: tmean 
 
 !local state variables
 
@@ -290,6 +292,11 @@ real(sp), pointer, dimension(:,:) :: mLAI
 !month
 real(sp), pointer, dimension(:) :: mburnedf	!monthly burned area fraction of gridcell
 integer, dimension(12) :: nosnowdays		!number of days in a month with temp > 0. without snowcover
+
+!insect classes
+real(sp), pointer, dimension(:,:,:) :: insectstate  !fraction of life stage completed (0-1)
+real(sp), pointer, dimension(:,:,:) :: insectmass   !biomass of insects in each life stage (mg/m2)
+
 
 !additional local variables
 real(sp) :: avg_cont_area	! average size of a natural patch at a given landuse fraction of the gridcell, in m2
@@ -629,6 +636,7 @@ do i = 1,3 !ntiles
   mLAI             => osv%tile(i)%mLAI
   mBBpft           => osv%tile(i)%mBBpft
   mburnedf	   => osv%tile(i)%mburnedf
+  insectmass  	   => osv%tile(i)%insectmass
 
   !--------------------------------------------------------------------------------------
   !initializations (needed?)
@@ -940,8 +948,14 @@ do i = 1,3 !ntiles
 	d = 1
 	do m = 1,12
 		do dm = 1,ndaymonth(m)
-			call RateDevelopment(year,i,j,d,met_out(d),osv, rate)
-			call DevelopmentStatus(year,i,j,d,rate)
+				
+				call RateDevelopment(year,i,j,d,met_out(d),osv,rate,tmean) 		! Calculate the rate development of each stages for each day temperature 
+			
+				call DevelopmentStatus(year,i,j,d,rate,insectstate,insectmass)				! Calculate the state of development for each stages in 5 groups
+				
+
+! 				call Oviposition(year,i,j,d,presentTBE)
+				
 			d = d + 1
 		end do
 	end do

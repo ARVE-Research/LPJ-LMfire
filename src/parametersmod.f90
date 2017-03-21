@@ -78,6 +78,13 @@ integer, parameter, dimension(12) :: midday    = [ 16,44,75,105,136,166,197,228,
 integer, parameter, dimension(12) :: ndaymonth = [ 31,28,31, 30, 31, 30, 31, 31, 30, 31, 30, 31 ]  !number of days in each month
 
 !-----------------------------------------------------------------------------------------------
+!parameters for the insect (spruce budworm) module
+
+integer, parameter :: nistage = 10   !number of developmental stages for insects
+integer, parameter :: nisex   =  2   !number of genders for insects
+integer, parameter :: nirep   =  5   !number of replicate groups for insects (for stochastic establishment)
+
+!-----------------------------------------------------------------------------------------------
 !parameters used in the soil physics and surface energy balance routines
 
 integer, parameter :: nl     = 11         !number of soil layers
