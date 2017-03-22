@@ -12,7 +12,7 @@ subroutine lpjcore(in,osv)
 
 use parametersmod,    only : sp,dp,npft,ncvar,ndaymonth,midday,pftpar,pft, &
                              lm_sapl,sm_sapl,rm_sapl,hm_sapl,sla,          &
-                             allom1,allom2,allom3,latosa,wooddens,reinickerp,lutype,climbuf,nhclass,nistage,nisex
+                             allom1,allom2,allom3,latosa,wooddens,reinickerp,lutype,climbuf,nhclass,nistage,nisex,nirep
 use mpistatevarsmod,  only : inputdata,statevars
 use weathergenmod,    only : metvars_in,metvars_out,rmsmooth,weathergen_driver,daily
 use radiationmod,     only : elev_corr,calcPjj,radpet
@@ -61,6 +61,7 @@ integer :: a ,b
 
 integer :: m
 integer :: d
+integer :: g
 integer :: dm
 integer :: dyr
 !integer :: yesterday
@@ -144,7 +145,11 @@ real(sp) :: unusable
 
 real(sp) :: gdd         !current-year growing degree days
 real(sp) :: mtemp_max   !temperature of the warmest month (deg C)  
-real(sp) :: tmean 
+real(sp) :: tmean       !mean daily temperature (local variable used in insect routines) (degC)
+real(sp) :: famass      !mass of adult female insects
+real(sp), dimension(nirep) :: neggi       !number of eggs already laid (per female)
+
+real(sp), dimension(nisex,nirep) :: eggmass  !container to accumulate egg mass over time
 
 !local state variables
 
@@ -522,6 +527,7 @@ coverfrac     => osv%tile%coverfrac
 if (year == 1) then
   gdd_buf       = -9999.
   mtemp_min_buf = -9999.
+  eggmass = 0.
 end if
 
 !END HANDLE OLD-STYLE STATEVARS ARRAYS
@@ -953,8 +959,30 @@ do i = 1,3 !ntiles
 			
 				call DevelopmentStatus(year,i,j,d,rate,insectstate,insectmass)				! Calculate the state of development for each stages in 5 groups
 				
+				do g = 1,nirep
 
-! 				call Oviposition(year,i,j,d,presentTBE)
+  				if (sum(eggmass(:,g)) == 0.) neggi(g) = 0.
+  				
+  				famass = insectmass(8,1,g)  !mass of adult females
+
+  				if (famass > 0. .and. insectstate(8,1,g) > 0.0666) then
+ 				   call oviposition(year,i,j,d,tmean,famass,eggmass(:,g),neggi(g))
+			   end if
+			   
+			   !call insectmortality()
+			   
+			   if (insectmass(8,1,g) == 0. .or. neggi(g) >= 200.) then
+
+			     !allow eggs to start development
+
+			     insectmass(9,:,g) = eggmass(:,g)
+			     insectenergy(9,:,g) = 1.
+			     
+			     eggmass(:,g) = 0.
+			     
+	     end if
+
+	   end do
 				
 			d = d + 1
 		end do

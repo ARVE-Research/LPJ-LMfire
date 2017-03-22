@@ -97,8 +97,9 @@ Tm(:,2) = [  35.0,  38.0,  38.0,  38.0,  38.0,  38.0,  35.0,  35.0,  35.0,  40.0
 
 !--------------------------------------------------------------------
 !Enregistrement des temperetures MIN & MAX
-tmax = met%tmax
-tmin = met%tmin
+
+tmax  = met%tmax
+tmin  = met%tmin
 tmean = tmin + (tmax - tmin)
 
 !--------------------------------------------------------------------------
@@ -158,6 +159,7 @@ integer, intent(in) :: d     !day of the year
 real(sp), dimension(:,:),   intent(inout) :: rate
 real(sp), dimension(:,:,:), intent(inout) :: state
 real(sp), dimension(:,:,:), intent(inout) :: mass
+real(sp), dimension(:,:,:), intent(inout) :: energy
 
 !parameters
 integer, parameter  :: nisex = 2
@@ -179,7 +181,7 @@ do r = 1,nirep
   do g = 1,nisex
 
     do s = 1,nistage
-  
+      
 						if (mass(s,g,r) == 0.) cycle  !skip calculations if no mass in this class
 
       !figure out index of next stage. if at last stage, loop back to 1
@@ -199,8 +201,15 @@ do r = 1,nirep
 								!reset stage and roll mass up to next stage
 				
 								state(s,g,r) = 0.
-								mass(ns,g,r) = mass(s,g,r)
-								mass(s,g,r)  = 0.
+								energy(s,g,r) = 0.
+								
+								if (s /= 8) then  !do in all cases except the adult --> egg transition (stage 8-9)
+								  mass(ns,g,r)   = mass(s,g,r)
+								  energy(ns,g,r) = energy(s,g,r)
+						  end do
+
+								mass(s,g,r)    = 0.
+								energy(s,g,r)  = 0.
 
 								!adjust rate of the next stage for this day
 				
@@ -217,68 +226,98 @@ end do
 end subroutine DevelopmentStatus
 
 !-----------------------------------------------------------------------------------------------------------------------------------------------------
-subroutine Oviposition() !(year,i,j,d,presentTBE)
-! 
-! implicit none
-! 
-! integer, intent(in) :: year  !year number, for diagnostic output, to be removed later
-! integer, intent(in) :: i  !tile index
-! integer, intent(in) :: j  !gridcell index
-! integer, intent(in) :: d  !day of the year
-! 
-! !pointers
-! integer nstage,nisex,ngroupe,nparam_budworm,ierror
-!         parameter (nstage=12,nisex=2,ngroupe=5,nparam_budworm=6)
-! integer :: g, s						           	   				! Variables des boucles 
-! 
-! logical, dimension(1:5,1:12), intent(in):: presentTBE			
-! 
-! !-------------------------------
-! 
-! do g = 1,ngroupe 
-! 
-! 	if (presentTBE(g,10) == .TRUE.) then 
-! 
-! 	! When we have females they can lay eggs but it depends of: 
-! 	! (1) their age: more females are old more they are not efficace to lay eggs
-! 	! (2) Lay eggs depend of the temperature : between 10 and 25 degree celsius and not for the first 24 hours 
-! 	! (3) They can lay a maximum of 200 eggs 
-! 	! (4) We hypothezise that the sex ratio of their eggs is 0.5
-! 
-!     !(1) Determine the age of individus: Egg = 0; L1= 1; L20 = 2; L2 = 3; L3 = 4; L4 = 5; L5 = 6; L6 = 7; Pupa = 8; Adult = 9
-! 	
-! 	end if 
-! 
-! end do
-! 
-! 			!if (Adult == TRUE) else 
-! 			
-! 				! Fecondity potential of each group
-! 				!potFecon = 200 * (number of Adult /2) ! Sex ratio 0.5
-! 			
-! 				! if the first time to lay eggs, we determine age of female depend of temperature 
-! 				!if (state(g,s) > 0 .and. stateDminus1Stage >= 0 .and. tmean >=8 .and. tmean <=35) then 
-! 		
-! 			        !aging[(d-1),1,gr] = 1 / (57.8 - 3.08 * tmean[(d-1),3] + 0.0451 * (tmean[(d-1),3])^2) ! Maybe here do a ponderation for the remaining time of the day
-! 					!age[d,1,gr] = age[(d-1),1,gr] + aging[(d-1),1,gr]
-! 
-! 					!# Oviposition : Equation [A6] de Régnière (83) et code de Rémi#
-! 					!if (age[t,1,gr] >= 0.1 .and. tmp[(t-1),3] >= 10 .and. tmp[(t-1),3] <= 25){
-! 					  
-! 					!  oogenesis[t,1,gr] = (pot_fec_gr[a,t,gr] * ((0.035 * tmp[(t-1),3]) - 0.32))
-! 					  
-! 					!  dev[a,t,(s+1),gr,ge] = floor(oogenesis[t,1,gr]) # Pour les femelles et les males
-! 
-! 					!} else {  
-! 					  
-! 					! oogenesis[t,1,gr] = 0 
-! 					!  dev[a,t,(s+1),gr,ge]  =  oogenesis[t,1,gr] 
-! 
-! 					!} # fin de la pondaison
-! 					
-! 			!end if ! Fin de la condition Adulte 
-! 
+subroutine oviposition(year,i,j,d,tmean,famass,massegg,neggi)
+
+implicit none
+
+!arguments
+
+integer, intent(in) :: year  !year number, for diagnostic output, to be removed later
+integer, intent(in) :: i  !tile index
+integer, intent(in) :: j  !gridcell index
+integer, intent(in) :: d  !day of the year
+
+real(sp), intent(in) :: tmean
+real(sp), intent(in) :: famass
+real(sp), intent(inout) :: neggi
+
+real(sp), dimension(:),   intent(inout) :: massegg  !sex
+
+!local variables
+
+real(sp), parameter :: unitmass = 22.882 !(mg/individual)
+real(sp), parameter :: eggmass  =  0.042 !(mg/egg)
+
+real(sp) :: nfemales
+real(sp) :: neggs
+real(sp) :: oogenesis
+
+!------------------------
+
+nfemales = famass / unitmass
+
+neggs = nfemales * (200. - neggi)
+
+if (tmean > 10. .and. tmean <= 25.) then
+
+		oogenesis = neggs * (0.035 * tmean - 0.32)
+		
+else
+
+		oogenesis = 0.
+
+end if
+
+massegg(:) = massegg(:) + 0.5 * oogenesis * eggmass
+
+neggi = neggi + oogenesis / nfemales
+  
 end subroutine Oviposition
 
 !-----------------------------------------------------------------------------------------------------------------------------------------------------
+
+subroutine insectmortality(tmean,lm_ind,mass)
+
+implicit none
+
+real(sp), dimension(:,:,:), intent(inout) :: mass
+real(sp), dimension(:,:,:), intent(inout) :: energy
+
+real(sp), parameter :: a0 = 2.1571
+real(sp), parameter :: a1 = 8.6623e-11
+real(sp), parameter :: a2 = 6.5241
+
+real(sp), dimension(nistage,nisex) :: scons
+
+!-----------------------------
+
+! Parameters for consumption FEMALES     
+!             L2o     L2     L3     L4     L5     L6f  pupaf  adult    egg     L1 
+scons(:,1) = [ 0.,  1.53,  6.11, 17.22, 31.84, 271.83,    0.,    0.,     0.,   0. ]
+
+! Parameters for consumption MALES     
+!             L2o     L2     L3     L4     L5    L6f  pupaf  adult    egg     L1 
+scons(:,2) = [ 0.,  1.71,  6.85, 11.02, 27.68, 150.42,    0.,    0.,     0.,   0. ]
+
+
+!temperature mortality - kill all mass in all stages except L2o when temperature is less than -10C
+
+if (tmean < -10.) mass(2:,:,:)
+
+!energy balance accounting
+
+eloss = a1 * tmean**a2 / a0
+
+fcons = 
+
+egain = 
+
+energy = max(energy - eloss,0.)
+
+where (energy == 0.) mass = 0.
+
+end subroutine insectmortality
+
+!-----------------------------------------------------------------------------------------------------------------------------------------------------
+
 end module budwormmod

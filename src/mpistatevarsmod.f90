@@ -176,6 +176,7 @@ type subgrid
   !insect mass
   real(sp), dimension(nistage,nisex,nirep) :: insectstate   !fraction of life stage completed (0-1)
   real(sp), dimension(nistage,nisex,nirep) :: insectmass    !biomass of insects in each life stage (mg/m2)
+  real(sp), dimension(nistage,nisex,nirep) :: insectenergy  !fractional energetic state of the insect (0-1)
 
 end type subgrid !14 + 2 + 216 + 27 + 243 + 6 + 25 + 20 + 20 = 573
 
@@ -357,7 +358,11 @@ forall (k = 1:nirep)
       sv%tile%insectmass(i,j,k)  = 0.
     end forall
 
-    sv%tile%insectmass(i,j,1) = 0.03  !initialization mass of 1 l20 spruce budworm (mg)
+    !initialization mass of 1 l2o spruce budworm per m2 of leaf area
+    !assume: initial LAI of 3 and L2o budworm mass (0.042 mg per worm)
+    !0.042 * 3 = 0.126 / 2 for sex = 0.063 (starting mass)
+
+    sv%tile%insectmass(i,j,1) = 0.063
 
   end forall
 end forall
