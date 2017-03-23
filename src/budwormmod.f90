@@ -1,15 +1,5 @@
 module budwormmod
 
-use parametersmod,    only : sp,dp,npft,nistage,nisex,nirep
-
-implicit none
-
-public  :: RateDevelopment
-public  :: DevelopmentStatus
-public  :: Oviposition
-
-contains
-
 !-----------------------------------------------------------------------------------------------------------------------------------------------------
 
 !!!!!!!!! SUMMARY OF THIS MODULE 
@@ -27,7 +17,108 @@ contains
 !s == 6  : L6Male / s == 7  : L6Female / s == 8  : PupaMale / s == 9  : PupaFemale   / s == 10 : Adult
 !s == 11 : Egg    / s == 12 : L1
 
-subroutine RateDevelopment(year,i,j,d,met,osv,rate,tmean)
+!-----------------------------------------------------------------------------------------------------------------------------------------------------
+
+use parametersmod,    only : sp,dp,npft,nistage,nisex,nirep
+
+implicit none
+
+public :: insect_init
+public :: insect_develrate
+public :: insect_growth
+public :: insect_updatestate
+public :: insect_layeggs
+
+!parameters used in the different subroutines below
+!development parameters
+ 
+real(sp), dimension(nistage,nisex) :: b1
+real(sp), dimension(nistage,nisex) :: b2
+real(sp), dimension(nistage,nisex) :: b3
+real(sp), dimension(nistage,nisex) :: b4
+real(sp), dimension(nistage,nisex) :: Tb
+real(sp), dimension(nistage,nisex) :: Tm
+
+real(sp), dimension(nistage) :: survi
+
+real(sp), dimension(nistage,nisex) :: scons
+real(sp), dimension(nistage,nisex) :: indmass
+real(sp), dimension(nistage,nisex) :: b2l
+
+integer, parameter :: diagfid = 73  !unit number for diagnostic output file, can be any number but don't choose <= 10
+
+logical :: bavard
+
+contains
+
+!-----------------------------------------------------------------------------------------------------------------------------------------------------
+
+subroutine insect_init(bavard)
+
+implicit none
+
+logical, intent(in) :: bavard
+
+!subroutine to initialize parameters
+
+!--------------------------------------------------------------------
+!could move this variable assignment somewhere else so it is only called once at the beginning of the run
+ 
+! Parameters for development FEMALES     
+!             L2o     L2     L3     L4     L5    L6f  pupaf  adult    egg     L1 
+b1(:,1) = [ 0.194, 0.910, 0.430, 1.210, 0.269, 0.317, 0.205,  57.8, 0.228, 0.277]
+b2(:,1) = [   3.0,  2.91,  3.06,   3.8,  3.02,  3.06,  2.85, -3.08,  3.12, 32.14]
+b3(:,1) = [  5.84,  5.32,  6.85,  7.55,  8.57,  4.66,  6.28, 0.045,  5.94, 11.63]
+b4(:,1) = [ 0.034, 0.061, 0.061, 0.148, 0.005, 0.136, 0.044,   0.0, 0.073,   0.0]
+Tb(:,1) = [   2.5,   4.4,   4.4,   4.4,   4.4,   4.4,   4.4,   8.0,   6.0,   6.2]
+Tm(:,1) = [  35.0,  38.0,  38.0,  38.0,  38.0,  38.0,  35.0,  35.0,  35.0,  40.0]
+
+! Parameters for development MALES       
+!             L2o     L2     L3     L4     L5    L6m  pupam  adult    egg     L1 
+b1(:,2) = [ 0.194, 0.910, 0.430, 1.210, 0.269,  0.28, 0.259,  57.8, 0.228, 0.277]
+b2(:,2) = [   3.0,  2.91,  3.06,   3.8,  3.02,  2.67,  2.75, -3.08,  3.12, 32.14]
+b3(:,2) = [  5.84,  5.32,  6.85,  7.55,  8.57,  5.03,  4.66, 0.045,  5.94, 11.63]
+b4(:,2) = [ 0.034, 0.061, 0.061, 0.148, 0.005, 0.151, 0.053,   0.0, 0.073,   0.0]
+Tb(:,2) = [   2.5,   4.4,   4.4,   4.4,   4.4,   4.4,   4.4,   8.0,   6.0,   6.2]
+Tm(:,2) = [  35.0,  38.0,  38.0,  38.0,  38.0,  38.0,  35.0,  35.0,  35.0,  40.0]
+
+! stage-specific consumption FEMALES (mg foliage mass / individual, for the entire stage)
+!             L2o     L2     L3     L4     L5     L6f  pupaf  adult    egg     L1 
+scons(:,1) = [ 0.,  1.53,  6.11, 17.22, 31.84, 271.83,    0.,    0.,     0.,   0. ]
+
+! stage-specific consumption MALES (mg foliage mass / individual, for the entire stage)
+!             L2o     L2     L3     L4     L5    L6f  pupaf  adult    egg   L1 
+scons(:,2) = [ 0.,  1.71,  6.85, 11.02, 27.68, 150.42,   0.,    0.,    0.,   0. ]
+
+! mean individual mass FEMALES (mg)
+!                 L2o    L2    L3    L4    L5    L6f  pupaf  adult    egg    L1 
+indmass(:,1) = [ 0.04, 0.04, 0.04,  0.3, 0.93,  3.92, 29.98, 20.48,  0.04, 0.04 ]
+
+! mean individual mass MALES (mg)
+!                 L2o    L2    L3    L4    L5  L6f    pupaf  adult    egg    L1 
+indmass(:,1) = [ 0.04, 0.04, 0.04, 0.32, 0.72, 3.5,   16.26,  9.95,  0.04, 0.04 ]
+
+! bodymass gain per leafmass consumed FEMALES (mg / mg) (empirical estimate)
+!             L2o     L2     L3     L4     L5    L6f  pupaf  adult    egg   L1 
+b2l(:,1) = [ 0., 0.026, 0.036, 0.037, 0.094, 0.096, 0., 0., 0., 0. ]
+
+! bodymass gain per leafmass consumed FEMALES (mg / mg) (empirical estimate)
+!             L2o     L2     L3     L4     L5    L6f  pupaf  adult    egg   L1 
+b2l(:,2) = [ 0., 0.023, 0.035, 0.036, 0.1, 0.085, 0., 0., 0., 0. ]
+
+! Survival rate modifier for attrition mode 
+!                  L2o     L2     L3    L4     L5    L6    pupa  adult    egg   L1 
+survi = [ 1.0,  0.79,  0.73, 0.62,   0.4, 0.66,   1.0,   0.39,  1.0,   1.0 ]
+
+!----
+
+if (bavard) open(73,file='budworm_diagnostics.txt',status='unknown')
+
+end subroutine insect_init
+
+!-----------------------------------------------------------------------------------------------------------------------------------------------------
+
+subroutine insect_develrate(year,i,j,d,met,osv,rate,tmean)
 
 use parametersmod,   only : pft
 use weathergenmod,   only : metvars_out
@@ -65,36 +156,6 @@ integer :: g
 
 real(sp) :: tau				! Variable 2 pour calcul du taux de developpement
  
-!development parameters
- 
-real(sp), dimension(nistage,nisex) :: b1
-real(sp), dimension(nistage,nisex) :: b2
-real(sp), dimension(nistage,nisex) :: b3
-real(sp), dimension(nistage,nisex) :: b4
-real(sp), dimension(nistage,nisex) :: Tb
-real(sp), dimension(nistage,nisex) :: Tm
-
-!--------------------------------------------------------------------
-!could move this variable assignment somewhere else so it is only called once at the beginning of the run
- 
-! Parameters for development FEMALES     
-!             L2o     L2     L3     L4     L5    L6f  pupaf  adult    egg     L1 
-b1(:,1) = [ 0.194, 0.910, 0.430, 1.210, 0.269, 0.317, 0.205,  57.8, 0.228, 0.277]
-b2(:,1) = [   3.0,  2.91,  3.06,   3.8,  3.02,  3.06,  2.85, -3.08,  3.12, 32.14]
-b3(:,1) = [  5.84,  5.32,  6.85,  7.55,  8.57,  4.66,  6.28, 0.045,  5.94, 11.63]
-b4(:,1) = [ 0.034, 0.061, 0.061, 0.148, 0.005, 0.136, 0.044,   0.0, 0.073,   0.0]
-Tb(:,1) = [   2.5,   4.4,   4.4,   4.4,   4.4,   4.4,   4.4,   8.0,   6.0,   6.2]
-Tm(:,1) = [  35.0,  38.0,  38.0,  38.0,  38.0,  38.0,  35.0,  35.0,  35.0,  40.0]
-
-! Parameters for development MALES       
-!             L2o     L2     L3     L4     L5    L6m  pupam  adult    egg     L1 
-b1(:,2) = [ 0.194, 0.910, 0.430, 1.210, 0.269,  0.28, 0.259,  57.8, 0.228, 0.277]
-b2(:,2) = [   3.0,  2.91,  3.06,   3.8,  3.02,  2.67,  2.75, -3.08,  3.12, 32.14]
-b3(:,2) = [  5.84,  5.32,  6.85,  7.55,  8.57,  5.03,  4.66, 0.045,  5.94, 11.63]
-b4(:,2) = [ 0.034, 0.061, 0.061, 0.148, 0.005, 0.151, 0.053,   0.0, 0.073,   0.0]
-Tb(:,2) = [   2.5,   4.4,   4.4,   4.4,   4.4,   4.4,   4.4,   8.0,   6.0,   6.2]
-Tm(:,2) = [  35.0,  38.0,  38.0,  38.0,  38.0,  38.0,  35.0,  35.0,  35.0,  40.0]
-
 !--------------------------------------------------------------------
 !Enregistrement des temperetures MIN & MAX
 
@@ -136,16 +197,16 @@ do g = 1,nisex
 		end do
 end do
 
-select case(d)
-case(150)
-  write(0,*)'tau',year,d,tmin,tmax,tmean,tau
-  write(0,*)'rate',year,d,tmin,tmax,tmean,rate 
-end select
+if (bavard) then
+  write(diagfid,*)'tau',year,d,tmin,tmax,tmean,tau
+  write(diagfid,*)'rate',year,d,tmin,tmax,tmean,rate 
+end if
 
-end subroutine RateDevelopment
+end subroutine insect_develrate
 
 !-----------------------------------------------------------------------------------------------------------------------------------------------------
-subroutine DevelopmentStatus(year,i,j,d,rate,state,mass)
+
+subroutine insect_updatestate(year,i,j,d,rate,state,mass,energy)
 
 implicit none
 
@@ -206,7 +267,7 @@ do r = 1,nirep
 								if (s /= 8) then  !do in all cases except the adult --> egg transition (stage 8-9)
 								  mass(ns,g,r)   = mass(s,g,r)
 								  energy(ns,g,r) = energy(s,g,r)
-						  end do
+						  end if
 
 								mass(s,g,r)    = 0.
 								energy(s,g,r)  = 0.
@@ -223,10 +284,11 @@ do r = 1,nirep
 		end do
 end do
 
-end subroutine DevelopmentStatus
+end subroutine insect_updatestate
 
 !-----------------------------------------------------------------------------------------------------------------------------------------------------
-subroutine oviposition(year,i,j,d,tmean,famass,massegg,neggi)
+
+subroutine insect_layeggs(year,i,j,d,tmean,famass,massegg,neggi)
 
 implicit none
 
@@ -272,51 +334,113 @@ massegg(:) = massegg(:) + 0.5 * oogenesis * eggmass
 
 neggi = neggi + oogenesis / nfemales
   
-end subroutine Oviposition
+end subroutine insect_layeggs
 
 !-----------------------------------------------------------------------------------------------------------------------------------------------------
 
-subroutine insectmortality(tmean,lm_ind,mass)
+subroutine insect_growth(tmean,rate,state,mass,energy,leafmass)
 
 implicit none
 
+!arguments
+real(sp), intent(in) :: tmean
+real(sp), intent(in) :: leafmass
+real(sp), dimension(:,:),   intent(inout) :: rate
+real(sp), dimension(:,:,:), intent(inout) :: state
 real(sp), dimension(:,:,:), intent(inout) :: mass
 real(sp), dimension(:,:,:), intent(inout) :: energy
+
+!parameters
 
 real(sp), parameter :: a0 = 2.1571
 real(sp), parameter :: a1 = 8.6623e-11
 real(sp), parameter :: a2 = 6.5241
 
-real(sp), dimension(nistage,nisex) :: scons
+real(sp), parameter :: specenergy = 5.  !cal per mg foliage mass
 
-!-----------------------------
+!local variables
 
-! Parameters for consumption FEMALES     
-!             L2o     L2     L3     L4     L5     L6f  pupaf  adult    egg     L1 
-scons(:,1) = [ 0.,  1.53,  6.11, 17.22, 31.84, 271.83,    0.,    0.,     0.,   0. ]
+integer :: r
+integer :: g
+integer :: s
 
-! Parameters for consumption MALES     
-!             L2o     L2     L3     L4     L5    L6f  pupaf  adult    egg     L1 
-scons(:,2) = [ 0.,  1.71,  6.85, 11.02, 27.68, 150.42,    0.,    0.,     0.,   0. ]
+real(sp) :: fcons
+real(sp) :: eloss
 
+real(sp), dimension(nistage,nisex,nirep) :: nindiv
+real(sp), dimension(nistage,nisex,nirep) :: potcons
+real(sp), dimension(nistage,nisex,nirep) :: actcons
+real(sp), dimension(nistage,nisex,nirep) :: egain
 
+!-------------------------------------------------------------------------------------------------
 !temperature mortality - kill all mass in all stages except L2o when temperature is less than -10C
 
-if (tmean < -10.) mass(2:,:,:)
+if (tmean < -10.) then 
 
-!energy balance accounting
+  mass(2:,:,:) = 0.
+  energy(2:,:,:) = 0.
 
-eloss = a1 * tmean**a2 / a0
+  return
 
-fcons = 
+end if
 
-egain = 
+!----
+!energy loss and survival mode for low and high temperatures
 
-energy = max(energy - eloss,0.)
+eloss = a1 * tmean**a2 / a0  !(cal)
+
+if (tmean <= 2.5 .or. tmean >= 32) then
+
+  !calculate energy loss and quit the subroutine
+  
+  energy = energy - eloss
+
+  return  !no growth can happen on this day if temperatures are outside of range development and eaten foliage
+  
+end if
+
+!----
+!normal growth
+
+
+!estimate number of individuals
+
+do g = 1,nirep
+
+  nindiv(:,:,g) = mass(:,:,g) / indmass
+
+  potcons(:,:,g) = nindiv(:,:,g) * scons * rate
+
+end do
+
+!calculate actual consumption as a function of available leaf mass
+!requires leafmass in terms of total dry mass leaf mass per m2
+
+fcons = min(leafmass,sum(potcons)) / sum(potcons) 
+
+actcons = fcons * potcons  !(mg m-2)
+
+!increment insect mass and energy as a function of consumption
+
+do g = 1,nirep
+  mass(:,:,g) = mass(:,:,g) + actcons(:,:,g) * b2l
+end do
+
+egain = actcons / nindiv * specenergy  !(mg m-2 / ind m-2 * cal mg-1 = cal ind-1)
+
+energy = max(energy + egain - eloss,0.)  !(cal)
+
+!assume everything dies if the energy supply runs out
 
 where (energy == 0.) mass = 0.
 
-end subroutine insectmortality
+!adjust the development rate when the foliage supply does not meet demand
+       
+do s = 1,nisex
+  rate(:,s) = rate(:,s) * (1. - fcons) * survi
+end do
+
+end subroutine insect_growth
 
 !-----------------------------------------------------------------------------------------------------------------------------------------------------
 

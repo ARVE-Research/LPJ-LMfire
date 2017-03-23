@@ -11,7 +11,7 @@ contains
 subroutine lpjcore(in,osv)
 
 use parametersmod,    only : sp,dp,npft,ncvar,ndaymonth,midday,pftpar,pft, &
-                             lm_sapl,sm_sapl,rm_sapl,hm_sapl,sla,          &
+                             lm_sapl,sm_sapl,rm_sapl,hm_sapl,sla,omcf,     &
                              allom1,allom2,allom3,latosa,wooddens,reinickerp,lutype,climbuf,nhclass,nistage,nisex,nirep
 use mpistatevarsmod,  only : inputdata,statevars
 use weathergenmod,    only : metvars_in,metvars_out,rmsmooth,weathergen_driver,daily
@@ -19,7 +19,7 @@ use radiationmod,     only : elev_corr,calcPjj,radpet
 use alccmod,          only : harvest,alcc,tile_landuse
 use bioclimmod,       only : climate20,bioclim
 use spitfiremod,      only : spitfire,burnedbiomass,managedburn
-use budwormmod,       only : RateDevelopment,DevelopmentStatus, Oviposition
+use budwormmod,       only : insect_init,insect_develrate,insect_growth,insect_updatestate,insect_layeggs
 use snowmod,          only : snow
 use hetrespmod,       only : littersom2,hetresp
 use lightmod,         only : light
@@ -120,7 +120,7 @@ real(sp) :: treefrac
 
 real(sp), dimension(7) :: soilpar
 real(sp), dimension(nistage,nisex):: rate				! Variable 1 pour calcul du taux de developpement
-logical, dimension(1:5,1:12):: presentTBE 			! Variable 2 pour calcul du taux de developpement
+real(sp) :: leafmass
 
 !real, dimension(npft) :: gpp_temp
 !real, dimension(npft) :: npp_temp
@@ -301,6 +301,7 @@ integer, dimension(12) :: nosnowdays		!number of days in a month with temp > 0. 
 !insect classes
 real(sp), pointer, dimension(:,:,:) :: insectstate  !fraction of life stage completed (0-1)
 real(sp), pointer, dimension(:,:,:) :: insectmass   !biomass of insects in each life stage (mg/m2)
+real(sp), pointer, dimension(:,:,:) :: insectenergy   !biomass of insects in each life stage (mg/m2)
 
 
 !additional local variables
@@ -528,6 +529,9 @@ if (year == 1) then
   gdd_buf       = -9999.
   mtemp_min_buf = -9999.
   eggmass = 0.
+
+  call insect_init(.true.)   !true or false depending on whether or not you want diagnostic output to text file
+
 end if
 
 !END HANDLE OLD-STYLE STATEVARS ARRAYS
@@ -643,6 +647,7 @@ do i = 1,3 !ntiles
   mBBpft           => osv%tile(i)%mBBpft
   mburnedf	   => osv%tile(i)%mburnedf
   insectmass  	   => osv%tile(i)%insectmass
+  insectenergy  	   => osv%tile(i)%insectenergy
 
   !--------------------------------------------------------------------------------------
   !initializations (needed?)
@@ -949,46 +954,51 @@ do i = 1,3 !ntiles
   !----------------------------------------------------------------------------------------------------------------------
   !Spruce budworm insect outbreak
   
-  !calculate final leafmass increment
+  !calculate total standing leaf mass (could be PFT specific)
 
-	d = 1
-	do m = 1,12
-		do dm = 1,ndaymonth(m)
+  leafmass = sum(nind * lm_ind(:,1)) * 1000 * omcf !mass dry matter in mg m-2
+
+		d = 1
+		do m = 1,12
+				do dm = 1,ndaymonth(m)
+
+						call insect_develrate(year,i,j,d,met_out(d),osv,rate,tmean) 		! Calculate the rate development of each stages for each day temperature 
+
+						call insect_growth(tmean,rate,insectstate,insectmass,insectenergy,leafmass)
+					
+						do g = 1,nirep
+
+								if (sum(eggmass(:,g)) == 0.) neggi(g) = 0.
+						
+								famass = insectmass(8,1,g)  !mass of adult females
+
+								if (famass > 0. .and. insectstate(8,1,g) > 0.0666) then
+										call insect_layeggs(year,i,j,d,tmean,famass,eggmass(:,g),neggi(g))
+								end if
+						
+								!call insectmortality()
+						
+								if (insectmass(8,1,g) == 0. .or. neggi(g) >= 200.) then
+
+										!allow eggs to start development
+
+										insectmass(9,:,g) = eggmass(:,g)
+										insectenergy(9,:,g) = 2.1571
+								
+										eggmass(:,g) = 0.
+								
+								end if
+
+						end do
+
+					call insect_updatestate(year,i,j,d,rate,insectstate,insectmass,insectenergy)				! Calculate the state of development for each stages in 5 groups
 				
-				call RateDevelopment(year,i,j,d,met_out(d),osv,rate,tmean) 		! Calculate the rate development of each stages for each day temperature 
-			
-				call DevelopmentStatus(year,i,j,d,rate,insectstate,insectmass)				! Calculate the state of development for each stages in 5 groups
-				
-				do g = 1,nirep
-
-  				if (sum(eggmass(:,g)) == 0.) neggi(g) = 0.
-  				
-  				famass = insectmass(8,1,g)  !mass of adult females
-
-  				if (famass > 0. .and. insectstate(8,1,g) > 0.0666) then
- 				   call oviposition(year,i,j,d,tmean,famass,eggmass(:,g),neggi(g))
-			   end if
-			   
-			   !call insectmortality()
-			   
-			   if (insectmass(8,1,g) == 0. .or. neggi(g) >= 200.) then
-
-			     !allow eggs to start development
-
-			     insectmass(9,:,g) = eggmass(:,g)
-			     insectenergy(9,:,g) = 1.
-			     
-			     eggmass(:,g) = 0.
-			     
-	     end if
-
-	   end do
-				
-			d = d + 1
+				d = d + 1
+			end do
 		end do
-	end do
 
-  !---------------------------------------------------------------------------- 
+  !----------------------------------------------------------------------------------------------------------------------
+  !fire
   
 !  goto 20
   

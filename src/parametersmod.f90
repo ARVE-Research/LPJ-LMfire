@@ -77,6 +77,8 @@ integer, parameter, dimension(12) :: firstday  = [ 1, 32,60, 91,121,152,182,213,
 integer, parameter, dimension(12) :: midday    = [ 16,44,75,105,136,166,197,228,258,289,319,350 ]  !day number of mid-month day
 integer, parameter, dimension(12) :: ndaymonth = [ 31,28,31, 30, 31, 30, 31, 31, 30, 31, 30, 31 ]  !number of days in each month
 
+real(sp), parameter :: omcf = 1.724  !conversion factor from organic carbon to organic matter
+
 !-----------------------------------------------------------------------------------------------
 !parameters for the insect (spruce budworm) module
 

@@ -356,13 +356,15 @@ forall (k = 1:nirep)
     forall (i = 1:nistage)
       sv%tile%insectstate(i,j,k) = 0.
       sv%tile%insectmass(i,j,k)  = 0.
+      sv%tile%insectenergy(i,j,k)  = 0.
     end forall
 
     !initialization mass of 1 l2o spruce budworm per m2 of leaf area
     !assume: initial LAI of 3 and L2o budworm mass (0.042 mg per worm)
     !0.042 * 3 = 0.126 / 2 for sex = 0.063 (starting mass)
 
-    sv%tile%insectmass(i,j,1) = 0.063
+    sv%tile%insectmass(i,j,1)   = 0.063
+    sv%tile%insectenergy(i,j,1) = 2.1571  !starting calories for L2o
 
   end forall
 end forall
