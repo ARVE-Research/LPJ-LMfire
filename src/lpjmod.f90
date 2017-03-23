@@ -12,7 +12,8 @@ subroutine lpjcore(in,osv)
 
 use parametersmod,    only : sp,dp,npft,ncvar,ndaymonth,midday,pftpar,pft, &
                              lm_sapl,sm_sapl,rm_sapl,hm_sapl,sla,omcf,     &
-                             allom1,allom2,allom3,latosa,wooddens,reinickerp,lutype,climbuf,nhclass,nistage,nisex,nirep
+                             allom1,allom2,allom3,latosa,wooddens,reinickerp,lutype,climbuf,nhclass, &
+                             nistage,nisex,nirep
 use mpistatevarsmod,  only : inputdata,statevars
 use weathergenmod,    only : metvars_in,metvars_out,rmsmooth,weathergen_driver,daily
 use radiationmod,     only : elev_corr,calcPjj,radpet
@@ -121,6 +122,9 @@ real(sp) :: treefrac
 real(sp), dimension(7) :: soilpar
 real(sp), dimension(nistage,nisex):: rate				! Variable 1 pour calcul du taux de developpement
 real(sp) :: leafmass
+
+logical :: doinsect
+
 
 !real, dimension(npft) :: gpp_temp
 !real, dimension(npft) :: npp_temp
@@ -645,9 +649,10 @@ do i = 1,3 !ntiles
   dgrassdt         => osv%tile(i)%dgrassdt
   mLAI             => osv%tile(i)%mLAI
   mBBpft           => osv%tile(i)%mBBpft
-  mburnedf	   => osv%tile(i)%mburnedf
-  insectmass  	   => osv%tile(i)%insectmass
-  insectenergy  	   => osv%tile(i)%insectenergy
+  mburnedf	        => osv%tile(i)%mburnedf
+  insectmass  	    => osv%tile(i)%insectmass
+  insectstate  	   => osv%tile(i)%insectstate
+  insectenergy  	  => osv%tile(i)%insectenergy
 
   !--------------------------------------------------------------------------------------
   !initializations (needed?)
@@ -957,46 +962,60 @@ do i = 1,3 !ntiles
   !calculate total standing leaf mass (could be PFT specific)
 
   leafmass = sum(nind * lm_ind(:,1)) * 1000 * omcf !mass dry matter in mg m-2
+  
+  doinsect = .true.
+  
+  if (doinsect) then
+  
+    !assume that if there is leafmass and no insects in the cell,
+    !some L2o individuals will arrive (coming from outside the gridcell)
+    !assuming a leaf mass of 8500 mg m-2 minimum to attract outside insects
+    
+    if (sum(insectmass(1,:,:)) == 0. .and. leafmass > 8500.) then
+      insectmass(1,:,:)   = 0.063
+      insectenergy(1,:,:) = 2.1571  !starting calories for L2o
+    end if
 
-		d = 1
-		do m = 1,12
-				do dm = 1,ndaymonth(m)
+				d = 1
+				do m = 1,12
+						do dm = 1,ndaymonth(m)
 
-						call insect_develrate(year,i,j,d,met_out(d),osv,rate,tmean) 		! Calculate the rate development of each stages for each day temperature 
+								call insect_develrate(year,i,j,d,met_out(d),osv,rate,tmean) 		! Calculate the rate development of each stages for each day temperature 
 
-						call insect_growth(tmean,rate,insectstate,insectmass,insectenergy,leafmass)
-					
-						do g = 1,nirep
 
-								if (sum(eggmass(:,g)) == 0.) neggi(g) = 0.
+								call insect_growth(tmean,rate,insectstate,insectmass,insectenergy,leafmass)
 						
-								famass = insectmass(8,1,g)  !mass of adult females
+								do g = 1,nirep
 
-								if (famass > 0. .and. insectstate(8,1,g) > 0.0666) then
-										call insect_layeggs(year,i,j,d,tmean,famass,eggmass(:,g),neggi(g))
-								end if
+										if (sum(eggmass(:,g)) == 0.) neggi(g) = 0.
 						
-								!call insectmortality()
-						
-								if (insectmass(8,1,g) == 0. .or. neggi(g) >= 200.) then
+										famass = insectmass(8,1,g)  !mass of adult females
 
-										!allow eggs to start development
+										if (famass > 0. .and. insectstate(8,1,g) > 0.0666) then
+												call insect_layeggs(year,i,j,d,tmean,famass,eggmass(:,g),neggi(g))
+										end if
 
-										insectmass(9,:,g) = eggmass(:,g)
-										insectenergy(9,:,g) = 2.1571
+										if (insectmass(8,1,g) == 0. .or. neggi(g) >= 200.) then
+
+												!allow eggs to start development
+
+												insectmass(9,:,g) = eggmass(:,g)
+												insectenergy(9,:,g) = 2.1571
 								
-										eggmass(:,g) = 0.
+												eggmass(:,g) = 0.
 								
-								end if
+										end if
 
-						end do
+								end do
 
-					call insect_updatestate(year,i,j,d,rate,insectstate,insectmass,insectenergy)				! Calculate the state of development for each stages in 5 groups
+							call insect_updatestate(year,i,j,d,rate,insectstate,insectmass,insectenergy)				! Calculate the state of development for each stages in 5 groups
 				
-				d = d + 1
-			end do
-		end do
+						d = d + 1
+					end do
+				end do
 
+  end if
+  		
   !----------------------------------------------------------------------------------------------------------------------
   !fire
   

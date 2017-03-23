@@ -362,9 +362,11 @@ forall (k = 1:nirep)
     !initialization mass of 1 l2o spruce budworm per m2 of leaf area
     !assume: initial LAI of 3 and L2o budworm mass (0.042 mg per worm)
     !0.042 * 3 = 0.126 / 2 for sex = 0.063 (starting mass)
+    
+    !now not done here because we will initialize in LPJmod under appropriate conditions for colonization
 
-    sv%tile%insectmass(i,j,1)   = 0.063
-    sv%tile%insectenergy(i,j,1) = 2.1571  !starting calories for L2o
+!     sv%tile%insectmass(1,j,k)   = 0.063
+!     sv%tile%insectenergy(1,j,k) = 2.1571  !starting calories for L2o
 
   end forall
 end forall

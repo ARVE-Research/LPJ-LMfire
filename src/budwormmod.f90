@@ -53,11 +53,13 @@ contains
 
 !-----------------------------------------------------------------------------------------------------------------------------------------------------
 
-subroutine insect_init(bavard)
+subroutine insect_init(dobavard)
 
 implicit none
 
-logical, intent(in) :: bavard
+logical, intent(in) :: dobavard
+
+bavard = dobavard
 
 !subroutine to initialize parameters
 
@@ -96,7 +98,7 @@ indmass(:,1) = [ 0.04, 0.04, 0.04,  0.3, 0.93,  3.92, 29.98, 20.48,  0.04, 0.04 
 
 ! mean individual mass MALES (mg)
 !                 L2o    L2    L3    L4    L5  L6f    pupaf  adult    egg    L1 
-indmass(:,1) = [ 0.04, 0.04, 0.04, 0.32, 0.72, 3.5,   16.26,  9.95,  0.04, 0.04 ]
+indmass(:,2) = [ 0.04, 0.04, 0.04, 0.32, 0.72, 3.5,   16.26,  9.95,  0.04, 0.04 ]
 
 ! bodymass gain per leafmass consumed FEMALES (mg / mg) (empirical estimate)
 !             L2o     L2     L3     L4     L5    L6f  pupaf  adult    egg   L1 
@@ -112,7 +114,7 @@ survi = [ 1.0,  0.79,  0.73, 0.62,   0.4, 0.66,   1.0,   0.39,  1.0,   1.0 ]
 
 !----
 
-if (bavard) open(73,file='budworm_diagnostics.txt',status='unknown')
+if (bavard) open(diagfid,file='budworm_diagnostics.txt',status='unknown')
 
 end subroutine insect_init
 
@@ -197,10 +199,10 @@ do g = 1,nisex
 		end do
 end do
 
-if (bavard) then
-  write(diagfid,*)'tau',year,d,tmin,tmax,tmean,tau
-  write(diagfid,*)'rate',year,d,tmin,tmax,tmean,rate 
-end if
+! if (bavard) then
+!   write(diagfid,*)'tau',year,d,tmin,tmax,tmean,tau
+!   write(diagfid,*)'rate',year,d,tmin,tmax,tmean,rate 
+! end if
 
 end subroutine insect_develrate
 
@@ -233,6 +235,8 @@ integer :: g   !gender
 integer :: s   !stage
 integer :: ns
 
+real(sp) :: rrate !realized rate, set to 0 for L2o cohorts that are not yet developing
+
 real(sp) :: excess
 
 !-----------------------------------------------------------------
@@ -250,10 +254,20 @@ do r = 1,nirep
       ns = s+1  
       
       if (ns > nistage) ns = 1
+						
+						if (s == 1 .and. r > 1) then
+						  if (sum(state(:,g,r-1)) < 0.15 .and. state(1,g,r) == 0.) then
+						    rrate = 0.
+  				  else
+								  rrate = rate(s,g)
+						  end if
+				  else
+						  rrate = rate(s,g)
+				  end if
 
 						!account for increase in development stage
 
-						state(s,g,r) = state(s,g,r) + rate(s,g)
+						state(s,g,r) = state(s,g,r) + rrate
 				
 						!check if development stage is completed, if yes, roll biomass up to next stage
 				
@@ -283,6 +297,17 @@ do r = 1,nirep
 				end do
 		end do
 end do
+
+if (bavard) then
+  if (any(mass > 0.)) then
+    write(diagfid,*)year,d
+    write(diagfid,10)'1st',mass(:,1,1)
+    write(diagfid,10)'2nd',mass(:,1,2)
+  end if
+  
+   10 format(a,10f15.4)
+  
+end if
 
 end subroutine insect_updatestate
 
@@ -352,7 +377,7 @@ real(sp), dimension(:,:,:), intent(inout) :: energy
 
 !parameters
 
-real(sp), parameter :: a0 = 2.1571
+! real(sp), parameter :: a0 = 2.1571
 real(sp), parameter :: a1 = 8.6623e-11
 real(sp), parameter :: a2 = 6.5241
 
@@ -387,7 +412,11 @@ end if
 !----
 !energy loss and survival mode for low and high temperatures
 
-eloss = a1 * tmean**a2 / a0  !(cal)
+if (tmean > 0.) then
+  eloss = a1 * tmean**a2 !(cal)
+else
+  eloss = 0.
+end if
 
 if (tmean <= 2.5 .or. tmean >= 32) then
 
@@ -402,7 +431,6 @@ end if
 !----
 !normal growth
 
-
 !estimate number of individuals
 
 do g = 1,nirep
@@ -416,7 +444,11 @@ end do
 !calculate actual consumption as a function of available leaf mass
 !requires leafmass in terms of total dry mass leaf mass per m2
 
-fcons = min(leafmass,sum(potcons)) / sum(potcons) 
+if (sum(potcons) > 0.) then
+  fcons = min(leafmass,sum(potcons)) / sum(potcons) 
+else
+  fcons = 0.
+end if  
 
 actcons = fcons * potcons  !(mg m-2)
 
@@ -426,7 +458,11 @@ do g = 1,nirep
   mass(:,:,g) = mass(:,:,g) + actcons(:,:,g) * b2l
 end do
 
-egain = actcons / nindiv * specenergy  !(mg m-2 / ind m-2 * cal mg-1 = cal ind-1)
+where (nindiv > 0.)
+  egain = actcons / nindiv * specenergy  !(mg m-2 / ind m-2 * cal mg-1 = cal ind-1)
+elsewhere
+  egain = 0.
+end where
 
 energy = max(energy + egain - eloss,0.)  !(cal)
 
@@ -435,7 +471,7 @@ energy = max(energy + egain - eloss,0.)  !(cal)
 where (energy == 0.) mass = 0.
 
 !adjust the development rate when the foliage supply does not meet demand
-       
+
 do s = 1,nisex
   rate(:,s) = rate(:,s) * (1. - fcons) * survi
 end do
