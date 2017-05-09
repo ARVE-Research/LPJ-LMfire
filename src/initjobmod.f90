@@ -229,6 +229,7 @@ write(0,*) 'Done reading topofile'
 
 if (co2file /= '') then
   write(0,'(a,a)')'using co2file: ',trim(co2file)
+  write(0,*)cal_year,transientyears
   call getco2(cal_year,transientyears)
 else
   co2vect = fixedco2

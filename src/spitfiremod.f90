@@ -418,6 +418,12 @@ aMx            => osv%tile(i)%aMx
 cumfires       => osv%tile(i)%cumfires
 
 !------------------
+
+if (bavard) then
+  write(*,'(a,2i5,4f7.2)')'MET',year,d,met%prec,met%tmin,met%tmax,met%lght
+end if
+
+!------------------
 !annual stats
 
 !write(0,'(a,9f12.2)') 'height:', height

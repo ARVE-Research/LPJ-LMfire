@@ -148,7 +148,7 @@ end if
 !     ibuf(i,:)%lat = ibuf(1,:)%lat
 !   end do
 
-write(*,*) 'je bug 1'
+!write(*,*) 'je bug 1'
 
 ibuf%lon = geolon
 ibuf%lat = geolat

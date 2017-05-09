@@ -47,6 +47,8 @@ integer, allocatable, dimension(:) :: times
 
 integer(i1) :: flag
 
+character(10) :: projectedgrid
+
 !-------------------------
 !generate file names. Regardless of the path name the input files must always have these names.
 
@@ -135,9 +137,11 @@ end if
 !--------------------------
 !check if the grid is a projected grid. If yes, read geodetic longitude and latitude into arrays and fix the cell area
 
-ncstat = nf90_get_att(soilfid,nf90_global,'projected_grid',flag)
+ncstat = nf90_get_att(soilfid,nf90_global,'ProjectedGrid',projectedgrid)
 
-if (ncstat == nf90_enotatt .or. flag == 0) then
+! write(0,*)'projected grid',projectedgrid
+
+if (ncstat == nf90_enotatt .or. trim(projectedgrid) /= 'true') then
   projgrid = .false.
 else
   projgrid = .true.
@@ -147,7 +151,7 @@ else
   allocate(geolon(cntx,cnty))
   allocate(geolat(cntx,cnty))
 
-  ncstat = nf90_inq_varid(soilfid,'geolong',varid)
+  ncstat = nf90_inq_varid(soilfid,'geolon',varid)
   if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
   ncstat = nf90_get_var(soilfid,varid,geolon,start=[srtx,srty],count=[cntx,cnty])

@@ -126,8 +126,6 @@ itime = 1 + 12 * (lyear - 1)
 
 call calcorbitpars(cal_year,orbit)
 
-call getclimate(itime,time0)
-
 if (year == 1 .or..not.in_master(1)%spinup) then  !we need to get annual topo data
   call gettopo(year,cal_year)
 
@@ -152,6 +150,8 @@ if (year == 1 .or..not.in_master(1)%spinup) then  !we need to get annual topo da
   end if
 
 end if
+
+call getclimate(itime,time0)
 
 !fill the values of in_master here
 
@@ -187,7 +187,7 @@ do i = 1,ncells
   in_master(i)%climate%cldp = ibuf(x,y)%cldp
   in_master(i)%climate%wetd = ibuf(x,y)%wetd
   in_master(i)%climate%trng = ibuf(x,y)%trng
-  in_master(i)%climate%lght = 10**(ibuf(x,y)%lght) ! Pour la premier simulation on a mis: exp(ibuf(x,y)%lght)
+  in_master(i)%climate%lght = max(ibuf(x,y)%lght,0.)  ! also correct issue with incorrect unpacking, for canada simulations was = 10**(ibuf(x,y)%lght) ! Pour la premier simulation on a mis: exp(ibuf(x,y)%lght)
   in_master(i)%climate%wind = ibuf(x,y)%wind
   in_master(i)%orbit%ecc    = orbit%ecc
   in_master(i)%orbit%pre    = orbit%pre
@@ -295,6 +295,8 @@ do y = 1,cnty
     else
       cellmask(x,y) = .true.
     end if
+
+!     write(0,*)x,y,soil(x,y)%landf,cellmask(x,y)
     
     !if (ibuf(x,y)%temp(1) /= rmissing .and. soil(x,y)%sand(1) >= 0. .and. soil(x,y)%landf > 0.) cellmask(x,y) = .true.  
     
@@ -302,7 +304,6 @@ do y = 1,cnty
 end do
 
 time0 = itime
-
 
 end subroutine getclimate
 

@@ -307,8 +307,8 @@ allocate(iobuf(nelem,bufsize))
 
 tsize = size(iobuf)  !the total number of elements in the array that is passed as a message
 
-write(0,*)'initworker',ntiles,bufsize,nelem,tsize
-!write(0,'(a,f6.1,a)')'worker MPI message size',real(tsize)/1024.,' kB'
+! write(0,*)'initworker',ntiles,bufsize,nelem,tsize
+! write(0,'(a,f6.1,a)')'worker MPI message size',real(tsize)/1024.,' kB'
 
 in%idx = 0
 

@@ -86,7 +86,7 @@ implicit none
 !     23  lower range of temperature optimum for photosynthesis
 !     24  upper range of temperature optimum for photosynthesis
 !     25  high temperature limit for CO2 unptake
-!	  26  optimal Ci/Ca ratio
+!	    26  optimal Ci/Ca ratio
 
 !     BIOCLIMATIC LIMITS
  

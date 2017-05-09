@@ -1023,6 +1023,8 @@ if (FRI20 < 30.) estab(4) = .false.
         mburnedf(m) = 0.
         mBBpft(:,m) = 0.
         
+!         if (lght(m) > 0.) write(*,*)'METVARS MONTH',year,m,temp(m),prec(m),wetd(m),lght(m)
+        
         do dm = 1,ndaymonth(m)
         
           call spitfire(year,i,j,d,in,met_out(d),dw1(d),snowpack(d),dphen(d,:),wscal_v(d,:),osv,spinup,avg_cont_area,burnedf20,forager_pd20,FDI,omega_o0,omega0,BBpft,Ab,hclass)
@@ -1049,7 +1051,7 @@ if (FRI20 < 30.) estab(4) = .false.
 
     else         !option to use old LPJ fire routine
 
-      call fire(pftpar,dtemp,litter_ag_fast,litter_ag_slow,acflux_fire,afire_frac,lm_ind,rm_ind,sm_ind,hm_ind,nind,dw1,present,pft%tree,year)
+!       call fire(pftpar,dtemp,litter_ag_fast,litter_ag_slow,acflux_fire,afire_frac,lm_ind,rm_ind,sm_ind,hm_ind,nind,dw1,present,pft%tree,year)
 
     end if
   end if
