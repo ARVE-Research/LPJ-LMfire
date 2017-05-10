@@ -277,7 +277,7 @@ allocate(cellindex(ncells,3))  !this is a potential maximum. we will check for v
 
 write(0,'(a,i5,a,i5,a,i5)')'input files have:  ',inputlonlen,' columns and',inputlatlen,' rows'
 write(0,'(a,i5,a,i5,a,i8)')'cells to calculate:',cntx,' x',cnty,' =',ncells
-write(*,*)   'starting at:       ',srtx,srty,lonvect(srtx),latvect(srty)
+write(0,'(a,2i5,2f12.1)')  'starting at:       ',srtx,srty,lonvect(srtx),latvect(srty)
 
 write(0,'(a,2f8.4)')'landuse turnover: ',lu_turn_yrs
 

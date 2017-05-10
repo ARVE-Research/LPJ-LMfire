@@ -184,8 +184,8 @@ else
 
   tchunk = chunksizes(3)
 
-  write(*,*) 'tchunk',tchunk
-  write(*,*) 'mmos',mmos
+!   write(*,*) 'tchunk',tchunk
+!   write(*,*) 'mmos',mmos
 
   !calculate an even multiple of the months to hold in memory and the chunksizes
   

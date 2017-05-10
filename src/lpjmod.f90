@@ -12,7 +12,7 @@ subroutine lpjcore(in,osv)
 
 use parametersmod,    only : sp,dp,npft,ncvar,ndaymonth,midday,pftpar,pft, &
                              lm_sapl,sm_sapl,rm_sapl,hm_sapl,sla,          &
-                             allom1,allom2,allom3,latosa,wooddens,reinickerp,lutype,climbuf,nhclass
+                             allom1,allom2,allom3,latosa,wooddens,reinickerp,lutype,climbuf,nhclass,startyr_foragers
 use mpistatevarsmod,  only : inputdata,statevars
 use weathergenmod,    only : metvars_in,metvars_out,rmsmooth,weathergen_driver,daily
 use radiationmod,     only : elev_corr,calcPjj,radpet
@@ -1003,7 +1003,7 @@ if (FRI20 < 30.) estab(4) = .false.
 
 !      write(0,*)osv%annburntarget(1),grasscover,dgrassdt
       
-      if (year > 800) then
+      if (year > startyr_foragers) then
 !        if (grasscover < 0.5 .and. abs(dgrassdt) > 0.01) then
 !          osv%annburntarget(1) = min(osv%annburntarget(1) + 0.05,1.)
 !        else
@@ -1150,7 +1150,7 @@ if (FRI20 < 30.) estab(4) = .false.
 
 !  goto 40
 
-  if (i /= 2 .and. ((spinup .and. year > 100) .or. .not. spinup) .and. in%human%foragerPD > 0.) then 
+  if (i /= 2 .and. ((spinup .and. year > startyr_foragers) .or. .not. spinup) .and. in%human%foragerPD > 0.) then 
     
 !    call foragers(apet,aaet,in%elev,in%lat,grid_npp(1),livebiomass,soilpar(3),temp,prec,mw1,forager_ppd)
     

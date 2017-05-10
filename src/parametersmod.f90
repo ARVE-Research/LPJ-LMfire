@@ -1,11 +1,12 @@
 module parametersmod
 
+use iso_fortran_env, only : input_unit,output_unit,error_unit
+
 implicit none
 
 public :: area
 
 !-----------------------------------------------------------------------------------------------
-
 !type
 
 integer, parameter :: i1 = selected_int_kind(1)
@@ -21,6 +22,10 @@ integer, parameter :: bytes_sp = sizeof(0._sp)
 integer, parameter :: bytes_dp = sizeof(0._dp)
 
 !parameters
+
+integer, parameter :: stdin  = input_unit
+integer, parameter :: stdout = output_unit
+integer, parameter :: stderr = error_unit
  
 integer, parameter :: npft     =  9 
 integer, parameter :: npftpar  = 51
@@ -40,6 +45,8 @@ real, parameter :: latosa     = 8.e3
 real, parameter :: wooddens   = 2.e5  !(g C m-2)  NB this value would actually be typical for total dry mass in some hardwoods, should probably PFT specific
 
 integer, parameter :: maxoutvars = 100   !maximum number of variables for output
+
+integer, parameter :: startyr_foragers = 800  !first year of spinup at which to introduce foragers (to allow vegetation to develop first)
 
 !code for land use type: (1) unmanaged, (2) rainfed crop, (3) regrowing natural vegetation 
 
