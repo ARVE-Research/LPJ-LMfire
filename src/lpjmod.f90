@@ -12,7 +12,7 @@ subroutine lpjcore(in,osv)
 
 use parametersmod,    only : sp,dp,npft,ncvar,ndaymonth,midday,pftpar,pft, &
                              lm_sapl,sm_sapl,rm_sapl,hm_sapl,sla,          &
-                             allom1,allom2,allom3,latosa,wooddens,reinickerp,lutype,climbuf,nhclass,startyr_foragers
+                             allom1,allom2,allom3,latosa,wooddens,reinickerp,lutype,climbuf,nhclass
 use mpistatevarsmod,  only : inputdata,statevars
 use weathergenmod,    only : metvars_in,metvars_out,rmsmooth,weathergen_driver,daily
 use radiationmod,     only : elev_corr,calcPjj,radpet
@@ -297,15 +297,11 @@ real(sp) :: nbl			! normalized boundary length; for boundary between natural and
                                 ! the max. possible boundary length when having a chessboard-type distribution of kernels
 integer(sp) :: allnosnowdays                                  
 
-real(sp) :: clay_mean ! Moyenne du clay dans les differents tiles
-
 real(sp) :: forager_ppd
 real(sp) :: forager_fin
 real(sp) :: forager_fout
 real(sp) :: FDI
 real(sp) :: omega_o0
-
-real(sp) :: FRI20  !20-year mean fire return interval (inverse of burnedf20)
 
 real(sp), dimension(4) :: omega0
 
@@ -676,36 +672,6 @@ do i = 1,3 !ntiles
   !if (i == 2) then
   !  write(0,*)'ag litter -1',litter_ag_fast(8,1),litter_ag_slow(8,1)
   !end if
-
-! ====== NB special conditions for Canada version ONLY =====
-! set up limits to etablishment for special conditions
-
-clay_mean = (osv%tile(i)%soil%clay(1) + osv%tile(i)%soil%clay(3))/2
-
-if (clay_mean >= 20.) estab(1) = .false.
-if (clay_mean >= 13.) estab(3) = .false.
-if (clay_mean >= 18.) estab(4) = .false.
-if (clay_mean >= 23.) estab(8) = .false.
-
-if (afire_frac == 0.) estab(4) = .false.
-
-if (year > 1) then
-
-  burnedf20 = sum(osv%tile(i)%burnedf_buf) / real(climbuf)
-
-		if (burnedf20 > 0.) then
-				FRI20 = 1. / burnedf20
-		else
-				FRI20 = 100000.  !just choose some arbitrary big number
-		end if
-else
-  FRI20 = 100000.
-end if
-
-if (FRI20 < 50.) estab(1) = .false.
-if (FRI20 < 30.) estab(4) = .false.
-
-! ===== end special conditions =====
   
   call establishment(pftpar,present,survive,estab,nind,lm_ind,sm_ind,rm_ind,hm_ind,lm_sapl,sm_sapl,rm_sapl,hm_sapl,pft%tree, &
                      crownarea,fpc_grid,lai_ind,height,sla,wooddens,latosa,prec,reinickerp,litter_ag_fast,litter_ag_slow,litter_bg,  &
@@ -1003,7 +969,7 @@ if (FRI20 < 30.) estab(4) = .false.
 
 !      write(0,*)osv%annburntarget(1),grasscover,dgrassdt
       
-      if (year > startyr_foragers) then
+      if (year > 800) then
 !        if (grasscover < 0.5 .and. abs(dgrassdt) > 0.01) then
 !          osv%annburntarget(1) = min(osv%annburntarget(1) + 0.05,1.)
 !        else
@@ -1022,8 +988,6 @@ if (FRI20 < 30.) estab(4) = .false.
         
         mburnedf(m) = 0.
         mBBpft(:,m) = 0.
-        
-!         if (lght(m) > 0.) write(*,*)'METVARS MONTH',year,m,temp(m),prec(m),wetd(m),lght(m)
         
         do dm = 1,ndaymonth(m)
         
@@ -1051,7 +1015,7 @@ if (FRI20 < 30.) estab(4) = .false.
 
     else         !option to use old LPJ fire routine
 
-!       call fire(pftpar,dtemp,litter_ag_fast,litter_ag_slow,acflux_fire,afire_frac,lm_ind,rm_ind,sm_ind,hm_ind,nind,dw1,present,pft%tree,year)
+      call fire(pftpar,dtemp,litter_ag_fast,litter_ag_slow,acflux_fire,afire_frac,lm_ind,rm_ind,sm_ind,hm_ind,nind,dw1,present,pft%tree,year)
 
     end if
   end if
@@ -1150,7 +1114,7 @@ if (FRI20 < 30.) estab(4) = .false.
 
 !  goto 40
 
-  if (i /= 2 .and. ((spinup .and. year > startyr_foragers) .or. .not. spinup) .and. in%human%foragerPD > 0.) then 
+  if (i /= 2 .and. ((spinup .and. year > 100) .or. .not. spinup) .and. in%human%foragerPD > 0.) then 
     
 !    call foragers(apet,aaet,in%elev,in%lat,grid_npp(1),livebiomass,soilpar(3),temp,prec,mw1,forager_ppd)
     

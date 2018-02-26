@@ -68,7 +68,7 @@ time0 = 0
 write(0,*)'calculating valid pixels'
 call getdata(ncells,1,cal_year,firstyear,time0,in_master)        !returns gs filled with model input for first year as initial condition
 
-write(0,'(a,i20)')'valid pixels at model start: ',count(cellmask)
+write(0,*)'valid pixels at model start: ',count(cellmask)
 
 tpos = 1
 

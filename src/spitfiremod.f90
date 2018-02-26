@@ -113,7 +113,8 @@ end subroutine managedburn
 
 subroutine spitfire(year,i,j,d,input,met,soilwater,snowpack,dphen,wscal,osv,spinup,avg_cont_area,burnedf20,forager_pd20,FDI,omega_o0,omega0,BBpft,Ab,ind)
 
-use parametersmod,   only : pir,npft,pi,pft,pftpar,startyr_foragers
+use parametersmod,   only : pir
+use parametersmod,   only : npft,pi,pft,pftpar
 use weathergenmod,   only : metvars_out
 use mpistatevarsmod, only : inputdata,statevars
 use randomdistmod,   only : randomstate,ranu,rng1,half
@@ -363,9 +364,9 @@ calchumanfire = .false.
 
 !PD    = input%human%popd 
 
-! PD = 0.
+PD = 0.
 
-PD(1) = forager_pd20
+!PD(1) = forager_pd20
 
 !write(0,*) 'Forager PD spitfire: ', year, PD 
 
@@ -415,12 +416,6 @@ height         => osv%tile(i)%height               !vectors across all PFTs
 
 aMx            => osv%tile(i)%aMx
 cumfires       => osv%tile(i)%cumfires
-
-!------------------
-
-if (bavard) then
-  write(*,'(a,2i5,4f7.2)')'MET',year,d,met%prec,met%tmin,met%tmax,met%lght
-end if
 
 !------------------
 !annual stats
@@ -665,12 +660,12 @@ end if
 
 !FLAG=====================
 
-! PD(1) = 0.01
+!PD(1) = 0.01
 
 !FLAG=====================
 
 if (PD(1) > 0.) then
-  people = max(1,int(PD(1) * area * 1.e-6))  !hunter-gatherers  -- 2017.05: in small gridcells, population density can drop below 1 person per cell, force someone to be there if we know people were there
+  people = int(PD(1) * area * 1.e-6)  !hunter-gatherers
   group  = 1
 else if (PD(2) > 0.) then
   people = int(PD(2) * area * 1.e-6)  !farmers
@@ -682,15 +677,16 @@ end if
 
 if (people > 0) people = max(people / 10, 1)   !only every 10th person lights fire unless there are less than 10 people 
 
-if(input%spinup .and. year >= startyr_foragers) then
-		if (people > 0) then
-				calchumanfire = .true.
+if (people > 0) then
+  calchumanfire = .true.
 
-				annburntarget = osv%annburntarget
-		
-! 				write(0,*)'calchumanfire',annburntarget
-		end if   
+  annburntarget = osv%annburntarget
+    
 else
+  calchumanfire = .false.
+end if
+
+if(input%spinup .and. year < 800) then
   calchumanfire = .false.
 end if
 

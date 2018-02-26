@@ -1,8 +1,11 @@
 #makefile
 
-#libraries ARVE servers
-NC_LIB=/usr/local/netcdf/lib
-NC_INC=/usr/local/netcdf/include
+#library locations for calculquebec briaree
+#NC_LIB=/home/apps/Logiciels/netcdf-4.1.3/lib
+#NC_INC=/home/apps/Logiciels/netcdf-4.1.3/include
+# Librairy locations pour librairie perso
+NC_LIB=/RQusagers/echaste/Local/lib
+NC_INC=/RQusagers/echaste/Local/include
 
 #---- should not need to change anything below this line ----
 

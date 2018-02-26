@@ -192,6 +192,7 @@ else  !unsuitable climate for establishment
 
 end if
 
+
 do pft = 1,npft
   
   if (present(pft) .and. estab(pft)) then
@@ -201,9 +202,9 @@ do pft = 1,npft
 	  ! Ici on va limiter letablissement que si le pourcentage de clay pour les 4 PFTs est inferieur a un seuil 
 	  ! et si il y a pas eu de feux alors le pin ne peut pas setablir
 	  
-! 		if ((pft == 1. .and. clay_mean < 20.0) .OR. (pft == 3. .and. clay_mean < 13.0) .OR. (pft == 4. .and. clay_mean < 18.0) .OR. (pft == 8. .and. clay_mean < 23.0)) then 
-! 		
-! 			if ((pft == 1. .and. burnedf >= 0.) .OR. (pft == 3. .and. burnedf >= 0.) .OR. (pft == 4. .and. burnedf > 0.) .OR. (pft == 8. .and. burnedf >= 0.)) then
+		if ((pft == 1. .and. clay_mean < 20.0) .OR. (pft == 3. .and. clay_mean < 13.0) .OR. (pft == 4. .and. clay_mean < 18.0) .OR. (pft == 8. .and. clay_mean < 23.0)) then 
+		
+			if ((pft == 1. .and. burnedf >= 0.) .OR. (pft == 3. .and. burnedf >= 0.) .OR. (pft == 4. .and. burnedf > 0.) .OR. (pft == 8. .and. burnedf >= 0.)) then
 			
 				crownarea_max = pftpar(pft,18)
 
@@ -241,9 +242,9 @@ do pft = 1,npft
 
 				!if (pft == 5) write(0,*)'establishment',estab_grid,crownarea(pft),sm_ind(pft,1),sm_ind_tmp,sm_ind_tmp - sm_ind(pft,1)
 			  
-! 			 end if 
-! 		
-! 		end if 
+			 end if 
+		
+		end if 
 		
 		end if  !estab grid
  
