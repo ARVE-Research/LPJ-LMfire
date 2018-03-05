@@ -1,6 +1,7 @@
 module spitfiremod
 
 use parametersmod,    only : sp,dp,npft
+use parametersmod, only : stdout,stderr
 
 implicit none
 
@@ -113,7 +114,7 @@ end subroutine managedburn
 
 subroutine spitfire(year,i,j,d,input,met,soilwater,snowpack,dphen,wscal,osv,spinup,avg_cont_area,burnedf20,forager_pd20,FDI,omega_o0,omega0,BBpft,Ab,ind)
 
-use parametersmod,   only : pir,npft,pi,pft,pftpar,startyr_foragers
+use parametersmod,   only : pir,npft,pi,pft,pftpar
 use weathergenmod,   only : metvars_out
 use mpistatevarsmod, only : inputdata,statevars
 use randomdistmod,   only : randomstate,ranu,rng1,half
@@ -367,7 +368,7 @@ calchumanfire = .false.
 
 PD(1) = forager_pd20
 
-!write(0,*) 'Forager PD spitfire: ', year, PD 
+!write(stdout,*) 'Forager PD spitfire: ', year, PD 
 
 !PD(2) = 0.
 
@@ -386,7 +387,7 @@ light = met%lght * 0.01 !convert from km-2 to ha-1
 Ustar = met%wind
 NI    = met%NI
 
-!if( .not. spinup .and. year>=114) write(0,'(2i4,2f14.4)') year, d, light, light*area_ha
+!if( .not. spinup .and. year>=114) write(stdout,'(2i4,2f14.4)') year, d, light, light*area_ha
 
 omega_s1 = soilwater   !top layer soil water content
 
@@ -425,12 +426,12 @@ end if
 !------------------
 !annual stats
 
-!write(0,'(a,9f12.2)') 'height:', height
+!write(stdout,'(a,9f12.2)') 'height:', height
 
 crownfire = .false.
 
 if (d == 1) then
-  !write(0,*)'writing annual stats'
+  !write(stdout,*)'writing annual stats'
   sumfdi = aMx(5)  
     
   anumfires = 0                        !FLAG
@@ -451,12 +452,12 @@ if (d == 1) then
   
   omega0 = 1.  !set fuel moisture to fully wet on first day (should handle this differently and carry through as state variable)
 
-  !write(0,*)'done writing annual stats'
+  !write(stdout,*)'done writing annual stats'
 
   !unburneda = area_ha
 
   !if (cumfires > 0) then
-  !  write(0,*) 'BEGIN SPITFIRE: ', year, PD, cumfires !light * area_ha
+  !  write(stdout,*) 'BEGIN SPITFIRE: ', year, PD, cumfires !light * area_ha
   !end if
 
 end if
@@ -489,16 +490,16 @@ rho_livegrass = 2.e4 / (osv%gdd20 + 1000.) - 1.
 
 unburneda = area_ha - totburn
 
-!write(0,'(a,18f10.2)')'BEGIN spitfire',litter_ag_fast,litter_ag_slow
+!write(stdout,'(a,18f10.2)')'BEGIN spitfire',litter_ag_fast,litter_ag_slow
 
 if (any(litter_ag_fast < 0.) .or. any(litter_ag_slow < 0.)) then
-  write(0,*)'negative litter spitfire 1!',i,j
-  write(0,'(18f12.5)')litter_ag_fast,litter_ag_slow
+  write(stdout,*)'negative litter spitfire 1!',i,j
+  write(stdout,'(18f12.5)')litter_ag_fast,litter_ag_slow
   stop
 end if
 
 !calculations start here
-!write(0,) 'entering SPITFIRE ',year,i,d,PD,NI
+!write(stdout,) 'entering SPITFIRE ',year,i,d,PD,NI
 
 BBlive = 0.
 BBdead = 0.
@@ -538,19 +539,19 @@ end do
 
 if (i == 0 .and. d == 1) then
 
-  write(0,*)'spitfire initial fuel loads',year
+  write(stdout,*)'spitfire initial fuel loads',year
   
-  write(0,*)'dead'
-  write(0,'(a,9f10.1)')'1',deadfuel(:,1)
-  write(0,'(a,9f10.1)')'2',deadfuel(:,2)
-  write(0,'(a,9f10.1)')'3',deadfuel(:,3)
-  write(0,'(a,9f10.1)')'4',deadfuel(:,4)
+  write(stdout,*)'dead'
+  write(stdout,'(a,9f10.1)')'1',deadfuel(:,1)
+  write(stdout,'(a,9f10.1)')'2',deadfuel(:,2)
+  write(stdout,'(a,9f10.1)')'3',deadfuel(:,3)
+  write(stdout,'(a,9f10.1)')'4',deadfuel(:,4)
 
-  write(0,*)'live'
-  write(0,'(a,9f10.1)')'1',livefuel(:,1)
-  write(0,'(a,9f10.1)')'2',livefuel(:,2)
-  write(0,'(a,9f10.1)')'3',livefuel(:,3)
-  write(0,'(a,9f10.1)')'4',livefuel(:,4)
+  write(stdout,*)'live'
+  write(stdout,'(a,9f10.1)')'1',livefuel(:,1)
+  write(stdout,'(a,9f10.1)')'2',livefuel(:,2)
+  write(stdout,'(a,9f10.1)')'3',livefuel(:,3)
+  write(stdout,'(a,9f10.1)')'4',livefuel(:,4)
 
 end if
 
@@ -574,7 +575,7 @@ treecover = sum(fpc_grid,mask=pft%tree)
 grascover = sum(fpc_grid,mask=.not.pft%tree)
 totvcover = sum(fpc_grid)
 
-!write(0,'(a,4i5,9f10.2)')'enter spf',year,d,i,j,fpc_grid  !lm_ind(9),dphen(9)
+!write(stdout,'(a,4i5,9f10.2)')'enter spf',year,d,i,j,fpc_grid  !lm_ind(9),dphen(9)
 
 netfuel = (1. - ST) * sum(woi(1:3))  !net organic part of the fuel (g m-2)
 
@@ -601,7 +602,7 @@ Uforward = 60. * Ustar !(0.4 * Ustar * treecover + 0.6 * Ustar * grascover)
 !if (totvcover > 0.) then
 !  Uforward = 60. * (0.4 * Ustar * treecover + 0.6 * Ustar * grascover) / totvcover
 !else
-  !write(0,*)'no live vegcover'
+  !write(stdout,*)'no live vegcover'
 !  Uforward = 60. * Ustar
 !end if
 
@@ -682,13 +683,12 @@ end if
 
 if (people > 0) people = max(people / 10, 1)   !only every 10th person lights fire unless there are less than 10 people 
 
-if(input%spinup .and. year >= startyr_foragers) then
-		if (people > 0) then
-				calchumanfire = .true.
+if (people > 0) then
+  if((input%spinup .and. year >= input%startyr_foragers) .or. .not. input%spinup) then
 
+				calchumanfire = .true.
 				annburntarget = osv%annburntarget
-		
-! 				write(0,*)'calchumanfire',annburntarget
+
 		end if   
 else
   calchumanfire = .false.
@@ -720,7 +720,7 @@ omega0 = omega
 !------------------------------------------------
 
 
-!write(0,*)'omega',omega
+!write(stdout,*)'omega',omega
 
 !---
 !mass of live grass
@@ -734,7 +734,7 @@ omega_lg = max(0., b * omega_s1 - c)
 
 !back calculate alpha_lg from omega_lg (don't really know why but this is the way it is done in orignal SPITFIRE)
 
-!write(0,*)omega_lg,NI
+!write(stdout,*)omega_lg,NI
 
 if (omega_lg > 0. .and. NI > 0.) then 
   alpha_lg = -log(omega_lg) / NI
@@ -759,7 +759,7 @@ omega_nl = (omega(1) * woi(1) + omega_lg * (wlivegrass + SOM_surf)) / (wfinefuel
 wo   = sum(woi(1:3))
 wtot = wo + wlivegrass 
 
-!write(0,*)'w mass',wtot,wo
+!write(stdout,*)'w mass',wtot,wo
 
 rdf = wo / wtot             !dead fuel : total fuel
 rlf = (wlivegrass) / wtot     !live fuel : total fuel
@@ -785,13 +785,13 @@ omega_o = min(max(omega_o0 - dry_o + wet,0.),1.)
 omega_o0 = omega_o
 
 !if(.not. spinup .and. year==127) then
-!  write(0,'(i3,6f14.7)')d, omega_o0,dry_o,wet,omega_o, met%tmax, met%tdew
+!  write(stdout,'(i3,6f14.7)')d, omega_o0,dry_o,wet,omega_o, met%tmax, met%tdew
 !end if
 
 
 
 
-!if (omega_o < 1.) write(0,'(3f10.4)')soilwater,snowpack,omega_o
+!if (omega_o < 1.) write(stdout,'(3f10.4)')soilwater,snowpack,omega_o
 
 !---
 !moisture of extinction over dead fuel and live grass
@@ -820,7 +820,7 @@ else
   FDI = max(0.,(1. - omega_o / me_avg))  !eqn. 8
 end if
 
-!write(0,*)'FDI',d,omega_o,me_avg,FDI,NI,caf
+!write(stdout,*)'FDI',d,omega_o,me_avg,FDI,NI,caf
 
 !if (FDI == 0.) then
 !  cumfires = 0        !extinguish all burning fires
@@ -861,23 +861,23 @@ end if
 !---------------------------
 !part 2.2.4, mean fire area (rate of spread)
 
-!write(0,*)'go calcros'
+!write(stdout,*)'go calcros'
 
-! write(0,*)'me_avg',me_avg
-! write(0,*)'omega_o',omega_o
-! write(0,*)'uforward',uforward
-! write(0,'(a,3f10.3)')'woi',woi(1:3)
-! write(0,'(a,9f8.2)')'fpc',fpc_grid
+! write(stdout,*)'me_avg',me_avg
+! write(stdout,*)'omega_o',omega_o
+! write(stdout,*)'uforward',uforward
+! write(stdout,'(a,3f10.3)')'woi',woi(1:3)
+! write(stdout,'(a,9f8.2)')'fpc',fpc_grid
 !
-! write(0,'(a,9f8.2)')'lf1',livefuel(:,1)
-! write(0,'(a,9f8.2)')'lf2',livefuel(:,2)
-! write(0,'(a,9f8.2)')'lf3',livefuel(:,3)
-! write(0,'(a,9f8.2)')'lf4',livefuel(:,4)
+! write(stdout,'(a,9f8.2)')'lf1',livefuel(:,1)
+! write(stdout,'(a,9f8.2)')'lf2',livefuel(:,2)
+! write(stdout,'(a,9f8.2)')'lf3',livefuel(:,3)
+! write(stdout,'(a,9f8.2)')'lf4',livefuel(:,4)
 !
-! write(0,'(a,9f8.2)')'df1',deadfuel(:,1)
-! write(0,'(a,9f8.2)')'df2',deadfuel(:,2)
-! write(0,'(a,9f8.2)')'df3',deadfuel(:,3)
-! write(0,'(a,9f8.2)')'df4',deadfuel(:,4)
+! write(stdout,'(a,9f8.2)')'df1',deadfuel(:,1)
+! write(stdout,'(a,9f8.2)')'df2',deadfuel(:,2)
+! write(stdout,'(a,9f8.2)')'df3',deadfuel(:,3)
+! write(stdout,'(a,9f8.2)')'df4',deadfuel(:,4)
 
 !---------------------------
 !characterize fuel that is carrying the fire in terms of mass, bulk density, surface area to volume ratio, and moisture content
@@ -949,7 +949,7 @@ relmoist = omega_o / me_avg
 
 if (relmoist < 1.) then       !FDI not zero for this landscape component
 
-  !write(0,*)'calcros',orgf*wn,rho_b,omega_o,relmoist
+  !write(stdout,*)'calcros',orgf*wn,rho_b,omega_o,relmoist
 
   call calcROS(orgf*wn,rho_b,sigma,omega_o,relmoist,Uforward,ROSfsurface_w)
 
@@ -972,7 +972,7 @@ end if
 
       wn = sum(livefuel(1:7,1))  !mass of 1-hr fuel in living biomass  !FLAG maximum leaf dry mass set to 8 kg m-2!
 
-     ! write(0,*)'leafmass',wn
+     ! write(stdout,*)'leafmass',wn
 
       wn = min(8000.,wn)
 
@@ -1009,7 +1009,7 @@ end if
 
 ROSbsurface = ROSfsurface * exp(-0.012 * Uforward)
 
-!write(0,*)'done ros,',ROSfsurface,ROSbsurface
+!write(stdout,*)'done ros,',ROSfsurface,ROSbsurface
 
 !---
 !length-to-breadth ratio of burn ellipse
@@ -1056,7 +1056,7 @@ avg_cont_area = max(avg_cont_area,10.)                ! assumption is that the s
 
 abarf = (pi / (4. * LB) * DT**2) * 0.0001 * slopefact  !average size of an individual fire (eqn. 11) (ha)
 
-!write(0,*) 'abarf', abarf, LB, DT, slopefact, avg_cont_area
+!write(stdout,*) 'abarf', abarf, LB, DT, slopefact, avg_cont_area
 
 abarf = min(abarf,avg_cont_area)                ! the size of an individual fire is not allowed to be greater than the average contiguous patch size
 
@@ -1110,7 +1110,7 @@ if (calchumanfire .and. abarf > 0. .and. abarf < 100.) then  !avoid starting ver
   
   if (nhig == 0) arsonists = 0
   
-  !write(0,'(3i12,3f12.4)')people,uniquefires,nhig,abarf,burnedf20,afire_frac
+  !write(stdout,'(3i12,3f12.4)')people,uniquefires,nhig,abarf,burnedf20,afire_frac
   
 else
 
@@ -1158,7 +1158,7 @@ Ab = max(0.,min(unburneda,cumfires * abarf))  !ha
 
 !Ab = numfires * abarf  !ha
 
-!write(0,*)year,i,d,area_ha,Ab,unburneda
+!write(stdout,*)year,i,d,area_ha,Ab,unburneda
 
 Abfrac = Ab / area_ha
 
@@ -1167,13 +1167,13 @@ Abfrac = Ab / area_ha
 !end if
 
 !if (year == 200) then
-  !write(0,'(a,4i6,2f10.1,f12.6,2f10.1,2f10.5)')'flag2',year,i,d,numfires,abarf,Ab,Abfrac,totburn,unburneda,dphen(9),omega_s1
+  !write(stdout,'(a,4i6,2f10.1,f12.6,2f10.1,2f10.5)')'flag2',year,i,d,numfires,abarf,Ab,Abfrac,totburn,unburneda,dphen(9),omega_s1
   !write(*,'(a,3i6,6f10.1)')'flag2',year,i,d,abarf,LB,DT,tfire,ROSfsurface,ROSbsurface
 !end if
 
 if (Abfrac > 1. .or. Abfrac < 0. .or. unburneda < 0.) then
-  write(0,*)'ABfrac problem'
-  write(0,*)FDI,abarf,Abfrac,Ab,unburneda,numfires,totburn,area_ha,input%lon,input%lat
+  write(stdout,*)'ABfrac problem'
+  write(stdout,*)FDI,abarf,Abfrac,Ab,unburneda,numfires,totburn,area_ha,input%lon,input%lat
   stop
 end if
 
@@ -1188,7 +1188,7 @@ if (Ab == 0.) then
   return
 end if 
 
-!write(0,*)'area burned',abfrac,ab
+!write(stdout,*)'area burned',abfrac,ab
 
 !----------------------------------------------
 !part 2.2.4, fractional combustion of dead fuel
@@ -1272,7 +1272,7 @@ FC = CF * woi * (1. - ST)
 
 Isurface = h * sum(FC(1:3)) * ROSfsurface * min2sec  !eqn. 15
 
-!write(0,*)'Isurf',isurface
+!write(stdout,*)'Isurf',isurface
 
 if (Isurface < 50.) then  !ignitions are extinguished and there is no fire on this day
   if(bavard)  write(*,'(a16,4i6,19f14.4)')'Isurface_low',year,i,d,cumfires,Ab,abarf,afire_frac,light*area_ha,nlig,FDI,Isurface, met%prec, NI, grascover, omega_o, me_avg, omega_nl, me_nl, PD
@@ -1295,7 +1295,7 @@ if(bavard) write(*,'(a16,4i10,23f14.3)') 'BURNDAY', year,i,d,cumfires,AB,abarf,a
 !-------------------------------------------
 !update litter pools to remove burned litter
 
-!write(0,'(a,8f10.3)')'consumed fraction: ',CF,omega
+!write(stdout,'(a,8f10.3)')'consumed fraction: ',CF,omega
 
 !BBdead(:,1) = CF(1) * litter_ag_fast          !1-hr fast litter (leaves and grass)
 
@@ -1314,13 +1314,13 @@ BBdead(:,5) = Abfrac * CF(4) * litter_ag_slow * 0.67   !1000-hr
 annBBdead = annBBdead + BBdead
 
 if (d == 0) then
-  write(0,*)'last day spitfire'
+  write(stdout,*)'last day spitfire'
 
-  write(0,'(a,9f10.1)')'1-hr grass ',annBBdead(:,1)
-  write(0,'(a,9f10.1)')'1-hr wood  ',annBBdead(:,2)
-  write(0,'(a,9f10.1)')'10-hr w    ',annBBdead(:,3)
-  write(0,'(a,9f10.1)')'100-hr w   ',annBBdead(:,4)
-  write(0,'(a,9f10.1)')'1000-hr w  ',annBBdead(:,5)
+  write(stdout,'(a,9f10.1)')'1-hr grass ',annBBdead(:,1)
+  write(stdout,'(a,9f10.1)')'1-hr wood  ',annBBdead(:,2)
+  write(stdout,'(a,9f10.1)')'10-hr w    ',annBBdead(:,3)
+  write(stdout,'(a,9f10.1)')'100-hr w   ',annBBdead(:,4)
+  write(stdout,'(a,9f10.1)')'1000-hr w  ',annBBdead(:,5)
 
 end if
  
@@ -1331,15 +1331,15 @@ end if
 !---
 !fire residence time (min), Peterson & Ryan 1986, eqn. 8, used conversion factor because original eqn. needs fuel load in g cm-2
 
-!write(0,'(a,i5,f12.5,f9.1)')'Abfrac',d,Abfrac,litter_ag_fast(9)
-!write(0,'(a,4f10.2)')'dead fuel   ',woi
-!write(0,'(a,4f10.2)')'dead burnedf',CF
+!write(stdout,'(a,i5,f12.5,f9.1)')'Abfrac',d,Abfrac,litter_ag_fast(9)
+!write(stdout,'(a,4f10.2)')'dead fuel   ',woi
+!write(stdout,'(a,4f10.2)')'dead burnedf',CF
 
 tau_l = 39.4 * sum(woi * (1. - sqrt(1. - CF))) * 0.0001
 
-!write(0,'(a,f10.2)')'res time',tau_l
+!write(stdout,'(a,f10.2)')'res time',tau_l
 
-!write(0,*)'flag 3',Isurface
+!write(stdout,*)'flag 3',Isurface
 
 !----------------------------------------------
 !tree mortality due to crown and cambial damage
@@ -1438,8 +1438,8 @@ aMx(6) = aMx(6) + (sum(emNOx * BBpft)) ! NOx
 !aMx(6) = totburn                     ! total annual area burned in the gridcell
 
 !if (year == 919 .and. i == 1) then
-  !write(0,'(a,3i6,3f10.1,f12.6,4f10.1)')'flag2',year,i,d,abarf,Ab,numfires,Abfrac,totburn,unburneda,PD,nhig
-  !write(0,'(i10,f10.1,4f10.1,4f10.4,f10.4,f10.4,f10.1,f10.1,4f10.4,f10.1)')d+365*(year-1),NI,woi,omega,omega_o,FDI,ROSfsurface,Isurface,CF,Abarf
+  !write(stdout,'(a,3i6,3f10.1,f12.6,4f10.1)')'flag2',year,i,d,abarf,Ab,numfires,Abfrac,totburn,unburneda,PD,nhig
+  !write(stdout,'(i10,f10.1,4f10.1,4f10.4,f10.4,f10.4,f10.1,f10.1,4f10.4,f10.1)')d+365*(year-1),NI,woi,omega,omega_o,FDI,ROSfsurface,Isurface,CF,Abarf
 !end if
 
 991 format(a,3i6,3f10.1,f12.6,4f10.1)
@@ -1575,8 +1575,8 @@ end if
 rateofspread = IR * xi * (1. + Phiw) / (rho_b * epsilon * Qig) * windfact
 
 if(rateofspread < 0.) then
-  write(0,'(a,7f14.7)') 'end calcROS: ', IR, xi, 1. + Phiw, rho_b, epsilon, Qig, windfact
-  write(0,'(a,5f14.7)') 'IR components: ', Gammaprime, wn, h, nu_M, relmoist
+  write(stdout,'(a,7f14.7)') 'end calcROS: ', IR, xi, 1. + Phiw, rho_b, epsilon, Qig, windfact
+  write(stdout,'(a,5f14.7)') 'IR components: ', Gammaprime, wn, h, nu_M, relmoist
 end if
 
 end subroutine calcROS
@@ -1726,33 +1726,33 @@ rm_ind         => osv%tile(i)%rm_ind(:,1)
 
 !-----------------------------------
 
-!write(0,*)'===end of year biomass removal:', year, '==='
+!write(stdout,*)'===end of year biomass removal:', year, '==='
 
-!write(0,*)'step 0a'
+!write(stdout,*)'step 0a'
 !
-!write(0,'(a,9f10.1)')'1-hr grass ',annBBdead(:,1)
-!write(0,'(a,9f10.1)')'1-hr wood  ',annBBdead(:,2)
-!write(0,'(a,9f10.1)')'10-hr w    ',annBBdead(:,3)
-!write(0,'(a,9f10.1)')'100-hr w   ',annBBdead(:,4)
-!write(0,'(a,9f10.1)')'1000-hr w  ',annBBdead(:,5)
+!write(stdout,'(a,9f10.1)')'1-hr grass ',annBBdead(:,1)
+!write(stdout,'(a,9f10.1)')'1-hr wood  ',annBBdead(:,2)
+!write(stdout,'(a,9f10.1)')'10-hr w    ',annBBdead(:,3)
+!write(stdout,'(a,9f10.1)')'100-hr w   ',annBBdead(:,4)
+!write(stdout,'(a,9f10.1)')'1000-hr w  ',annBBdead(:,5)
 !
 !!annBBdead = annBBdead * Abfrac
 !
-!write(0,*)'step 0b'
+!write(stdout,*)'step 0b'
 !
-!write(0,'(a,9f10.1)')'1-hr grass ',annBBdead(:,1)
-!write(0,'(a,9f10.1)')'1-hr wood  ',annBBdead(:,2)
-!write(0,'(a,9f10.1)')'10-hr w    ',annBBdead(:,3)
-!write(0,'(a,9f10.1)')'100-hr w   ',annBBdead(:,4)
-!write(0,'(a,9f10.1)')'1000-hr w  ',annBBdead(:,5)
+!write(stdout,'(a,9f10.1)')'1-hr grass ',annBBdead(:,1)
+!write(stdout,'(a,9f10.1)')'1-hr wood  ',annBBdead(:,2)
+!write(stdout,'(a,9f10.1)')'10-hr w    ',annBBdead(:,3)
+!write(stdout,'(a,9f10.1)')'100-hr w   ',annBBdead(:,4)
+!write(stdout,'(a,9f10.1)')'1000-hr w  ',annBBdead(:,5)
 !
-!write(0,*)
-!write(0,*)'step 1'
-!write(0,'(a,9f10.1)')'fast',litter_ag_fast
-!write(0,'(a,9f10.1)')'slow',litter_ag_slow
+!write(stdout,*)
+!write(stdout,*)'step 1'
+!write(stdout,'(a,9f10.1)')'fast',litter_ag_fast
+!write(stdout,'(a,9f10.1)')'slow',litter_ag_slow
 
-!write(0,'(9f10.1)')annBBlive(:,1)
-!write(0,'(a,9f10.4)')'kill',ann_kill(:)
+!write(stdout,'(9f10.1)')annBBlive(:,1)
+!write(stdout,'(a,9f10.4)')'kill',ann_kill(:)
 
 !1. consumption of dead biomass
 !calculations across PFT vector
@@ -1773,9 +1773,9 @@ litter_ag_slow = max(litter_ag_slow,0.)
 !in the main spitfire subroutine in the BBlive term which goes into the
 !calculation of acflux_fire
 
-!write(0,*)'step 2'
-!write(0,'(a,9f10.1)')'fast',litter_ag_fast
-!write(0,'(a,9f10.1)')'slow',litter_ag_slow
+!write(stdout,*)'step 2'
+!write(stdout,'(a,9f10.1)')'fast',litter_ag_fast
+!write(stdout,'(a,9f10.1)')'slow',litter_ag_slow
 
 
 !3. transfer of killed but not consumed live biomass to litter
@@ -1814,16 +1814,16 @@ do a = 1, npft
   end if
 end do    
 
-!write(0,*)'step 3'
-!write(0,'(a,9f10.1)')'fast',litter_ag_fast
-!write(0,'(a,9f10.1)')'slow',litter_ag_slow
+!write(stdout,*)'step 3'
+!write(stdout,'(a,9f10.1)')'fast',litter_ag_fast
+!write(stdout,'(a,9f10.1)')'slow',litter_ag_slow
 
 
 !correct for mathematical slop
 
 !if (any(litter_ag_fast < 0.) .or. any(litter_ag_slow < 0.)) then
-!  write(0,*)'negative litter spitfire 2!'
-!  write(0,'(18f10.2)')litter_ag_fast,litter_ag_slow
+!  write(stdout,*)'negative litter spitfire 2!'
+!  write(stdout,'(18f10.2)')litter_ag_fast,litter_ag_slow
 !  stop
 !end if
 

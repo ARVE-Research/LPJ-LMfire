@@ -94,10 +94,10 @@ real(sp) :: animal_percent  !percent dependence on animals
 !-----------------------------------------
 !calculations start here
 
-!write(0,*)'enter foragers'
-!write(0,*)pet,aet,elev,lat,anpp,livebiomass,whc,mtemp,mprec
+!write(stdout,*)'enter foragers'
+!write(stdout,*)pet,aet,elev,lat,anpp,livebiomass,whc,mtemp,mprec
 
-!write(0,*) 'entering forager-routine'
+!write(stdout,*) 'entering forager-routine'
 
 if (anpp == 0.) then
   pd = 0.
@@ -117,7 +117,7 @@ lnpp = log10(anpp)
 !WATD, total annual water deficit (page 109)
 watd = max(pet - aet,0.)
 
-!write(0,*) 'watd:', watd
+!write(stdout,*) 'watd:', watd
 
 lwatd = log10(watd + 1.)  !log of above 
 
@@ -132,7 +132,7 @@ else
   lwatrgrc = 0.
 end if
 
-!write(0,*) 'lwatrgrc', lwatrgrc
+!write(stdout,*) 'lwatrgrc', lwatrgrc
 
 !for subsequent calculations using monthly extremes in temperature and precipitation
 
@@ -164,7 +164,7 @@ if (rrcorr2 < 0.) rrcorr2 = 12. - rrcorr2
 
 wret = sum(soilm * whc)
 
-!write(0,*) 'wret:', wret
+!write(stdout,*) 'wret:', wret
 
 !calculation of EXPREY (kg/km2)
 
@@ -172,7 +172,7 @@ exprey = 10.**(elef * 5.3081e-5 + llat * -0.300235 + lnpp * 1.200771 + lwatd * -
 
 expreya = 100 * (exprey + 0.01)
 
-!write(0,*) 'exprey:', exprey
+!write(stdout,*) 'exprey:', exprey
 
 !------------------------------------------------------------------
 
@@ -182,19 +182,19 @@ trange = mtemp(warmest_month) - mtemp(coldest_month)
 
 ltrange = log10(trange)
 
-!write(0,*) 'ltrange:', ltrange, mprec(wettest_month)
+!write(stdout,*) 'ltrange:', ltrange, mprec(wettest_month)
 
 !MRAIN, a measure of rainfall evenness (page 72)
 
 mrain = mprec(driest_month)/max(mprec(wettest_month) * 100.,1e-6)		!FLAG MP: this led to a division-by-zero in some desert places with no rain at all, threfore the max
 
-!write(0,*) 'mrain:', mrain
+!write(stdout,*) 'mrain:', mrain
 
 !calculation of EXWGT, anticipated weight of individual EXWGT (kg), see page 182
 
 exwgt = a + (b * ltrange) + (c * mrain)
 
-!write(0,*) 'exwgt:', exwgt
+!write(stdout,*) 'exwgt:', exwgt
 
 !variables for calculating TERMG2
 
@@ -205,7 +205,7 @@ exprim1 = ((anpp / 1000.) * 1.e8) * (1. - (bar5/85.)) * (1. - (livebiomass / 610
 
 exprim2 = exprim1 * (1. - (exprey / 20000.)**2) * (1. - (anpp / 63000.))
 
-!write(0,*) 'exprim2:', exprim2
+!write(stdout,*) 'exprim2:', exprim2
 
 !GROWC, effective growing season = number of consecutive months in which mean temp exceeds 8 deg C
 growc =  count(mtemp > 8.) 
@@ -215,7 +215,7 @@ et = ((18. * mtemp(warmest_month)) - (10. * mtemp(coldest_month))) / (mtemp(warm
 
 exprim3 = exprim2 - exprim2 * (1. - (growc / 12.)**2) * 1. - ((et - 7.) / 23.) !unbalanced parentheses in text, pg 180
 
-!write(0,*) 'exprim3:', exprim3
+!write(stdout,*) 'exprim3:', exprim3
 
 !MINIMALIST TERRESTRIAL MODEL
 
@@ -233,7 +233,7 @@ termd2 = termh2 + termg2
 
 pd = max((termd2 * 0.01),0.)  !convert to persons km-2	!FLAG MP: would go below zero in some low-productivity places, therefore constrained it
 
-!write(0,*) 'pd:', pd
+!write(stdout,*) 'pd:', pd
 
 !Percent plant dependence
 
@@ -243,9 +243,9 @@ plant_percent = termg2/termd2 * 100.
 
 animal_percent =  termh2/termd2 * 100.
 
-!write(0,*) 'animal_percent:', animal_percent
+!write(stdout,*) 'animal_percent:', animal_percent
 
-!write(0,*)termh2,termg2,termd2,plant_percent,animal_percent
+!write(stdout,*)termh2,termg2,termd2,plant_percent,animal_percent
 
 end subroutine foragers
 
@@ -282,7 +282,7 @@ else
     
 end if    
 
-!write(0,*)pop,ppd
+!write(stdout,*)pop,ppd
 
 !if below potential there is no out-migration
 

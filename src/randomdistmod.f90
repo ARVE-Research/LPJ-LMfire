@@ -1,5 +1,7 @@
 module randomdistmod
 
+use parametersmod, only : stdout,stderr
+
 implicit none
 
 public  :: ranur
@@ -275,7 +277,7 @@ real(sp),          intent(out)   :: fn_val
 !--------
 
 if (s <= zero) then
-  write(0, *) 'shape parameter value must be positive'
+  write(stdout, *) 'shape parameter value must be positive'
   stop
 end if
 
@@ -393,7 +395,7 @@ real(sp)  :: d
 !--------
 
 if (s <= zero .or. s >= one) then
-  write(0, *) 'shape parameter value outside permitted range'
+  write(stdout, *) 'shape parameter value outside permitted range'
   stop
 end if
 
@@ -401,7 +403,7 @@ if (first) then                        ! initialization, if necessary
   a = one - s
   p = a / (a + s * exp(-a))
   if (s < vsmall) then
-    write(0,*) 'shape parameter value too small'
+    write(stdout,*) 'shape parameter value too small'
     stop
   end if
   c = one / s

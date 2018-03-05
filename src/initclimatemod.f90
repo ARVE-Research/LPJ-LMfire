@@ -1,5 +1,7 @@
 module initclimatemod
 
+use parametersmod, only : stdout,stderr
+
 implicit none
 
 public :: initclimate
@@ -52,7 +54,7 @@ integer :: mmos  !number of months of input data that can be held in memory
 
 !-------------------------
 
-write(0,'(a,a)')' using climate file: ',trim(climatefile)
+write(stdout,'(a,a)')' using climate file: ',trim(climatefile)
 
 !-------------------------
 !open climate files 
@@ -60,7 +62,7 @@ write(0,'(a,a)')' using climate file: ',trim(climatefile)
 ncstat = nf90_open(climatefile,nf90_nowrite,cfid)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
-!write(0,*)'cfid:',cfid
+!write(stdout,*)'cfid:',cfid
 
 !-------------------------
 !retrieve dimensions
@@ -76,7 +78,7 @@ if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
 climateyears = climatemonths / 12
 
-write(0,'(a,i6,a)')'climate input data contains',climateyears,' years of data'
+write(stdout,'(a,i6,a)')'climate input data contains',climateyears,' years of data'
 
 !-------------------------
 !retrieve variable IDs, scale factor and add offset
@@ -92,7 +94,7 @@ do i = 1,nclimv
   ncstat = nf90_get_att(cfid,varinfo(i)%varid,'add_offset',varinfo(i)%add_offset)
   if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
-  write(0,'(a5,2f10.4)')trim(varname(i)),varinfo(i)%scale_factor,varinfo(i)%add_offset
+  write(stdout,'(a5,2f10.4)')trim(varname(i)),varinfo(i)%scale_factor,varinfo(i)%add_offset
 
 end do
 
@@ -156,7 +158,7 @@ ibuf%lat = geolat
 !-----
 !memory checks and input buffer setup
 
-write(0,'(a,f5.1,a)')'memory limit:',maxmem/1024.,' Gb'
+write(stdout,'(a,f5.1,a)')'memory limit:',maxmem/1024.,' Gb'
 
 !set timebuflen to the lesser of the number of months in the input climate data file and the 
 !amount of memory available to hold these data
@@ -169,7 +171,7 @@ if (mmos >= climatemonths) then
   
   timebuflen = climatemonths
   
-  write(0,'(a,i5,a)')'all input data fits into memory, buflen:',timebuflen/12,' yrs'
+  write(stdout,'(a,i5,a)')'all input data fits into memory, buflen:',timebuflen/12,' yrs'
 
 else
   
@@ -191,11 +193,11 @@ else
   
   timebuflen = mmos / tchunk * tchunk
   
-  write(0,'(a,i5,a,i5,a)')'timebuflen:',mmos/tchunk,' chunks,',timebuflen/12,' yrs'
+  write(stdout,'(a,i5,a,i5,a)')'timebuflen:',mmos/tchunk,' chunks,',timebuflen/12,' yrs'
   
 end if
 
-write(0,'(a,3i8)')'allocate input structures:',cntx,cnty,timebuflen
+write(stdout,'(a,3i8)')'allocate input structures:',cntx,cnty,timebuflen
 
 if (allocated(input_i2)) deallocate(input_i2)
 if (allocated(input_sp)) deallocate(input_sp)
@@ -209,7 +211,7 @@ membytes = 4_i8 * (ncells * (timebuflen * 6_i8 + 10_i8))  !six transient climate
 
 memcheck = real(membytes,dp) / (bmb * 1024.)
 
-write(0,'(a,f5.1,a)')      'total memory requirement of input data:',memcheck,' Gb'
+write(stdout,'(a,f5.1,a)')      'total memory requirement of input data:',memcheck,' Gb'
 
 end subroutine initclimate
 

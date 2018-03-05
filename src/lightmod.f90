@@ -93,7 +93,7 @@ fpc_grass_total = sum(fpc_grid,  mask = present .and. .not. tree)
 
 pft_excess = 0.
 
-!write(0,*)'light',fpc_tree_total,fpc_tree_max
+!write(stdout,*)'light',fpc_tree_total,fpc_tree_max
 
 if (fpc_tree_total > fpc_tree_max) then  !reduce tree cover
 
@@ -213,7 +213,7 @@ litter_ag_slow = max(litter_ag_slow,0.)
 litter_bg      = max(litter_bg,0.)
 
 !do pft=1,npft
-!  if (fpc_grid(pft) < 0. .or. fpc_grid(pft) > 1.) write(0,*)'resetting pft ',pft,fpc_grid(pft)
+!  if (fpc_grid(pft) < 0. .or. fpc_grid(pft) > 1.) write(stdout,*)'resetting pft ',pft,fpc_grid(pft)
 !end do
 
 !fpc_grid = max(fpc_grid,0.)

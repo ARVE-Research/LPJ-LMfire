@@ -10,6 +10,7 @@ module weathergenmod
 !Coded in 2007-2009 by Jed Kaplan and Joe Melton, ARVE Group, EPFL/UVic, jed.kaplan@epfl.ch
 
 use parametersmod, only : sp,dp,i4
+use parametersmod, only : stdout,stderr
 use randomdistmod, only : randomstate
 
 implicit none
@@ -417,7 +418,7 @@ cldf = min(max(cldf,0.),1.)
 !see, e.g., Glassy & Running, Ecological Applications, 1994
 
 if (tmin < 0.) then
-  write(0,*) 'tmin weathergenmod ', tmn,tmin_mn,tmin
+  write(stdout,*) 'tmin weathergenmod ', tmn,tmin_mn,tmin
   stop
 end if
 
@@ -571,8 +572,8 @@ dmetvars%tmax_cv = tmax_cv
 dmetvars%tmin_cv = tmin_cv
 dmetvars%cldf_cv = cldf_cv
 
-!write(0,'(a,l4,4f9.3)')'meancv',pday,tmn,tmin_mn,tmin_cv,tmin_mn*tmin_cv
-!write(0,'(a,l4,4f9.3)')'meancv',pday,tmx,tmax_mn,tmax_cv,tmax_mn*tmax_cv
+!write(stdout,'(a,l4,4f9.3)')'meancv',pday,tmn,tmin_mn,tmin_cv,tmin_mn*tmin_cv
+!write(stdout,'(a,l4,4f9.3)')'meancv',pday,tmx,tmax_mn,tmax_cv,tmax_mn*tmax_cv
 
 end subroutine meancv
 

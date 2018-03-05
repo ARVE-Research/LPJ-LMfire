@@ -1,5 +1,7 @@
 module coordsmod
 
+use parametersmod, only : stdout,stderr
+
 implicit none
 
 public :: parsecoords
@@ -105,7 +107,7 @@ cntx = nint(pixfact(1) * (maxlon - minlon))
 cnty = nint(pixfact(2) * (maxlat - minlat))
 
 if (cntx <= 0 .or. cnty <= 0) then
-  write(0,*)cntx,cnty
+  write(stdout,*)cntx,cnty
   stop 'invalid coordinates'
 end if
 

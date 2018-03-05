@@ -1,6 +1,7 @@
 module allocationmod
 
 use parametersmod, only : sp,dp
+use parametersmod, only : stdout,stderr
 
 implicit none
 
@@ -187,7 +188,7 @@ do pft = 1,npft
 
           if (fmid * fx1 <= 0. .or. xmid >= x2) exit  !sign has changed or we are over the upper bound
 
-          if (i > 20) write(0,*)'first alloc loop flag',i,pft,fmid*fx1,xmid,x1,x2,dx,bm_inc_ind
+          if (i > 20) write(stdout,*)'first alloc loop flag',i,pft,fmid*fx1,xmid,x1,x2,dx,bm_inc_ind
           if (i > 50) stop 'Too many iterations allocmod'
 
           i = i + 1
@@ -230,7 +231,7 @@ do pft = 1,npft
 
           if (dx < xacc .or. abs(fmid) <= yacc) exit
 
-          if (i > 20) write(0,*)'second alloc loop flag',i,pft,dx,abs(fmid)
+          if (i > 20) write(stdout,*)'second alloc loop flag',i,pft,dx,abs(fmid)
           if (i > 50) stop 'Too many iterations allocmod'
 
           i = i + 1
@@ -301,7 +302,7 @@ do pft = 1,npft
 
       hm = hm + abs(sminc_ind)
       
-      !write(0,*)'abnormal case',i,lminc_ind,rminc_ind,lminc_ind+rminc_ind,bm_inc_ind,sminc_ind
+      !write(stdout,*)'abnormal case',i,lminc_ind,rminc_ind,lminc_ind+rminc_ind,bm_inc_ind,sminc_ind
 
     end if  !normal/abnormal allocation
 

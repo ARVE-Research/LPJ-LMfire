@@ -19,7 +19,7 @@ implicit none
 type(soildata), intent(inout) :: soil  !state variables sent back out with MPI
 real(sp), dimension(:), intent(out) :: soilpar
 
-integer, parameter :: nl = size(soil%sand)
+integer :: nl
 integer :: l
 integer :: it
 
@@ -35,11 +35,11 @@ real(sp) :: Tsat
 real(sp) :: T33
 real(sp) :: T1500
 
-real(sp), dimension(nl) :: dz
-real(sp), dimension(nl) :: zpos
-real(sp), dimension(nl) :: OrgM  !(g m-2)
-real(sp), dimension(nl) :: whc
-real(sp), dimension(nl) :: Ksat
+real(sp), allocatable, dimension(:) :: dz
+real(sp), allocatable, dimension(:) :: zpos
+real(sp), allocatable, dimension(:) :: OrgM  !(g m-2)
+real(sp), allocatable, dimension(:) :: whc
+real(sp), allocatable, dimension(:) :: Ksat
 
 real(sp) :: Csoil     !(g m-2)
 real(sp) :: orgC      !(mass %)
@@ -49,9 +49,20 @@ real(sp) :: dOM       !change in organic matter (g m-2)
 real(sp) :: dzOM      !interlayer transport of SOM (g m-2)
 real(sp) :: dzx       !excess change in top layer thickness
 
-logical, dimension(nl) :: valid
+logical, allocatable, dimension(:) :: valid
 
 !----------
+
+nl = size(soil%sand)
+
+! write(0,*)'SOIL NLAYERS',nl
+
+allocate(dz(nl))
+allocate(zpos(nl))
+allocate(OrgM(nl))
+allocate(whc(nl))
+allocate(Ksat(nl))
+allocate(valid(nl))
 
 valid = .true.
 
@@ -67,6 +78,8 @@ do l = 1,nl
   
   silt = 100. - (sand + clay)
   
+!   write(0,*)'SOIL',l,sand,silt,clay,OM
+  
   if (sand < 0.) then
     valid(l) = .false.
     cycle
@@ -76,9 +89,9 @@ do l = 1,nl
   
   orgC = Csoil
   
-  !write(0,*)'lyr ',l,' tile',i
-  !write(0,*)'dz  ',dz(l)
-  !write(0,*)'Csol',Csoil
+  !write(stdout,*)'lyr ',l,' tile',i
+  !write(stdout,*)'dz  ',dz(l)
+  !write(stdout,*)'Csol',Csoil
 
   !because bulk density depends strongly on organic matter content and
   !weakly on wilting point water content, we guess an initial value and
@@ -134,17 +147,17 @@ do l = 1,nl
 
   Ksat(l) = fKsat(Tsat,T33,T1500)
 
-  !write(0,*)'layer',l
-  !write(0,*)'sand',sand
-  !write(0,*)'silt',silt
-  !write(0,*)'clay',clay
-  !write(0,*)'OM  ',OM
-  !write(0,*)'bulk',bulk
+  !write(stdout,*)'layer',l
+  !write(stdout,*)'sand',sand
+  !write(stdout,*)'silt',silt
+  !write(stdout,*)'clay',clay
+  !write(stdout,*)'OM  ',OM
+  !write(stdout,*)'bulk',bulk
 
-  !write(0,*)'Tsat',Tsat
-  !write(0,*)'T33 ',T33
-  !write(0,*)'Twp ',T1500
-  !write(0,*)'Ksat',Ksat(l)
+  !write(stdout,*)'Tsat',Tsat
+  !write(stdout,*)'T33 ',T33
+  !write(stdout,*)'Twp ',T1500
+  !write(stdout,*)'Ksat',Ksat(l)
   
   soil%bulk(l) = bulk
   
@@ -168,9 +181,9 @@ soilpar(5) = 0.2    !thermal diffusivity (mm2/s) at wilting point (0% WHC)
 soilpar(6) = 0.650  !thermal diffusivity (mm2/s) at 15% WHC
 soilpar(7) = 0.4    !thermal diffusivity at field capacity (100% WHC)
 
-!  write(0,*)'input soilpars'
-!  write(0,*)'Ksat',soilpar(1:2)
-!  write(0,*)'whc ',soilpar(3:4)
+!  write(stdout,*)'input soilpars'
+!  write(stdout,*)'Ksat',soilpar(1:2)
+!  write(stdout,*)'whc ',soilpar(3:4)
 
 end subroutine simplesoil 
 

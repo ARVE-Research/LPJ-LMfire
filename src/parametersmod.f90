@@ -46,8 +46,6 @@ real, parameter :: wooddens   = 2.e5  !(g C m-2)  NB this value would actually b
 
 integer, parameter :: maxoutvars = 100   !maximum number of variables for output
 
-integer, parameter :: startyr_foragers = 800  !first year of spinup at which to introduce foragers (to allow vegetation to develop first)
-
 !code for land use type: (1) unmanaged, (2) rainfed crop, (3) regrowing natural vegetation 
 
 integer, parameter,  dimension(3) :: lutype = [ 1,2,3 ]  !could eventually be more categories

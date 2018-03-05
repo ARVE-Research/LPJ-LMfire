@@ -3,6 +3,7 @@ module errormod
 !this module should be compiled with the compiler wrapper mpif90
 
 use mpi, only : mpi_status_size
+use parametersmod, only : stdout,stderr
 
 implicit none
 
@@ -28,7 +29,7 @@ implicit none
 
 integer, intent(in) :: ncstat
 
-write(0,'(a,i5,a,a)')' NetCDF error ',ncstat,' encountered: ',trim(nf90_strerror(ncstat))
+write(stdout,'(a,i5,a,a)')' NetCDF error ',ncstat,' encountered: ',trim(nf90_strerror(ncstat))
 stop
 
 end subroutine netcdf_err
@@ -39,7 +40,7 @@ subroutine mpi_err(ierr)
 
 integer, intent(in) :: ierr
 
-write(0,*)'MPI error',ierr
+write(stdout,*)'MPI error',ierr
 stop
 
 end subroutine mpi_err

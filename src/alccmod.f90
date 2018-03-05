@@ -63,7 +63,7 @@ real(sp), dimension(npft) :: nindcf
 
 !--------------------------------------
 
-!write(0,*)'flag 1'
+!write(stdout,*)'flag 1'
 
 tf = input%human%lu_turnover
 
@@ -75,7 +75,7 @@ cropfrac = min(max(0.,cropfrac),1.) !make sure cropfrac is between 0 and 1
 !calculate the change in anthropogenic land use fraction
 !positive means increased land use, negative means abandonment
 
-!write(0,*)'flag 1a',tf
+!write(stdout,*)'flag 1a',tf
 
 lndturn = tf * cropfrac
 usable  = 1. - unusable
@@ -85,7 +85,7 @@ if (cropfrac > usable) then   !this should only happen during the interpolation 
   unusable = 1. - usable
 end if
 
-!write(0,*)'flag 2'
+!write(stdout,*)'flag 2'
 
 !if the deforestation + turnover is greater than the usable amount, limit clearance to the usable fraction
 
@@ -130,7 +130,7 @@ litter_ag_slow => osv%tile(2)%litter_ag_slow(:,1)
 litter_bg      => osv%tile(2)%litter_bg(:,1)
 
 !if (convf /= 0.) then
-!  write(0,*)'convf',convf,convft,coverfrac,unusable
+!  write(stdout,*)'convf',convf,convft,coverfrac,unusable
 !  read(*,*)
 !end if
 
@@ -172,7 +172,7 @@ do i = 1,2  !once for each case - conversion from natural veg or recovering veg
     
     !soil organic matter is the weighted average of whatever is currently on the used tile and the state of the land being converted
     
-    !write(0,*)convft(i),sv(2,j)%cpool_fast,sv(l,j)%cpool_fast
+    !write(stdout,*)convft(i),sv(2,j)%cpool_fast,sv(l,j)%cpool_fast
     !read(*,*)
     
     osv%tile(2)%cpool_fast = (1. - convft(i)) * osv%tile(2)%cpool_fast + convft(i) * osv%tile(l)%cpool_fast

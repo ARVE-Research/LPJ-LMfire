@@ -20,6 +20,8 @@ character(220) :: co2file  = ''  !or specify fixed CO2
 character(220) :: poppfile = ''  !file with potential population density of foragers
 character(220) :: popdfile = ''  !file with population density of different people
 
+integer :: startyr_foragers   !first year of spinup at which to introduce foragers (to allow vegetation to develop first)
+
 !flag for projected grid
 
 logical :: projgrid
@@ -132,13 +134,13 @@ type soiltype
   logical    :: water
   integer(2) :: elv
   real(sp)   :: slopeangle 	!mean slope angle (radians)
-  real(sp)   :: landf           !fraction of the grid cell that is land
-  real(sp), dimension(5) :: zpos
-  real(sp), dimension(5) :: whc
-  real(sp), dimension(5) :: cond
-  real(sp), dimension(5) :: sand
-  real(sp), dimension(5) :: clay
-  real(sp), dimension(5) :: orgm
+  real(sp)   :: landf       !fraction of the grid cell that is land
+  real(sp), allocatable, dimension(:) :: zpos
+  real(sp), allocatable, dimension(:) :: whc
+  real(sp), allocatable, dimension(:) :: cond
+  real(sp), allocatable, dimension(:) :: sand
+  real(sp), allocatable, dimension(:) :: clay
+  real(sp), allocatable, dimension(:) :: orgm
 
 end type soiltype
 

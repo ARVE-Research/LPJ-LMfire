@@ -1,6 +1,7 @@
 module netcdfsetupmod
 
 use parametersmod, only : maxoutvars
+use parametersmod, only : stdout,stderr
 
 implicit none
 
@@ -71,7 +72,7 @@ call getvarinfo()
   yres = 0.5
 !end if
 
-write(0,*)'input grid resolution',xres,yres,' degrees'
+write(stdout,*)'input grid resolution',xres,yres,' degrees'
 
 xrange(1) = minval(lonvect(srtx:endx)) - 0.5 * xres
 xrange(2) = maxval(lonvect(srtx:endx)) + 0.5 * xres
@@ -86,7 +87,7 @@ cellmask = .false.
 !----------------------------------
 !dimensions and dimension variables
 
-write(0,'(a,a)')'output file: ',trim(outputfile)
+write(stdout,'(a,a)')'output file: ',trim(outputfile)
 
 ncstat = nf90_create(outputfile,nf90_hdf5,ofid)
 if (ncstat/=nf90_noerr) call netcdf_err(ncstat)
@@ -105,7 +106,7 @@ if (ncstat/=nf90_noerr) call netcdf_err(ncstat)
 ncstat = nf90_put_att(ofid,nf90_global,'node_offset',1)
 if (ncstat/=nf90_noerr) call netcdf_err(ncstat)
 
-write(0,*)'added global atts'
+write(stdout,*)'added global atts'
 
 !----
 
@@ -223,14 +224,14 @@ end if
 reqoutvars = count(outputvar /= 'null')
 
 if (reqoutvars < 1) then
-  write(0,*)'WARNING, no variables were specified for output!'
+  write(stdout,*)'WARNING, no variables were specified for output!'
     
 else
-  write(0,*)'the following variables will be written to netCDF output'
+  write(stdout,*)'the following variables will be written to netCDF output'
   
   do i = 1,reqoutvars
 
-    write(0,*)outputvar(i)
+    write(stdout,*)outputvar(i)
     call declvar(ofid,outputvar(i))
   
   end do
@@ -341,9 +342,9 @@ do i = 1,maxoutvars
 end do
 
 if (j == 0) then
-  write(0,*)'ERROR, a variable was requested for output that was not present'
-  write(0,*)'in the attribute table: outvarsinfo.namelist'
-  write(0,*)'Please check the variable name or add metadata to the table.'
+  write(stdout,*)'ERROR, a variable was requested for output that was not present'
+  write(stdout,*)'in the attribute table: outvarsinfo.namelist'
+  write(stdout,*)'Please check the variable name or add metadata to the table.'
   stop
 end if  
 

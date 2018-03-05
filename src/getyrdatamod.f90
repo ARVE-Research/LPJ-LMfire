@@ -1,5 +1,7 @@
 module getyrdatamod
 
+use parametersmod, only : stdout,stderr
+
 !get all data that changes on a yearly basis
 
 implicit none
@@ -60,8 +62,8 @@ if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 !check to make sure the requested calendar year for the beginning of the run is available in the dataset
 
 if (cal_year > times(1)) then
-  write(0,*)'ERROR: the requested starting year for the run is earlier than the first year of data in the CO2 file'
-  write(0,*)cal_year,times(1)
+  write(stdout,*)'ERROR: the requested starting year for the run is earlier than the first year of data in the CO2 file'
+  write(stdout,*)cal_year,times(1)
   stop
 end if
 
@@ -80,7 +82,7 @@ if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 ncstat = nf90_close(ncid)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
-!write(0,*)'co2',srt,transientyears,cal_year
+!write(stdout,*)'co2',srt,transientyears,cal_year
 
 end subroutine getco2
 
@@ -89,7 +91,7 @@ end subroutine getco2
 subroutine getdata(ncells,year,cal_year,firstyear,time0,in_master)
 
 use mpistatevarsmod,only : inputdata
-use iovariablesmod, only : ibuf,soil,lucc,climateyears,co2vect,calcforagers
+use iovariablesmod, only : ibuf,soil,lucc,climateyears,co2vect,calcforagers,startyr_foragers
 use orbitmod,       only : calcorbitpars,orbitpars
 use parametersmod,  only : sp
 
@@ -131,6 +133,8 @@ if (year == 1 .or..not.in_master(1)%spinup) then  !we need to get annual topo da
 
   if (calcforagers) then
     call getforg(cal_year)
+    
+    in_master%startyr_foragers = startyr_foragers
 
   else if (lucc) then
     call getlucc(cal_year)
@@ -169,6 +173,12 @@ if (year == 1) then
     in_master(i)%soil%orgm = soil(x,y)%orgm
     in_master(i)%soil%zpos = soil(x,y)%zpos
     
+!     write(stdout,*)'SETTING OUTPUT SOIL' 
+!     write(stdout,*)in_master(i)%soil%sand
+! 				write(stdout,*)in_master(i)%soil%clay
+! 				write(stdout,*)in_master(i)%soil%orgm
+! 				write(stdout,*)in_master(i)%soil%zpos
+
     !FLAGFLAGFLAG
     
 !    if(in_master(i)%slope /= in_master(i)%slope) in_master(i)%slope = 0.
@@ -206,7 +216,7 @@ do i = 1,ncells
     in_master(i)%human%landuse(1:2)  = ibuf(x,y)%cropfrac(1:2)
     in_master(i)%human%landuse(3:)   =-1.                      !all other types, set to missing for now
     
-    !write(0,*)'input landuse',in_master(i)%human%landuse(1:2)
+    !write(stdout,*)'input landuse',in_master(i)%human%landuse(1:2)
   else
     in_master(i)%human%popd        =  0          !NB this is an array
     in_master(i)%human%landuse(1)  =  1  !only natural landuse without lucc file
@@ -250,14 +260,14 @@ real(sp),    parameter :: rmissing =  -9999.
 
 t0 = mod(itime,timebuflen)
 
-!write(0,*)'getyrdata',timebuflen,climatemonths,itime,time0,t0,t0+11
+!write(stdout,*)'getyrdata',timebuflen,climatemonths,itime,time0,t0,t0+11
 
 if (t0 == 1 .and. itime /= time0 .and. time0+11 /= climatemonths) then
   
   remainmon = 1 + climatemonths - itime
   tlen = min(remainmon,timebuflen)
 
-  write(0,*)'read more data',itime,time0,remainmon,tlen
+  write(stdout,*)'read more data',itime,time0,remainmon,tlen
   
   !---
   !read data from file
@@ -296,7 +306,7 @@ do y = 1,cnty
       cellmask(x,y) = .true.
     end if
 
-!     write(0,*)x,y,soil(x,y)%landf,cellmask(x,y)
+!     write(stdout,*)x,y,soil(x,y)%landf,cellmask(x,y)
     
     !if (ibuf(x,y)%temp(1) /= rmissing .and. soil(x,y)%sand(1) >= 0. .and. soil(x,y)%landf > 0.) cellmask(x,y) = .true.  
     
@@ -415,7 +425,7 @@ else if (xtype == nf90_float) then
 
 else  !
 
-  write(0,*)'error, the landuse variable is in an invalid type! ',xtype
+  write(stdout,*)'error, the landuse variable is in an invalid type! ',xtype
   stop
 
 end if
@@ -427,8 +437,8 @@ do y = 1,cnty
   end do
 end do
 
-!write(0,'(a,2i5,5f10.4)')'getlucc',cal_year,srtt,ibuf(1,1)%cropfrac,ibuf(1,1)%popd
-!write(0,*)'getlucc',cal_year,srtt
+!write(stdout,'(a,2i5,5f10.4)')'getlucc',cal_year,srtt,ibuf(1,1)%cropfrac,ibuf(1,1)%popd
+!write(stdout,*)'getlucc',cal_year,srtt
 
 !-----------------
 !land use turnover
@@ -574,9 +584,9 @@ end if
 !check to make sure the requested calendar year for the beginning of the run is available in the dataset
 
 if (cal_year > topotime(1)) then
-  write(0,*)'WARNING: the requested starting year for the run is earlier than the first year of data in the topofile'
-  write(0,*)cal_year,topotime(1)
-  write(0,*)'using topo data from nearest year available in data set'
+  write(stdout,*)'WARNING: the requested starting year for the run is earlier than the first year of data in the topofile'
+  write(stdout,*)cal_year,topotime(1)
+  write(stdout,*)'using topo data from nearest year available in data set'
 end if  
 
 !scan the time vector to figure out where to start getting the elevation- and landf- vector from 
@@ -585,7 +595,7 @@ tloc = minloc(abs(topotime - cal_year),1)
 
 srtt = tloc(1)
 
-!write(0,*)'reading topo data',srtx,srty,srtt,cntx,cnty
+!write(stdout,*)'reading topo data',srtx,srty,srtt,cntx,cnty
 
 ncstat = nf90_get_var(topofid,elvid,ivals,start=[srtx,srty,srtt],count=[cntx,cnty,1])
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
@@ -597,7 +607,7 @@ if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
 soil%landf = rvals
 
-!write(0,*) 'end of gettopo'
+!write(stdout,*) 'end of gettopo'
 
 end subroutine gettopo
 

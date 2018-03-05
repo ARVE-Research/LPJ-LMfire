@@ -1,5 +1,7 @@
 module initjobmod
 
+use parametersmod, only : stdout,stderr
+
 implicit none
 
 public :: initjob
@@ -9,7 +11,7 @@ contains
 
 !-----------------------------------------------------------------------------------------------------------------
 
-subroutine initjob(ncells,ntiles,spinupyears,transientyears)
+subroutine initjob(ncells,ntiles,nlayers,spinupyears,transientyears)
 
 use parametersmod,   only : sp,dp,i8,area
 use iovariablesmod,  only : cfile_spinup,cfile_transient,soilfile,                            &
@@ -17,7 +19,7 @@ use iovariablesmod,  only : cfile_spinup,cfile_transient,soilfile,              
                             fixedco2,ocean_uptake,cal_year,nspinyrsout,outputvar,    &
                             lu_turn_yrs,popdfile,poppfile,maxmem,bounds,                     &
                             outputfile,srtx,srty,cntx,cnty,endx,endy,inputlonlen,inputlatlen, &
-                            lucc,cellindex,lonvect,latvect,co2vect,nolanduse,nclimv,calcforagers,projgrid,geolon,geolat
+                            lucc,cellindex,lonvect,latvect,co2vect,nolanduse,nclimv,calcforagers,projgrid,geolon,geolat,startyr_foragers
 use coordsmod,       only : parsecoords
 use initsoilmod,     only : initsoil
 use initclimatemod,  only : initclimate
@@ -35,6 +37,7 @@ implicit none
 
 integer, intent(out) :: ncells
 integer, intent(out) :: ntiles
+integer, intent(out) :: nlayers !number of soil layers present in the input data
 integer, intent(out) :: spinupyears
 integer, intent(out) :: transientyears
 
@@ -60,6 +63,7 @@ integer :: tlen
 
 integer(i8) :: idx
 
+
 character(45)  :: coords
 character(200) :: jobfile
 
@@ -82,7 +86,8 @@ namelist /joboptions/ &
   outputvar,          &
   lu_turn_yrs,        &
   maxmem,             &
-  nolanduse
+  nolanduse,          &
+  startyr_foragers
 
 !-------------------------
 !initialize variables with a default value if they are not specified in the namelist
@@ -91,8 +96,9 @@ spinupyears    = -9999
 transientyears = -9999
 nspinyrsout    = -9999
 nolanduse      = .false.
+startyr_foragers = 1000
 
-write(0,*)'==== Welcome to LPJ, the versatile DGVM ===='
+write(stdout,*)'==== Welcome to LPJ, the versatile DGVM ===='
 
 !read the joboptions
 
@@ -105,7 +111,7 @@ read(10,nml=joboptions)
 close(10)
 
 if (spinupyears <= 0) then
-  write(0,*)'no years indicated for spinup!'
+  write(stdout,*)'no years indicated for spinup!'
   stop
 end if
 
@@ -131,7 +137,7 @@ call getarg(3,outputfile)
 ! !CO2
 !
 ! if (co2file /= '') then
-!   write(0,'(a,a)')'using co2file: ',trim(co2file)
+!   write(stdout,'(a,a)')'using co2file: ',trim(co2file)
 !   call getco2(cal_year,transientyears)             !externally prescribed CO2 concentrations
 ! else
 !   co2vect = fixedco2
@@ -170,7 +176,7 @@ call getarg(3,outputfile)
 !open the soil initial conditions files and allocate the soils input matrix (and lat and lon vect).
 !allocates lonvect, latvect and soil%
 
-call initsoil(cal_year)
+call initsoil(cal_year,nlayers)
 
 srtx = max(1,srtx)
 srty = max(1,srty)
@@ -222,14 +228,14 @@ if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 ncstat = nf90_inq_varid(topofid,'landf',landfid)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
   
-write(0,*) 'Done reading topofile'  
+write(stdout,*) 'Done reading topofile'  
 
 !-------------------------------
 !externally prescribed CO2 concentrations
 
 if (co2file /= '') then
-  write(0,'(a,a)')'using co2file: ',trim(co2file)
-  write(0,*)cal_year,transientyears
+  write(stdout,'(a,a)')'using co2file: ',trim(co2file)
+  write(stdout,*)cal_year,transientyears
   call getco2(cal_year,transientyears)
 else
   co2vect = fixedco2
@@ -239,13 +245,13 @@ end if
 
 !co2vect = 295.5638
 
-write(0,*)'done with CO2'
+write(stdout,*)'done with CO2'
 
 !-------------------------------
 !externally prescribed land use (ALCC)
 
 if (poppfile /= '' .and. popdfile /= '') then
-  write(0,*)'you cannot specify both a pop_p and pop_d file!'
+  write(stdout,*)'you cannot specify both a pop_p and pop_d file!'
   stop
 end if
 
@@ -267,7 +273,7 @@ else
   ntiles = 1
 end if
 
-write(0,'(a,i3)')'WARNING number of land use tiles used in this run: ',ntiles,lucc
+write(stdout,'(a,i3)')'WARNING number of land use tiles used in this run: ',ntiles,lucc
 
 !-------------------
 
@@ -275,16 +281,28 @@ allocate(cellindex(ncells,3))  !this is a potential maximum. we will check for v
 
 !-------------------
 
-write(0,'(a,i5,a,i5,a,i5)')'input files have:  ',inputlonlen,' columns and',inputlatlen,' rows'
-write(0,'(a,i5,a,i5,a,i8)')'cells to calculate:',cntx,' x',cnty,' =',ncells
-write(0,'(a,2i5,2f12.1)')  'starting at:       ',srtx,srty,lonvect(srtx),latvect(srty)
+write(stdout,'(a,i5,a,i5,a,i5)')'input files have:  ',inputlonlen,' columns and',inputlatlen,' rows'
+write(stdout,'(a,i5,a,i5,a,i8)')'cells to calculate:',cntx,' x',cnty,' =',ncells
+write(stdout,'(a,2i5,2f12.1)')  'starting at:       ',srtx,srty,lonvect(srtx),latvect(srty)
 
-write(0,'(a,2f8.4)')'landuse turnover: ',lu_turn_yrs
+write(stdout,'(a,2f8.4)')'landuse turnover: ',lu_turn_yrs
 
 !-------------------
 !allocate the input variable array (all cells for one year) and initialize with some data
 
 allocate(in_master(ncells))
+
+!allocate the soil layer elements
+
+! write(0,*)'soil layers in_master',nlayers
+
+! do i = 1,ncells
+!   allocate(in_master(i)%soil%zpos(nlayers))
+!   allocate(in_master(i)%soil%sand(nlayers))
+!   allocate(in_master(i)%soil%clay(nlayers))
+!   allocate(in_master(i)%soil%orgm(nlayers))
+!   allocate(in_master(i)%soil%bulk(nlayers))
+! end do
 
 idx = 1
 
@@ -304,7 +322,7 @@ do y = 1,cnty
 
       in_master(idx)%lon  = geolon(x,y)
       in_master(idx)%lat  = geolat(x,y)
-      in_master(idx)%cellarea = 1.e8   !10 km grid. NB this should be flexible and handle grids of arbitrary cell size!
+      in_master(idx)%cellarea = 1.e8     !1.e8   !10 km grid. NB this should be flexible and handle grids of arbitrary cell size!
      
     else
 	
@@ -325,7 +343,7 @@ end do
 allocate(sv_master(ncells))
 
 do i = 1,ncells
-  call initstatevars(in_master(i),sv_master(i),ismaster)
+  call initstatevars(in_master(i),sv_master(i),ismaster,nlayers)
 end do
 
 !---
