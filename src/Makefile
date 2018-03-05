@@ -1,16 +1,14 @@
 #makefile
 
-#library locations for calculquebec briaree
-#NC_LIB=/home/apps/Logiciels/netcdf-4.1.3/lib
-#NC_INC=/home/apps/Logiciels/netcdf-4.1.3/include
-# Librairy locations pour librairie perso
-NC_LIB=/RQusagers/echaste/Local/lib
-NC_INC=/RQusagers/echaste/Local/include
+netcdf = /soge-home/users/cenv0668/local/netcdf
+
+NC_LIB=$(netcdf)/lib
+NC_INC=$(netcdf)/include
 
 #---- should not need to change anything below this line ----
 
 CC = mpicc
-FC = mpif90
+FC = mpifort
 LDFLAGS  = -L$(NC_LIB) #-i_dynamic
 CPPFLAGS = -Difort -I$(NC_INC)
 
