@@ -1,8 +1,9 @@
 #makefile
 
-#libraries ARVE servers
-NC_LIB=/usr/local/netcdf/lib
-NC_INC=/usr/local/netcdf/include
+#libraries OUCE servers
+
+NC_LIB=/soge-home/users/cenv0668/local/netcdf/lib
+NC_INC=/soge-home/users/cenv0668/local/netcdf/include
 
 #---- should not need to change anything below this line ----
 

@@ -93,7 +93,7 @@ namelist /joboptions/ &
 !initialize variables with a default value if they are not specified in the namelist
 
 spinupyears    = -9999
-transientyears = -9999
+transientyears = 1
 nspinyrsout    = -9999
 nolanduse      = .false.
 startyr_foragers = 1000

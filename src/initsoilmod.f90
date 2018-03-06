@@ -46,6 +46,8 @@ integer(i1) :: flag
 
 character(10) :: projectedgrid
 
+character(3), dimension(2) :: dimname
+
 real(sp) :: scale_factor
 real(sp) :: add_offset
 
@@ -61,14 +63,37 @@ write(stdout,'(a,a)')'using soil file: ',trim(soilfile)
 
 ncstat = nf90_open(soilfile,nf90_nowrite,soilfid)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+!--------------------------
+!check if the grid is a projected grid. If yes, set dimension names 
+
+ncstat = nf90_get_att(soilfid,nf90_global,'ProjectedGrid',projectedgrid)
+
+if (ncstat == nf90_enotatt .or. trim(projectedgrid) /= 'true') then
+
+  projgrid = .false.
   
-ncstat = nf90_inq_dimid(soilfid,'lon',dimid)
+  dimname = ['lon','lat']
+  
+else
+
+  projgrid = .true.
+  
+  dimname = ['x','y']
+  
+  write(stdout,*)'NB: input data is in a projected grid!'
+
+end if
+
+!---
+
+ncstat = nf90_inq_dimid(soilfid,dimname(1),dimid)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
 ncstat = nf90_inquire_dimension(soilfid,dimid,len=inputlonlen)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
-ncstat = nf90_inq_dimid(soilfid,'lat',dimid)
+ncstat = nf90_inq_dimid(soilfid,dimname(2),dimid)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
 ncstat = nf90_inquire_dimension(soilfid,dimid,len=inputlatlen)
@@ -77,13 +102,13 @@ if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 allocate(lonvect(inputlonlen))
 allocate(latvect(inputlatlen))
 
-ncstat = nf90_inq_varid(soilfid,'lon',varid)
+ncstat = nf90_inq_varid(soilfid,dimname(1),varid)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
 ncstat = nf90_get_var(soilfid,varid,lonvect)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
   
-ncstat = nf90_inq_varid(soilfid,'lat',varid)
+ncstat = nf90_inq_varid(soilfid,dimname(2),varid)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)  
 
 ncstat = nf90_get_var(soilfid,varid,latvect)
@@ -122,28 +147,18 @@ else
 
 end if
 
-!--------------------------
-!check if the grid is a projected grid. If yes, read geodetic longitude and latitude into arrays and fix the cell area
-
-ncstat = nf90_get_att(soilfid,nf90_global,'ProjectedGrid',projectedgrid)
-
-if (ncstat == nf90_enotatt .or. trim(projectedgrid) /= 'true') then
-  projgrid = .false.
-else
-  projgrid = .true.
-  
-  write(stdout,*)'NB: input data is in a projected grid!'
+if (projgrid) then
   
   allocate(geolon(cntx,cnty))
   allocate(geolat(cntx,cnty))
 
-  ncstat = nf90_inq_varid(soilfid,'geolon',varid)
+  ncstat = nf90_inq_varid(soilfid,'lon',varid)
   if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
   ncstat = nf90_get_var(soilfid,varid,geolon,start=[srtx,srty],count=[cntx,cnty])
   if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
-  ncstat = nf90_inq_varid(soilfid,'geolat',varid)
+  ncstat = nf90_inq_varid(soilfid,'lat',varid)
   if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
   ncstat = nf90_get_var(soilfid,varid,geolat,start=[srtx,srty],count=[cntx,cnty])
@@ -165,7 +180,7 @@ if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 ncstat = nf90_inquire_dimension(soilfid,dimid,len=layers)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)  
 
-! write(0,*)'soil layers input',layers
+write(stdout,*)'soil layers input',layers
   
 allocate(depth(layers))
 
@@ -212,21 +227,17 @@ clay = clay * scale_factor + add_offset
 
 !------------
 
-! layers = 5
-
-write(stdout,*)'number of soil layers',layers
-
 allocate(soil(cntx,cnty))
 
 do j=1,cnty
   do i=1,cntx
 
-				allocate(soil(i,j)%zpos(layers))
-				allocate(soil(i,j)%whc(layers))
-				allocate(soil(i,j)%cond(layers))
-				allocate(soil(i,j)%sand(layers))
-				allocate(soil(i,j)%clay(layers))
-				allocate(soil(i,j)%orgm(layers))
+    allocate(soil(i,j)%zpos(layers))
+    allocate(soil(i,j)%whc(layers))
+    allocate(soil(i,j)%cond(layers))
+    allocate(soil(i,j)%sand(layers))
+    allocate(soil(i,j)%clay(layers))
+    allocate(soil(i,j)%orgm(layers))
 
     soil(i,j)%zpos = depth
     soil(i,j)%sand = sand(i,j,:)
