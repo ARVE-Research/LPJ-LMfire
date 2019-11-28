@@ -6,15 +6,15 @@
 ! Vegetation is represented by a combination of the following plant functional
 ! types (PFTs)
 
-!       1. Epinette noire
-!       2. Epinette blanche
-!       3. Sapin baumier
-!       4. Pin gris
-!       5. Pin blanc et pin rouge
-!       6. Cedre occidental
-!       7. Peuplier
-!       8. Bouleau
-! 		9. C3 grass
+!       1. Picea
+!       2. No-boreal
+!       3. Abies
+!       4. Pinus
+!       5. No-boreal
+!       6. No-boreal
+!       7. No-boreal
+!       8. Populus
+! 	9. No-boreal
 
 subroutine pftparameters(pftpar,sla,tree,evergreen, &
      &  summergreen,raingreen,needle,boreal,lm_sapl,sm_sapl,hm_sapl, &
@@ -129,14 +129,14 @@ implicit none
 	  
     open (unit = 15, file=pftfile, STATUS='OLD', ACTION='READ', IOSTAT=ierror)
 	  
-	write(*,*) 'jai ouvert la table'
+	!write(*,*) 'jai ouvert la table'
 
 	if (ierror .ne. 0) then
 		write(*,*) 'File pft parameters cannot be open'
 	else 
         read (15, *)
         do pft = 1, npft
-		write(*,*) pft 
+		!write(*,*) pft 
 
 				read (15, *) table(pft,:)
 				!write(*,*) table(pft,:)
@@ -151,7 +151,7 @@ implicit none
 		  		 
     close (unit = 15)
 	
-	write(*,*) 'jai correctement lu les parametres des PFTs'
+	!write(*,*) 'jai correctement lu les parametres des PFTs'
 
 ! Déchiffrage des parametres des PFTs
 

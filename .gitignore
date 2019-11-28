@@ -1,5 +1,6 @@
 # Mac finder hidden files
-*DS_store*
+.DS_Store*
+._*
 
 # Compiled Object files
 *.slo
@@ -30,3 +31,5 @@
 *.exe
 *.out
 *.app
+
+src/lpj

@@ -17,7 +17,7 @@ contains
 subroutine establishment(pftpar,present,survive,estab,nind,lm_ind,sm_ind,rm_ind,hm_ind,lm_sapl,sm_sapl,rm_sapl,hm_sapl, &
                          tree,crownarea,fpc_grid,lai_ind,height,sla,wooddens,latosa,mprec,reinickerp, &
                          litter_ag_fast,litter_ag_slow,litter_bg,allom1,allom2,allom3,acflux_estab,   &
-                         leafondays,leafoffdays,leafon,estab_pft,burnedf)
+                         leafondays,leafoffdays,leafon,estab_pft,burnedf, clay, sand)
 
 !Establishment of new individuals (saplings) of woody PFTs, grass establishment,
 !removal of PFTs not adapted to current climate, update of individual structure and FPC.
@@ -27,6 +27,9 @@ use parametersmod, only : sp
 implicit none
 
 !arguments
+
+real(sp), dimension(:), intent(inout) :: clay   !soil clay fraction
+real(sp), dimension(:), intent(inout) :: sand   !soil sand fraction
 
 real(sp), intent(in) :: allom1
 real(sp), intent(in) :: allom2
@@ -94,7 +97,15 @@ real(sp) :: nind0            !number of individuals /m2 before establishment
 real(sp) :: sm_ind_tmp       !preliminary sapwood mass (g/m2)
 real(sp) :: stemdiam         !stem diameter (m)
 
+real(sp) :: clay_mean ! Moyenne du clay dans les differents tiles
+real(sp) :: sand_mean ! Moyenne du clay dans les differents tiles
+
 !--------------------------------------------
+!write(0,*)'burnedf',burnedf
+
+! Faire la moyenne du pourcentage de clay et de sand pour les deux couches 
+clay_mean = (clay(1) + clay(3))/2
+sand_mean = (sand(1) + sand(3))/2
 
 !Kill PFTs not adapted to current climate, introduce newly "adapted" PFTs
 
@@ -181,85 +192,62 @@ else  !unsuitable climate for establishment
 
 end if
 
+
 do pft = 1,npft
   
   if (present(pft) .and. estab(pft)) then
     if (tree(pft)) then
       if (estab_grid > 0.) then
+	  
+	  ! Ici on va limiter letablissement que si le pourcentage de clay pour les 4 PFTs est inferieur a un seuil 
+	  ! et si il y a pas eu de feux alors le pin ne peut pas setablir
+	  
+		if ((pft == 1. .and. clay_mean < 20.0) .OR. (pft == 3. .and. clay_mean < 13.0) .OR. (pft == 4. .and. clay_mean < 18.0) .OR. (pft == 8. .and. clay_mean < 23.0)) then 
+		
+			if ((pft == 1. .and. burnedf >= 0.) .OR. (pft == 3. .and. burnedf >= 0.) .OR. (pft == 4. .and. burnedf > 0.) .OR. (pft == 8. .and. burnedf >= 0.)) then
+			
+				crownarea_max = pftpar(pft,18)
 
-        crownarea_max = pftpar(pft,18)
+		  !      write(0,*)'estab_grid',pft,estab_grid,npft_estab,crownarea_max
 
-  !      write(0,*)'estab_grid',pft,estab_grid,npft_estab,crownarea_max
+				!Add new saplings to current population
 
-        !Add new saplings to current population
+				nind0 = nind(pft)
+				nind(pft) = nind0 + estab_grid   
 
-        nind0 = nind(pft)
-        nind(pft) = nind0 + estab_grid   
+				sm_ind_tmp    = (sm_ind(pft,1) * nind0 + sm_sapl(pft,1) * estab_grid) / nind(pft) ! Sapwood mass
+				hm_ind(pft,1) = (hm_ind(pft,1) * nind0 + hm_sapl(pft,1) * estab_grid) / nind(pft) ! Heartwood mass
+				lm_ind(pft,1) = (lm_ind(pft,1) * nind0 + lm_sapl(pft,1) * estab_grid) / nind(pft) ! Leaf mass
+				rm_ind(pft,1) = (rm_ind(pft,1) * nind0 + rm_sapl(pft,1) * estab_grid) / nind(pft) ! Root mass
+				
+				!Accumulate biomass increment due to sapling establishment
 
-        sm_ind_tmp    = (sm_ind(pft,1) * nind0 + sm_sapl(pft,1) * estab_grid) / nind(pft)
-        hm_ind(pft,1) = (hm_ind(pft,1) * nind0 + hm_sapl(pft,1) * estab_grid) / nind(pft)
-        lm_ind(pft,1) = (lm_ind(pft,1) * nind0 + lm_sapl(pft,1) * estab_grid) / nind(pft)
-        rm_ind(pft,1) = (rm_ind(pft,1) * nind0 + rm_sapl(pft,1) * estab_grid) / nind(pft)
+				estab_mass = lm_sapl(pft,1) + sm_sapl(pft,1) + hm_sapl(pft,1) + rm_sapl(pft,1)
 
-        !Accumulate biomass increment due to sapling establishment
+				estab_pft(pft) = estab_mass * estab_grid
 
-        estab_mass = lm_sapl(pft,1) + sm_sapl(pft,1) + hm_sapl(pft,1) + rm_sapl(pft,1)
+				if (estab_mass * estab_grid > eps) acflux_estab(1) = acflux_estab(1) + estab_mass * estab_grid
 
-        estab_pft(pft) = estab_mass * estab_grid
+				stemdiam = (4. * (sm_ind_tmp + hm_ind(pft,1)) / wooddens / pi / allom2)**(1./(2. + allom3)) !Eqn 9
 
-        if (estab_mass * estab_grid > eps) acflux_estab(1) = acflux_estab(1) + estab_mass * estab_grid
+				height(pft) = allom2 * stemdiam**allom3                           !Eqn C
 
-        !---------------------------------------------------------
-        !Calculate height, diameter and crown area for new average
-        !individual such that the basic allometric relationships (A-C below)
-        !are satisfied.
+				crownarea(pft) = min(crownarea_max,allom1 * stemdiam**reinickerp) !Eqn D
 
-        !(A) (leaf area) = latosa * (sapwood xs area)
-        !       (Pipe Model, Shinozaki et al. 1964a,b; Waring et al 1982)
-        !(B) (leaf mass) = lmtorm * (root mass)
-        !(C) height = allom2 * (stem diameter)**allom3
-        !       (source?)
-        !(D) (crown area) = min (allom1 * (stem diameter)**reinickerp,crownarea_max)
+				!Recalculate sapwood mass, transferring excess sapwood to heartwood compartment, if necessary to satisfy Eqn A
 
-        !From (A),
-        ! (1) sap_xsa = lm_ind * sla / latosa
-        ! (2) wooddens = (sm_ind + hm_ind) / stemvolume
-        ! (3) stemvolume = stem_xsa * height
+				sm_ind(pft,1) = lm_ind(pft,1) * height(pft) * wooddens * sla(pft) / latosa 
 
-        !From (1), (2) & (3),
-        ! (4) stem_xsa = (sm_ind + hm_ind) / wooddens / height
-        ! (5) stem_xsa = pi * (stemdiam**2) / 4
+				hm_ind(pft,1) = max(hm_ind(pft,1) + (sm_ind_tmp - sm_ind(pft,1)),0.)
 
-        !From (5),
-        ! (6) stemdiam = ( 4 * stem_xsa / pi )**0.5
-
-        !From (4) & (6),
-        ! (7) stemdiam = ( 4 * (sm_ind + hm_ind) / wooddens / height / pi )**0.5
-
-        !From (C) & (7),
-        ! (8) stemdiam = ( 4 * (sm_ind + hm_ind) / wooddens / ( allom2 * stemdiam**allom3 ) / pi )**0.5
-
-        !From (8),
-        ! (9) stemdiam = ( 4 * (sm_ind + hm_ind ) / wooddens / pi / allom2 )**( 1 / (2 + allom3))
-
-        !---------------------------------------------------------
-
-        stemdiam = (4. * (sm_ind_tmp + hm_ind(pft,1)) / wooddens / pi / allom2)**(1./(2. + allom3)) !Eqn 9
-
-        height(pft) = allom2 * stemdiam**allom3                           !Eqn C
-
-        crownarea(pft) = min(crownarea_max,allom1 * stemdiam**reinickerp) !Eqn D
-
-        !Recalculate sapwood mass, transferring excess sapwood to heartwood compartment, if necessary to satisfy Eqn A
-
-        sm_ind(pft,1) = lm_ind(pft,1) * height(pft) * wooddens * sla(pft) / latosa 
-
-        hm_ind(pft,1) = max(hm_ind(pft,1) + (sm_ind_tmp - sm_ind(pft,1)),0.)
-
-        !if (pft == 5) write(0,*)'establishment',estab_grid,crownarea(pft),sm_ind(pft,1),sm_ind_tmp,sm_ind_tmp - sm_ind(pft,1)
-
-      end if  !estab grid
-         
+				!if (pft == 5) write(0,*)'establishment',estab_grid,crownarea(pft),sm_ind(pft,1),sm_ind_tmp,sm_ind_tmp - sm_ind(pft,1)
+			  
+			 end if 
+		
+		end if 
+		
+		end if  !estab grid
+ 
     else !grass
 
       !Grasses can establish in non-vegetated areas
