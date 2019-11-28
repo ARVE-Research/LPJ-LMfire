@@ -1,0 +1,18 @@
+&joboptions
+ cal_year         = 79   !1871: must be in units cal yr BP (1950)
+ dospinup         = .true.
+ dotransient      = .false.
+ spinupyears      = 1020 !36 30-year cycles
+ transientyears   = 140  
+ cfile_spinup     = '/Volumes/arve/shared/datasets/climate/dgvm_input/timeslice/spinup1871.nc'
+ soilfile         = '/Volumes/arve/shared/datasets/soils/soilgrids1km/soil000ka/soil30m.nc'
+ co2file          = '/Volumes/arve/shared/datasets/GHG/ghg2.nc'
+ topofile         = '/Volumes/arve/shared/datasets/topo/dgvm_input/topofile_integrated_000ka.nc'
+ nspinyrsout      = 150
+ maxmem           = 12288.
+ lu_turn_yrs      = 0.
+ outputvar     = 'cover','livebiomass','litterC_fast','litterC_slow','litterC_bg','soilC_surf',
+                 'soilC_fast','soilC_slow','burnedf','coverfrac','tilecarbon','NPP','nind','crownarea',
+                 'NBP','acflux_fire','fireCO2','fireCO','fireCH4','fireVOC','fireTPM','fireNOx','mLAI','mBBpft','mburnedf','height'
+ nolanduse     = .true.
+/
