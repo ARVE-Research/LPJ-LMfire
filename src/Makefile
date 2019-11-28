@@ -1,35 +1,49 @@
-#makefile
+# makefile for LPJ-LMfire
+
+#---------------------------------------------
+# specify the fortran and C compilers here. normally this needs to be the MPI version of the compiler
+
+CC = mpicc
+FC = mpifort
+
+# specify the compiler options. choose either optimized or debugging flags, or neither
+
+# optimized flags for ifort
+
+FCFLAGS  = -xHost
+
+# OR
+# debugging flags for ifort
+
+FCFLAGS = -debug -fpe0 -traceback -g -check -check noarg_temp_created -warn all
+
+# OR
+# debugging flags for gfortran
+
+# FCFLAGS  = -ffree-line-length-none -finit-local-zero -fcheck=all -ffpe-trap=invalid,zero,overflow,underflow -g -fbacktrace -Wall -pedantic
+
+#---------------------------------------------
+# specify the location of your netcdf install
 
 netcdf=/usr/local
+
+#---- should not need to change anything below this line ----
+
+# pointers to netcdf directories
 
 NC_LIB=$(netcdf)/lib
 NC_INC=$(netcdf)/include
 
-#---- should not need to change anything below this line ----
+# preprocessor and linker flags
 
-CC = mpicc
-FC = mpifort
-LDFLAGS  = -L$(NC_LIB) #-i_dynamic
 CPPFLAGS = -Difort -I$(NC_INC)
+LDFLAGS  = -L$(NC_LIB)
 
-#---optimized flags for ifort---
-# CFLAGS   = -xHost #-fast
-FCFLAGS  = -xHost #-fast
-
-#---debugging flags for ifort---
-
-FCFLAGS = -debug -fpe0 -traceback -g -check -check noarg_temp_created -warn all
-
-#---debugging flags for gfortran---
-
-#FCFLAGS  = -ffree-line-length-none -finit-local-zero -fcheck=all -ffpe-trap=invalid,zero,overflow,underflow -g -fbacktrace -Wall -pedantic
+# --- required libraries --- may not always need libcurl, depends on the HDF install
 
 LIBS     = -lnetcdff -lnetcdf -lhdf5 -lhdf5_hl -lcurl
 
 #note: files without the 'mod' suffix are f77 source that eventually need to be converted
-
-#       lpjstatevarsmod.o       \
-#       statevarsmod.o          \
 
 COREOBJS = overprint.o       \
        parametersmod.o   \
