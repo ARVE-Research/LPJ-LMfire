@@ -316,11 +316,11 @@ implicit none
         rm_sapl(pft,1)=(1.0/lmtorm)*lm_sapl(pft,1)  !From Eqn 23
         rm_sapl(pft,2)=lm_sapl(pft,2)       ! 13C value in permille
 
-      !write(0,*)pft,1000.*stemdiam,height_sapl,lai_sapl,lm_sapl(pft,1)
+      !write(stdout,*)pft,1000.*stemdiam,height_sapl,lai_sapl,lm_sapl(pft,1)
 
       enddo ! pft loop
 
-      !write(0,*)'done pftinitassign'
+      !write(stdout,*)'done pftinitassign'
       !read(*,*)
 
       return

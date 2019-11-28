@@ -1,0 +1,21 @@
+&joboptions
+ cal_year         = 49   !1901: must be in units cal yr BP (1950)
+ dospinup         = .true.
+ dotransient      = .false.
+ spinupyears      = 1020 !34 30-year cycles
+ transientyears   = 10  
+ cfile_spinup     = '/Volumes/arve/shared/datasets/climate/NewZealand/nzclimate_spinup_1km.nc'
+ cfile_transient  = '/Volumes/arve/shared/datasets/climate/NewZealand/nzclimate_spinup_1km.nc'
+ soilfile         = '/Volumes/arve/shared/datasets/climate/NewZealand/soil/nzsoil_1km.nc'
+ co2file          = '/Volumes/arve/shared/datasets/GHG/ghg2.nc'
+ topofile         = '/Volumes/arve/shared/datasets/climate/NewZealand/topo/nztopo_1km.nc'
+ nspinyrsout      = 1020
+ maxmem           = 12288.
+ lu_turn_yrs      = 0.
+ outputvar     = 'cover','albiomass','livebiomass','litterC_fast','litterC_slow','litterC_bg','soilC_surf',
+                 'soilC_fast','soilC_slow','burnedf','coverfrac','tilecarbon','NPP','GPP','nind', 'pftalbiomass',
+                 'NBP','acflux_fire','fireCO2','fireCO','fireCH4','fireVOC','fireTPM','fireNOx','mLAI','mBBpft','mburnedf','height'
+ nolanduse     = .true.
+/
+
+! call run script to make the program run

@@ -119,7 +119,7 @@ do i = 1,npft
       
       !make up the negative npp with what is stored in cstore, if possible
 
-      !write(0,*)'negative npp',i,anpp(i),cstore(i)
+      !write(stdout,*)'negative npp',i,anpp(i),cstore(i)
       
       mgpp(:,i) = mgpp(:,i) + cstore(i) / 12.
       cstore(i) = 0.

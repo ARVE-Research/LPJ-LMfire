@@ -48,7 +48,7 @@ real(sp) :: mat
 
 mat = sum(mtemp) / 12.
 
-!write(0,'(13f7.2)')mtemp,mat
+!write(stdout,'(13f7.2)')mtemp,mat
 
 mat_buf = eoshift(mat_buf,-1,mat)
   
@@ -76,7 +76,7 @@ gdd_buf = eoshift(gdd_buf,-1,gdd)
 
 gdd20 = sum(gdd_buf,mask=gdd_buf /= -9999.) / count(gdd_buf /= -9999.)
 
-!write(0,'(a,22f8.1)')'bioclim',gdd,gdd20,gdd_buf
+!write(stdout,'(a,22f8.1)')'bioclim',gdd,gdd20,gdd_buf
 
 end subroutine climate20
 
@@ -140,7 +140,7 @@ elsewhere
 end where
 
 !do i = 1,pfts
-!  write(0,*)i,tcmin(i),tcmax(i),gddmin(i),twmax(i),gdd,mtemp_min20,mtemp_max,survive(i),estab(i)
+!  write(stdout,*)i,tcmin(i),tcmax(i),gddmin(i),twmax(i),gdd,mtemp_min20,mtemp_max,survive(i),estab(i)
 !end do
 
 end subroutine bioclim

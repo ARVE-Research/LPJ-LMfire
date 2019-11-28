@@ -138,7 +138,7 @@ ksat(2) = soilpar(2)
 awc(1)  = soilpar(3)
 awc(2)  = soilpar(4)
 
-!write(0,*) 'CO2 in gppmod: ', co2(1)
+!write(stdout,*) 'CO2 in gppmod: ', co2(1)
 
 ca = co2(1) * 1.e-6  !from ppmv to mole fraction
 
@@ -272,7 +272,7 @@ do m = 1,12
         !Leaves are replaced immediately (i.e., daily) once the minimum water scalar is exceeded.
 
         !if (pft == 9) then
-        !  write(0,'(a,2i5,3f10.3)')'gppmod',pft,d,dwscal(pft),minwscal(pft),dgp(d,9)
+        !  write(stdout,'(a,2i5,3f10.3)')'gppmod',pft,d,dwscal(pft),minwscal(pft),dgp(d,9)
         !end if
 
         if (dwscal(pft) > minwscal(pft) .and. leafon(pft)) then
@@ -503,17 +503,17 @@ end do
 
 arunoff = arunoff_surf + arunoff_drain
 
-!write(0,*)sum(meanfpc,dim=1)
-!write(0,*)sum(meangc,dim=1)
-!write(0,*)sum(meangmin,dim=1)
+!write(stdout,*)sum(meanfpc,dim=1)
+!write(stdout,*)sum(meangc,dim=1)
+!write(stdout,*)sum(meangmin,dim=1)
 
-!write(0,*)'  gpp: dgc    ',sum(dgc,dim=1)
-!write(0,*)'  gpp: wscal  ',wscal   
-!write(0,*)'  gpp: present',present!sum(dphen_t,dim=1)
-!write(0,*)'  gpp: awscal ',awscal
-!write(0,*)'  gpp: alfdays',aleafdays
+!write(stdout,*)'  gpp: dgc    ',sum(dgc,dim=1)
+!write(stdout,*)'  gpp: wscal  ',wscal   
+!write(stdout,*)'  gpp: present',present!sum(dphen_t,dim=1)
+!write(stdout,*)'  gpp: awscal ',awscal
+!write(stdout,*)'  gpp: alfdays',aleafdays
 
-!write(0,'(24f12.2)')mw1,mrunoff
+!write(stdout,'(24f12.2)')mw1,mrunoff
     
 end subroutine calcgpp
 

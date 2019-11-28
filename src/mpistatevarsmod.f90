@@ -25,12 +25,20 @@ end type climatedata  !84 elements
 
 !---
 
+! type soildata
+!   real(sp), allocatable, dimension(:)  :: zpos    !depth of layer midpoint from soil surface
+!   real(sp), allocatable, dimension(:)  :: sand    !mass fraction
+!   real(sp), allocatable, dimension(:)  :: clay    !mass fraction
+!   real(sp), allocatable, dimension(:)  :: orgm    !organic matter mass (g m-2 ?) FLAG
+!   real(sp), allocatable, dimension(:)  :: bulk    !bulk density (units?)
+! end type soildata  !26 elements
+
 type soildata
-  real(sp), dimension(5)  :: zpos    !depth of layer midpoint from soil surface
-  real(sp), dimension(5)  :: sand    !mass fraction
-  real(sp), dimension(5)  :: clay    !mass fraction
-  real(sp), dimension(5)  :: orgm    !organic matter mass (g m-2 ?) FLAG
-  real(sp), dimension(5)  :: bulk    !bulk density (units?)
+  real(sp), dimension(2)  :: zpos    !depth of layer midpoint from soil surface
+  real(sp), dimension(2)  :: sand    !mass fraction
+  real(sp), dimension(2)  :: clay    !mass fraction
+  real(sp), dimension(2)  :: orgm    !organic matter mass (g m-2 ?) FLAG
+  real(sp), dimension(2)  :: bulk    !bulk density (units?)
 end type soildata  !26 elements
 
 !---
@@ -60,6 +68,7 @@ type inputdata
   logical            :: spinup   !are we in the model spinup
   real(sp)           :: co2      !co2 concentration
   integer            :: year     !simulation year (not calendar year), starts at 1
+  integer            :: startyr_foragers  !first year to start calculating forager activity (ignored if not desired)
   type(orbitpars)    :: orbit
   type(climatedata)  :: climate
   type(soildata)     :: soil
@@ -166,7 +175,7 @@ type subgrid
   !monthly burned fraction of gridcell area
   real(sp), dimension(12) :: mburnedf
   
-  !state of the soil, 5 layers * 5 elements = 25
+  !state of the soil, 
   type(soildata) :: soil
   
   !historical burned fraction (20 years) = 20 elements
@@ -216,7 +225,7 @@ contains
 
 !-------------------------------------------------------------------------------------------------------------------------------------
 
-subroutine initstatevars(in,sv,ismaster)
+subroutine initstatevars(in,sv,ismaster,layers)
 
 use geohashmod,    only : geohash
 use randomdistmod, only : ran_seed
@@ -224,12 +233,15 @@ use randomdistmod, only : ran_seed
 implicit none
 
 type(inputdata), intent(inout)  :: in
-type(statevars), intent(out) :: sv
+type(statevars), intent(out)    :: sv
 
 logical, intent(in) :: ismaster
+integer, intent(in) :: layers   ! n soil layers
 
 integer :: i
 integer :: j
+
+integer :: ntiles
 
 !---------
 !initialize the random number state based on random coordinates
@@ -246,7 +258,7 @@ end if
 !write(*,*)
 
 
-in%soil%bulk = 0.
+! in%soil%bulk = 0.
 
 !initialize arbitrary for first day of first spinup year
 
@@ -260,6 +272,30 @@ sv%met%cldf  = 0.5
 sv%met%wind  = 0.
 sv%met%lght  = 0.
 sv%met%resid = 0.
+
+!---
+!allocate the soil state - it has variable size
+
+! if (.not.ismaster) then
+! 
+! 		allocate(in%soil%sand(layers))
+! 		allocate(in%soil%clay(layers))
+! 		allocate(in%soil%orgm(layers))
+! 		allocate(in%soil%zpos(layers))
+! 
+! end if
+! 
+! ntiles = size(sv%tile)
+! 
+! do i = 1,ntiles
+! 
+! 		allocate(sv%tile(i)%soil%zpos(layers))
+! 		allocate(sv%tile(i)%soil%sand(layers))
+! 		allocate(sv%tile(i)%soil%clay(layers))
+! 		allocate(sv%tile(i)%soil%orgm(layers))
+! 		allocate(sv%tile(i)%soil%bulk(layers))
+! 
+! end do
 
 !---
 

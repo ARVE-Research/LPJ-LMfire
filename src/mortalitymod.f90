@@ -100,7 +100,7 @@ do pft = 1,npft
 
     end if
 
-    !write(0,'(i5,4f10.1,f10.6)')pft,nind(pft)*(lm_ind(pft,1)+sm_ind(pft,1) + hm_ind(pft,1)+rm_ind(pft,1)),  &
+    !write(stdout,'(i5,4f10.1,f10.6)')pft,nind(pft)*(lm_ind(pft,1)+sm_ind(pft,1) + hm_ind(pft,1)+rm_ind(pft,1)),  &
     !                                  bm_inc(pft,1) / nind(pft),turnover_ind(pft),greffic,mort
 
     !Reduce individual density (and thereby gridcell-level biomass) by mortality rate

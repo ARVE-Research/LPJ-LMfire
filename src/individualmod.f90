@@ -103,7 +103,7 @@ do i = 1,6	! we have 7 height classes, so go up to 6 to roll up to class 7 max a
     
     ind(i+1)%massf = ind(i+1)%massf + ind(i)%massf
     
-   ! write(0,*) i, ind(i)%height, hsapl, ind(i)%massf, ind(i+1)%massf
+   ! write(stdout,*) i, ind(i)%height, hsapl, ind(i)%massf, ind(i+1)%massf
     
     ind(i)%massf = 0.
     

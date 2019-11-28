@@ -1,5 +1,7 @@
 module hetrespmod
 
+use parametersmod, only : stdout,stderr
+
 implicit none
 
 public :: littersom2
@@ -101,6 +103,8 @@ real(sp) :: slowfrac  !fraction of litter entering slow soil decomposition pool
 real(sp) :: claytot   !total mass of clay in the soil column (to 3m, kg)
 real(sp) :: soilmass  !total mass of the soil column (depth * bulk density) (to 3m, kg)
 
+integer :: ll ! lowest level of soil data
+
 !---------------------------------------------------------------
 !calculation of organic matter decomposition in litter and soil,
 !including transfer or organic matter from litter to soil
@@ -140,7 +144,7 @@ end where
 
 moist_resp = 0.25 + (0.75 * mw1)
 
-!write(0,*)mw1
+!write(stdout,*)mw1
 !read(*,*)
 
 !Calculate decomposition rates as a function of annual rate, temperature, and moisture
@@ -150,7 +154,7 @@ k_litter_slow = k_litter_slow10 * dt * temp_resp * moist_resp
 k_soil_fast   = k_soil_fast10   * dt * temp_resp * moist_resp
 k_soil_slow   = k_soil_slow10   * dt !* temp_resp * moist_resp  !experiment to take away climate response
 
-!write(0,*)'hetresp',k_soil_fast,temp_resp,moist_resp
+!write(stdout,*)'hetresp',k_soil_fast,temp_resp,moist_resp
 
 ek_lf = 1. - exp(-k_litter_fast)  !monthly vectors
 ek_ls = 1. - exp(-k_litter_slow)
@@ -167,8 +171,10 @@ ek_ss = 1. - exp(-k_soil_slow)
 bulk = max(0.,bulk)
 clay = max(0.,clay)
 
-claytot  = sum(0.2 * clay * bulk) + 1. * clay(5) * bulk(5) + 1. * clay(5) * bulk(5)  !final units kg
-soilmass = sum(0.2 * bulk) + 2. * bulk(5)
+ll = size(clay)
+
+claytot  = sum(0.2 * clay * bulk) + 1. * clay(ll) * bulk(ll) + 1. * clay(ll) * bulk(ll)  !final units kg
+soilmass = sum(0.2 * bulk) + 2. * bulk(ll)
 
 !the partitioning between fast and slow SOM pools is a function of total soil clay mass
 !after Jobbagy & Jackson (Ecol. App. 10, 2000)
@@ -176,10 +182,10 @@ soilmass = sum(0.2 * bulk) + 2. * bulk(5)
 slowfrac = t0 * claytot / 300. !300 kg m-2 is ca. the maximum value in the ISRIC WISE data, extrapolating layer 5 to 3m
 fastfrac = 1. - slowfrac
 
-!write(0,*)bulk
-!write(0,*)clay
-!write(0,*)claytot,soilmass
-!write(0,*)fastfrac,slowfrac
+!write(stdout,*)bulk
+!write(stdout,*)clay
+!write(stdout,*)claytot,soilmass
+!write(stdout,*)fastfrac,slowfrac
 !read(*,*)
 
 mrh = 0.
@@ -206,13 +212,13 @@ do m = 1,12
   
   litter_decom(m) = sum(litterdag_fast + litterdag_slow + litterdag_bg)
 
-  !write(0,*)'hetresp',mw1
-  !write(0,*)tsoil
-  write(0,'(9f8.2)')litter_ag_fast(:,1) !,litterdag_fast
-  !write(0,'(9f8.2)')litter_ag_slow(:,1) !,litterdag_slow
-  !write(0,'(9f8.2)')litter_bg(:,1) !,litterdag_bg
-  !write(0,'(i5,f8.2)')m,litter_decom(m)
-  !write(0,*)'end hetresp'
+  !write(stdout,*)'hetresp',mw1
+  !write(stdout,*)tsoil
+  write(stdout,'(9f8.2)')litter_ag_fast(:,1) !,litterdag_fast
+  !write(stdout,'(9f8.2)')litter_ag_slow(:,1) !,litterdag_slow
+  !write(stdout,'(9f8.2)')litter_bg(:,1) !,litterdag_bg
+  !write(stdout,'(i5,f8.2)')m,litter_decom(m)
+  !write(stdout,*)'end hetresp'
   !read(*,*)
 
   !partition decomposing litter flux between atmosphere and SOM components
@@ -243,11 +249,11 @@ end do
 
 arh = sum(mrh,dim=1)
 
-!write(0,'(4f10.4)')arh(1),sum(respflux(1,:)),sum(respflux(2,:)),sum(respflux(3,:))
+!write(stdout,'(4f10.4)')arh(1),sum(respflux(1,:)),sum(respflux(2,:)),sum(respflux(3,:))
 !read(*,*)
 
 
-!write(0,*)sum(litter_decom),arh(1)
+!write(stdout,*)sum(litter_decom),arh(1)
 !read(*,*)
 
 !SOIL DECOMPOSITION EQUILIBRIUM CALCULATION
@@ -393,6 +399,8 @@ real(sp) :: slowfrac  !fraction of litter entering slow soil decomposition pool
 real(sp) :: claytot   !total mass of clay in the soil column (to 3m, kg)
 real(sp) :: soilmass  !total mass of the soil column (depth * bulk density) (to 3m, kg)
 
+integer :: ll ! lowest level of soil data
+
 !---------------------------------------------------------------
 !calculation of organic matter decomposition in litter and soil,
 !including transfer or organic matter from litter to soil
@@ -432,7 +440,7 @@ end where
 
 moist_resp = 0.25 + (0.75 * mw1)
 
-!write(0,*)mw1
+!write(stdout,*)mw1
 !read(*,*)
 
 !Calculate decomposition rates as a function of annual rate, temperature, and moisture
@@ -465,8 +473,10 @@ ek_ss = 1. - exp(-k_soil_slow)
 bulk = max(0.,bulk)
 clay = max(0.,clay)
 
-claytot  = sum(0.2 * clay * bulk) + 1. * clay(5) * bulk(5) + 1. * clay(5) * bulk(5)  !final units kg
-soilmass = sum(0.2 * bulk) + 2. * bulk(5)
+ll = size(clay)
+
+claytot  = sum(0.2 * clay * bulk) + 1. * clay(ll) * bulk(ll) + 1. * clay(ll) * bulk(ll)  !final units kg
+soilmass = sum(0.2 * bulk) + 2. * bulk(ll)
 
 !the partitioning between fast and slow SOM pools is a function of total soil clay mass
 !after Jobbagy & Jackson (Ecol. App. 10, 2000)
@@ -474,10 +484,10 @@ soilmass = sum(0.2 * bulk) + 2. * bulk(5)
 slowfrac = t0 * claytot / 300. !300 kg m-2 is ca. the maximum value in the ISRIC WISE data, extrapolating layer 5 to 3m
 fastfrac = 1. - slowfrac
 
-!write(0,*)bulk
-!write(0,*)clay
-!write(0,*)claytot,soilmass
-!write(0,*)fastfrac,slowfrac
+!write(stdout,*)bulk
+!write(stdout,*)clay
+!write(stdout,*)claytot,soilmass
+!write(stdout,*)fastfrac,slowfrac
 !read(*,*)
 
 mrh = 0.
@@ -504,13 +514,13 @@ do m = 1,12
   
   litter_decom(m) = sum(litterdag_fast + litterdag_slow + litterdag_bg)
 
-  !write(0,*)'hetresp',mw1
-  !write(0,*)tsoil
-  !write(0,'(9f8.2)')litter_ag_fast(:,1) !,litterdag_fast
-  !write(0,'(9f8.2)')litter_ag_slow(:,1) !,litterdag_slow
-  !write(0,'(9f8.2)')litter_bg(:,1) !,litterdag_bg
-  !write(0,'(i5,f8.2)')m,litter_decom(m)
-  !write(0,*)'end hetresp'
+  !write(stdout,*)'hetresp',mw1
+  !write(stdout,*)tsoil
+  !write(stdout,'(9f8.2)')litter_ag_fast(:,1) !,litterdag_fast
+  !write(stdout,'(9f8.2)')litter_ag_slow(:,1) !,litterdag_slow
+  !write(stdout,'(9f8.2)')litter_bg(:,1) !,litterdag_bg
+  !write(stdout,'(i5,f8.2)')m,litter_decom(m)
+  !write(stdout,*)'end hetresp'
   !read(*,*)
 
   !partition decomposing litter flux between atmosphere and SOM components
@@ -547,11 +557,11 @@ end do
 
 arh = sum(mrh,dim=1)
 
-!write(0,'(4f10.4)')arh(1),sum(respflux(1,:)),sum(respflux(2,:)),sum(respflux(3,:))
+!write(stdout,'(4f10.4)')arh(1),sum(respflux(1,:)),sum(respflux(2,:)),sum(respflux(3,:))
 !read(*,*)
 
 
-!write(0,*)sum(litter_decom),arh(1)
+!write(stdout,*)sum(litter_decom),arh(1)
 !read(*,*)
 
 !SOIL DECOMPOSITION EQUILIBRIUM CALCULATION

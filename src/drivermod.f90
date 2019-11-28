@@ -1,5 +1,7 @@
 module drivermod
 
+use parametersmod, only : stdout,stderr
+
 implicit none
 
 contains
@@ -23,6 +25,7 @@ implicit none
 
 integer :: ncells
 integer :: ntiles
+integer :: nlayers
 integer :: spinupyears
 integer :: transientyears
 integer :: firstyear
@@ -43,12 +46,12 @@ integer :: tmins
 
 integer :: firstyrout
 
-character(40) :: status_msg
+character(100) :: status_msg
 
 !-------------------
 !open input and output files, initialize gs
 
-call initjob(ncells,ntiles,spinupyears,transientyears)
+call initjob(ncells,ntiles,nlayers,spinupyears,transientyears)
 
 !-------------------
 !open initial climate data files and allocate the climate input vector; allocate ibuf%
@@ -58,17 +61,17 @@ call initclimate(cfile_spinup,ncells)
 !-------------------
 !establish the size of the MPI buffer, etc.
 
-call initmpi(ncells,ntiles)
+call initmpi(ncells,ntiles,nlayers)
 
 lastyear  = .false.
 firstyear = cal_year
 
 time0 = 0
 
-write(0,*)'calculating valid pixels'
+write(stdout,*)'calculating valid pixels'
 call getdata(ncells,1,cal_year,firstyear,time0,in_master)        !returns gs filled with model input for first year as initial condition
 
-write(0,*)'valid pixels at model start: ',count(cellmask)
+write(stdout,'(a,i20)')'valid pixels at model start: ',count(cellmask)
 
 tpos = 1
 
@@ -79,14 +82,15 @@ call cpu_time(time_begin)
 
 if (dospinup) then
 
-  write(0,'(a,i6,a,f8.2)')'running spinup at calendar year: ',firstyear,' BP. CO2: ',in_master(1)%co2
+  write(stdout,'(a,i6,a,f8.2)')'running spinup at calendar year: ',firstyear,' BP. CO2: ',in_master(1)%co2
   
   firstyrout = spinupyears - nspinyrsout
   
   do year = 1,spinupyears
 
-    write(0,'(a18,2i8,f8.2)')' working on year: ',year,cal_year,in_master(1)%co2 !,year,lyear,co2(1)  !a,3i8,f8.2
-    !call overprint(status_msg)
+    write(stdout,'(a18,2i8,f8.2)')' working on year: ',year,cal_year,in_master(1)%co2 !,year,lyear,co2(1)  !a,3i8,f8.2
+    write(status_msg,'(a,i6,a,i6)')' working on year',year,' out of',spinupyears
+    call overprint(status_msg)
 
     in_master%spinup = .true.
     in_master%year = year
@@ -109,7 +113,7 @@ if (dospinup) then
 
   end do
 
-  write(0,*)
+  write(stdout,*)
 
   call closeclimate()
 
@@ -120,15 +124,16 @@ end if
 
 if (dotransient) then
 
-  write(0,*)'starting transient run'
+  write(stdout,*)'starting transient run'
   
   call initclimate(cfile_transient,ncells)
   time0 = 0
 
   do year = 1,transientyears
 
-    write(0,'(a18,2i7,f8.2)')' working on year: ',year,cal_year,in_master(1)%co2 !,year,lyear,co2(1)  !a,3i8,f8.2
-    !call overprint(status_msg)
+    write(stdout,'(a18,2i8,f8.2)')' working on year: ',year,cal_year,in_master(1)%co2 !,year,lyear,co2(1)  !a,3i8,f8.2
+    write(status_msg,'(a,i6,a,i6)')' working on year',year,' out of',transientyears
+    call overprint(status_msg)
 
     in_master%spinup = .false.
     in_master%year = year
@@ -149,7 +154,7 @@ if (dotransient) then
 
   end do
 
-  write(0,*)
+  write(stdout,*)
 
   call closeclimate()
 
@@ -157,7 +162,8 @@ end if
 
 !------------------
 
-write(0,*)'run finshed successfully'
+write(stderr,*)
+write(stdout,*)'run finshed successfully'
 
 call cpu_time(time_end)
 
@@ -166,7 +172,7 @@ thour = dt / 3600
 tmins = mod(dt,3600.) / 60
 tsecs = mod(dt,60.)
 
-write(0,'(a,i5,a,i3,a,f5.1,a)') ' runtime:',thour,'h',tmins,'m',tsecs,'s'
+write(stdout,'(a,i5,a,i3,a,f5.1,a)') ' runtime:',thour,'h',tmins,'m',tsecs,'s'
 
 call netcdf_close()
 

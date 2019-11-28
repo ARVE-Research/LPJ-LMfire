@@ -1,0 +1,24 @@
+&joboptions
+ cal_year         = 670   ! AD 1280: must be in units cal yr BP (1950)
+ dospinup         = .true.
+ dotransient      = .true.
+ spinupyears      = 1020 ! 34 30-year cycles
+ transientyears   = 560  ! AD 1280-1840  
+ startyr_foragers = 1021 ! don't start until transient part begins
+ cfile_spinup     = '/Volumes/arve/shared/datasets/climate/NewZealand/nzclimate_spinup_1km_newlght.nc'
+ cfile_transient  = '/Volumes/arve/shared/datasets/climate/NewZealand/nzclimate_spinup_1km_newlght.nc'
+! soilfile         = '/Volumes/arve/shared/datasets/climate/NewZealand/soilgrids1km/nzsoil_1km.nc'
+ soilfile         = '/Volumes/arve/shared/datasets/NewZealand/lris_soilproperties/nzsoil_1km.nc'
+ co2file          = '/Volumes/arve/shared/datasets/GHG/ghg2.nc'
+ topofile         = '/Volumes/arve/shared/datasets/climate/NewZealand/topo/nztopo_1km_mid-east.nc'
+ poppfile	        = '/Volumes/arve/shared/datasets/climate/NewZealand/topo/foragerPD_NZmid-east.nc',
+ nspinyrsout      = 1020
+ maxmem           = 12288.
+ lu_turn_yrs      = 0.
+ outputvar     = 'cover','albiomass','livebiomass','litterC_fast','litterC_slow','litterC_bg','soilC_surf',
+                 'soilC_fast','soilC_slow','burnedf','coverfrac','tilecarbon','NPP','GPP','nind', 'pftalbiomass',
+                 'NBP','acflux_fire','fireCO2','fireCO','fireCH4','fireVOC','fireTPM','fireNOx','mLAI','mBBpft','mburnedf','height'
+ nolanduse     = .true.
+/
+
+! call run script to make the program run

@@ -120,7 +120,7 @@ do ipft = 1,npft
     
     !--------------------------
     !if (ipft == 9) then
-    !  write(0,'(a,4f9.4)')'waterbalance dwscal out',supply,demandpot,supply/demandpot,dwscal(ipft)
+    !  write(stdout,'(a,4f9.4)')'waterbalance dwscal out',supply,demandpot,supply/demandpot,dwscal(ipft)
     !end if
     !--------------------------
 
@@ -293,9 +293,9 @@ end do
 
 if (swf(2) <= 0.) then
 
-  !write(0,'(5f10.4)')prec,melt,qsurf,infil,runoff
-  !write(0,'(5f10.4)')whcmm(1),kmmh(1),swater(1),swf(1),perc
-  !write(0,'(6f10.4)')whcmm(2),kmmh(2),swater(2),swf(2),drainage,reversef
+  !write(stdout,'(5f10.4)')prec,melt,qsurf,infil,runoff
+  !write(stdout,'(5f10.4)')whcmm(1),kmmh(1),swater(1),swf(1),perc
+  !write(stdout,'(6f10.4)')whcmm(2),kmmh(2),swater(2),swf(2),drainage,reversef
 
 !  stop
 end if

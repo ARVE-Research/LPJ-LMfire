@@ -3,6 +3,7 @@ module mpimod
 use mpi
 use errormod,        only : mpistat,ierr
 use parametersmod,   only : i1
+use parametersmod,   only : stdout,stderr
 use mpistatevarsmod, only : inputdata,statevars
 
 implicit none
@@ -36,7 +37,7 @@ contains
 
 !------------------------------------------------------------------------------------------------------------
 
-subroutine initmpi(ncells,ntiles)
+subroutine initmpi(ncells,ntiles,nlayers)
 
 implicit none
 
@@ -44,6 +45,7 @@ implicit none
 
 integer, intent(in) :: ncells
 integer, intent(in) :: ntiles
+integer, intent(in) :: nlayers
 
 !parameters
 
@@ -53,7 +55,7 @@ integer, intent(in) :: ntiles
 
 integer :: minbufsize
 
-integer, dimension(2) :: jobinfo
+integer, dimension(3) :: jobinfo
 
 integer :: nelem1
 integer :: nelem2
@@ -66,11 +68,11 @@ integer :: nelem
 call mpi_comm_size(mpi_comm_world,nprocs,ierr)
 
 if (nprocs < 2) then
-  write(0,*)'this job requires more than one process, aborting!'
+  write(stdout,*)'this job requires more than one process, aborting!'
   stop
 end if
 
-write(0,*)'processes for this job: ',nprocs
+write(stdout,*)'processes for this job: ',nprocs
 
 !establish the size of the transfer buffer
 
@@ -78,14 +80,15 @@ minbufsize = min(100,max(10,ncells/(nprocs-1)))
 
 bufsize = min(ncells,minbufsize)
 
-write(0,*)'MPI buffer size: ',bufsize,' gridcells'
+write(stdout,*)'MPI buffer size: ',bufsize,' gridcells'
 
 jobinfo(1) = ntiles
 jobinfo(2) = bufsize
+jobinfo(3) = bufsize
 
 !broadcast it to all the nodes
 
-call mpi_bcast(jobinfo,2,MPI_INTEGER,mproc,MPI_COMM_WORLD,ierr)
+call mpi_bcast(jobinfo,3,MPI_INTEGER,mproc,MPI_COMM_WORLD,ierr)
 
 !allocate the input and state variable structures on the master process
 
@@ -104,7 +107,7 @@ allocate(iobuf(nelem,bufsize))
 
 tsize = size(iobuf)  !the total number of elements in the array that is passed as a message
 
-write(0,'(a,f6.1,a)')' MPI message size',real(tsize)/1024.,' kB'
+write(stdout,'(a,f6.1,a)')' MPI message size',real(tsize)/1024.,' kB'
 
 end subroutine initmpi
 
@@ -140,7 +143,9 @@ real, parameter :: missing = -32768.
 i = 1
 
 do
-    
+  
+!   write(stdout,*)'MPIMOD MASTER',in_master(1)%soil%sand
+  
   !wait for a message from any processor before sending them work
   !receive the gridcell data structure
 
@@ -151,8 +156,8 @@ do
     sv(k) = transfer(iobuf(b:,k),sv(1))
   end do
   
-  !write(0,'(a,i5,5f8.2)')'master finished year ',in(1)%year,sv(1)%tile(1)%soil%sand
-  !write(0,*)'master finished year ',in(1)%year,sv(1)%tile(1)%soil%sand(1),in(1)%climate%temp(1)
+  !write(stdout,'(a,i5,5f8.2)')'master finished year ',in(1)%year,sv(1)%tile(1)%soil%sand
+  !write(stdout,*)'master finished year ',in(1)%year,sv(1)%tile(1)%soil%sand(1),in(1)%climate%temp(1)
 
   !put the result into the master state variable structure
   
@@ -200,7 +205,7 @@ do
     iobuf(b:,k) = transfer(sv(k),iobuf(b:,1))
   end do
 
-!  write(0,*)'master',checksum(iobuf)
+ ! write(stdout,*)'master send job',checksum(iobuf)
   
   call mpi_send(iobuf,tsize,celltype,proc,1,MPI_COMM_WORLD,ierr)  !send the next gridcell structure
 
@@ -267,9 +272,10 @@ use mpistatevarsmod, only : initstatevars
 
 implicit none
 
-integer, dimension(2) :: jobinfo
+integer, dimension(3) :: jobinfo
 
 integer :: ntiles
+integer :: nlayers
 real(sp), parameter, dimension(3) :: co2 = [ 273., -8., 0. ]
 
 integer :: nelem1
@@ -283,16 +289,17 @@ logical :: ismaster = .false.
 !---
 !get the size of the transfer buffer and allocate
 
-call mpi_bcast(jobinfo,2,MPI_INTEGER,mproc,MPI_COMM_WORLD,ierr)
+call mpi_bcast(jobinfo,3,MPI_INTEGER,mproc,MPI_COMM_WORLD,ierr)
 
 ntiles  = jobinfo(1)
 bufsize = jobinfo(2)
+nlayers = jobinfo(3)
 
 allocate(in(bufsize))
 allocate(sv(bufsize))
 
 do i = 1,bufsize
-  call initstatevars(in(i),sv(i),ismaster)
+  call initstatevars(in(i),sv(i),ismaster,nlayers)
 end do
 
 nelem1 = sizeof(in(1))
@@ -307,8 +314,8 @@ allocate(iobuf(nelem,bufsize))
 
 tsize = size(iobuf)  !the total number of elements in the array that is passed as a message
 
-write(0,*)'initworker',ntiles,bufsize,nelem,tsize
-!write(0,'(a,f6.1,a)')'worker MPI message size',real(tsize)/1024.,' kB'
+write(stdout,*)'initworker',ntiles,bufsize,nelem,tsize
+write(stdout,'(a,f6.1,a)')'worker MPI message size',real(tsize)/1024.,' kB'
 
 in%idx = 0
 
@@ -324,7 +331,7 @@ call pftparameters(pftpar,sla,                                                 &
                    pft%tree,pft%evergreen,pft%summergreen,                     &
                    pft%raingreen,pft%needle,pft%boreal,                        &
                    lm_sapl,sm_sapl,hm_sapl,rm_sapl,                            &
-                   latosa,allom1,allom2,allom3,allom4,wooddens,reinickerp,co2)
+                   latosa,allom1,allom2,allom3,allom4,wooddens,co2)
                    
 end subroutine initworker
 
@@ -343,11 +350,13 @@ integer :: tflag
 
 !-------------------------------
 
+! write(stdout,*)'worker checking in'
+
 do  !until we receive a message from the master that there is no more work to do
   
   !send result to master (dummy call on first iteration to request work)
 
-  !write(0,'(a,i5,5f8.2)')'worker sent year',in(1)%year,sv(1)%tile(1)%soil%sand
+  !write(stdout,'(a,i5,5f8.2)')'worker sent year',in(1)%year,sv(1)%tile(1)%soil%sand
 
   do k = 1,bufsize
     iobuf(:a,k) = transfer(in(k),iobuf(:a,1))
@@ -360,37 +369,44 @@ do  !until we receive a message from the master that there is no more work to do
 
   call mpi_recv(iobuf,tsize,celltype,mproc,MPI_ANY_TAG,MPI_COMM_WORLD,mpistat,ierr)
 
+!   write(stdout,*)'worker got something',bufsize
+
   do k = 1,bufsize
+  
+!     write(stdout,*)'k:',k
+
     in(k) = transfer(iobuf(:a,k),in(1))
     sv(k) = transfer(iobuf(b:,k),sv(1))
   end do
+  
+!   write(stdout,*)'worker transfer'
 
   tflag = mpistat(MPI_TAG)
   
   select case (tflag)
   case(3)
-    !write(0,*)'case 3'
+    !write(stdout,*)'case 3'
     exit              !all done so quit the subroutine
 
   case(2)
-    !write(0,*)'case 2',i,bufsize
+    !write(stdout,*)'case 2',i,bufsize
     
     in%idx = 0
     cycle             !go back to the top and wait for more work
 
   case default
     
-!    write(0,*)'worker',checksum(iobuf)
+!     write(stdout,*)'worker',checksum(iobuf)
     
     do i = 1,bufsize  !loop over grid cells in this sub-block
 
       if (in(i)%idx < 1) cycle
 
-    !write(0,'(a,i5,5f8.2)')'worker starting year ',in(1)%year,sv(1)%tile(1)%soil%sand
+!     write(stdout,*)'worker starting year ',in(1)%year,in(1)%soil%sand,sv(1)%tile(1)%soil%sand   ! '(a,i5,4f8.2)'
 
       call lpjcore(in(i),sv(i))
 
-    !write(0,'(a,i5,5f8.2)')'worker finished year ',in(1)%year,sv(1)%tile(1)%soil%sand
+!     write(stdout,'(a,i5,5f8.2)')'worker finished year ',in(1)%year,sv(1)%tile(1)%soil%sand
 
     end do
 

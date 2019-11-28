@@ -1,5 +1,7 @@
 module snowmod
 
+use parametersmod, only : stdout,stderr
+
 implicit none
 
 contains
@@ -72,7 +74,7 @@ do d = 1,365
   end if
   
   if (newsnow < 0.) then
-    write(0,*)'invalid newsnow',newsnow
+    write(stdout,*)'invalid newsnow',newsnow
     stop
   end if
   

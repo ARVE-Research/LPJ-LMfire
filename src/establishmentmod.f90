@@ -97,15 +97,15 @@ real(sp) :: nind0            !number of individuals /m2 before establishment
 real(sp) :: sm_ind_tmp       !preliminary sapwood mass (g/m2)
 real(sp) :: stemdiam         !stem diameter (m)
 
-real(sp) :: clay_mean ! Moyenne du clay dans les differents tiles
-real(sp) :: sand_mean ! Moyenne du clay dans les differents tiles
+! real(sp) :: clay_mean ! Moyenne du clay dans les differents tiles
+! real(sp) :: sand_mean ! Moyenne du clay dans les differents tiles
 
 !--------------------------------------------
-!write(0,*)'burnedf',burnedf
+!write(stdout,*)'burnedf',burnedf
 
 ! Faire la moyenne du pourcentage de clay et de sand pour les deux couches 
-clay_mean = (clay(1) + clay(3))/2
-sand_mean = (sand(1) + sand(3))/2
+! clay_mean = (clay(1) + clay(3))/2
+! sand_mean = (sand(1) + sand(3))/2
 
 !Kill PFTs not adapted to current climate, introduce newly "adapted" PFTs
 
@@ -184,7 +184,7 @@ if (aprec >= aprec_min_estab .and. npft_estab > 0) then
 
   estab_grid = max(estab_rate * (1. - fpc_tree_total),0.)
   
-  !write(0,*)'estab rate',estab_rate,fpc_tree_total, burnedf,estab_grid,npft_estab
+  !write(stdout,*)'estab rate',estab_rate,fpc_tree_total, burnedf,estab_grid,npft_estab
 
 else  !unsuitable climate for establishment
 
@@ -208,7 +208,7 @@ do pft = 1,npft
 			
 				crownarea_max = pftpar(pft,18)
 
-		  !      write(0,*)'estab_grid',pft,estab_grid,npft_estab,crownarea_max
+		  !      write(stdout,*)'estab_grid',pft,estab_grid,npft_estab,crownarea_max
 
 				!Add new saplings to current population
 
@@ -240,7 +240,7 @@ do pft = 1,npft
 
 				hm_ind(pft,1) = max(hm_ind(pft,1) + (sm_ind_tmp - sm_ind(pft,1)),0.)
 
-				!if (pft == 5) write(0,*)'establishment',estab_grid,crownarea(pft),sm_ind(pft,1),sm_ind_tmp,sm_ind_tmp - sm_ind(pft,1)
+				!if (pft == 5) write(stdout,*)'establishment',estab_grid,crownarea(pft),sm_ind(pft,1),sm_ind_tmp,sm_ind_tmp - sm_ind(pft,1)
 			  
 			 end if 
 		

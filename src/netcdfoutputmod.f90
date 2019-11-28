@@ -320,7 +320,7 @@ deallocate(rvar2d)
 
 y = size(sv(1)%tile(1)%nind)
 
-!write(0,*) 'size nind', y
+!write(stdout,*) 'size nind', y
 
 allocate(rvar2d(ncells,y))
 
@@ -528,7 +528,7 @@ integer :: varid
 
 !class default
 
-!  write(0,*)'error an output data type was requested that is not supported'
+!  write(stdout,*)'error an output data type was requested that is not supported'
 !  stop
 
 !end select
@@ -594,7 +594,7 @@ l = size(var2d,dim=2)
 
 !class default
 
-!  write(0,*)'error an output data type was requested that is not supported'
+!  write(stdout,*)'error an output data type was requested that is not supported'
 !  stop
 
 !end select

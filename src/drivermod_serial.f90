@@ -70,12 +70,12 @@ firstyear = cal_year
 
 time0 = 0
 
-write(0,*)'reading initial input data'
+write(stdout,*)'reading initial input data'
 call getdata(ncells,1,cal_year,firstyear,time0,in_master)        !returns gs filled with model input for first year as initial condition
 
-write(0,*)'valid pixels at model start: ',count(cellmask)
+write(stdout,*)'valid pixels at model start: ',count(cellmask)
 
-!write(0,'(12f8.2)')in_master(1)%climate%temp
+!write(stdout,'(12f8.2)')in_master(1)%climate%temp
 
 tpos = 1
 
@@ -86,11 +86,11 @@ call cpu_time(time_begin)
 
 if (dospinup) then
 
-  write(0,'(a,i8,a,i6,a,f8.2)')'running ',spinupyears,' year spinup with calendar year: ',firstyear,' BP. CO2: ',in_master(1)%co2
+  write(stdout,'(a,i8,a,i6,a,f8.2)')'running ',spinupyears,' year spinup with calendar year: ',firstyear,' BP. CO2: ',in_master(1)%co2
   
   do year = 1,spinupyears
 
-    write(0,'(a18,2i8)')' working on year: ',year,cal_year !,year,lyear,co2(1)  !a,3i8,f8.2
+    write(stdout,'(a18,2i8)')' working on year: ',year,cal_year !,year,lyear,co2(1)  !a,3i8,f8.2
     !call overprint(status_msg)
 
     in_master%spinup = .true.
@@ -108,7 +108,7 @@ if (dospinup) then
       
       x = in_master(i)%xpos
       y = in_master(i)%ypos
-      !  write(0,*)i,in_master(i)%idx,'check lpjcore spinup'
+      !  write(stdout,*)i,in_master(i)%idx,'check lpjcore spinup'
 
       if (.not.cellmask(x,y)) cycle
 
@@ -120,7 +120,7 @@ if (dospinup) then
 
   end do
 
-  write(0,*)
+  write(stdout,*)
 
 end if
 
@@ -129,11 +129,11 @@ end if
 
 if (dotransient) then
 
-  write(0,*)'transient'
+  write(stdout,*)'transient'
 
   do year = 1,transientyears
 
-    write(0,'(a18,2i7,f8.2)')' working on year: ',year,cal_year,in_master(1)%co2 !,year,lyear,co2(1)  !a,3i8,f8.2
+    write(stdout,'(a18,2i7,f8.2)')' working on year: ',year,cal_year,in_master(1)%co2 !,year,lyear,co2(1)  !a,3i8,f8.2
 !    call overprint(status_msg)
 
     in_master%spinup = .false.
@@ -164,7 +164,7 @@ if (dotransient) then
 
   end do
 
-  write(0,*)
+  write(stdout,*)
 
 end if
 
@@ -172,11 +172,11 @@ end if
 
 call cpu_time(time_end)
 
-write(0,*) 'Model was running for ', time_end - time_begin, 'seconds'
+write(stdout,*) 'Model was running for ', time_end - time_begin, 'seconds'
 
 call netcdf_close()
 
-write(0,*)'done'
+write(stdout,*)'done'
 
 !NB for the transient run, decrement cal_year in the year loop here
 

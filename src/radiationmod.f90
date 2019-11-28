@@ -205,14 +205,14 @@ do !because of the weak dependence of surface shortwave on PET, we equilibrate P
 
 end do
 
-!write(0,'(7f10.3)')temp,prec,cldf,toa_sw,sw_rad,lw_rad,pet
+!write(stdout,'(7f10.3)')temp,prec,cldf,toa_sw,sw_rad,lw_rad,pet
 
 met%tdew = tdew
 met%dayl = dayl
 met%srad = sw_rad
 met%dpet = pet
 
-!write(0,'(a,3f12.4)')'radpet',sw_rad,lw_rad,pet
+!write(stdout,'(a,3f12.4)')'radpet',sw_rad,lw_rad,pet
 
 end subroutine radpet
 
@@ -524,7 +524,7 @@ zeta0 = 0.503 * exp(-1.20 * Ratm * exp(-0.633 / (prec + 1.) - 0.226 * pet)) * ka
 
 diffuse = zeta0 * kag**albedo * kan**(1. - sunf) * (1 - kn * (1. - sunf)) * (tau**kp * r0 - direct)   !Eqn. 2.5
 
-!write(0,'(a,6f12.4)')'shortwave',r0,Ratm,prec,Pjj,sunf,direct+diffuse
+!write(stdout,'(a,6f12.4)')'shortwave',r0,Ratm,prec,Pjj,sunf,direct+diffuse
 
 end subroutine surf_sw
 
@@ -634,7 +634,7 @@ lw_rad = 0.001 * 3600. * dayl * Ql  !daytime net longwave (kJ m-2 d-1)
 
 tdew = TdewK - Tfreeze
 
-!write(0,*)'longwave',cldf,Tdewk
+!write(stdout,*)'longwave',cldf,Tdewk
 
 end subroutine surf_lw
 
@@ -839,9 +839,9 @@ else
 
 end if
 
-!write(0,*)'F ab ',a,b
-!write(0,*)'F X  ',wpi * c(2) / sqrt(b**2 - a**2) * log(e1 / e2)
-!write(0,*)'Fc3t1',c(3) * t1
+!write(stdout,*)'F ab ',a,b
+!write(stdout,*)'F X  ',wpi * c(2) / sqrt(b**2 - a**2) * log(e1 / e2)
+!write(stdout,*)'Fc3t1',c(3) * t1
   
 end function F
 
