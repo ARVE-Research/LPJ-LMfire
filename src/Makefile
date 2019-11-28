@@ -18,7 +18,7 @@ FCFLAGS  = -xHost #-fast
 
 #---debugging flags for ifort---
 
-# FCFLAGS = -debug -fpe0 -traceback -g -check -check noarg_temp_created #-warn all
+FCFLAGS = -debug -fpe0 -traceback -g -check -check noarg_temp_created -warn all
 
 #---debugging flags for gfortran---
 
@@ -103,4 +103,4 @@ serial: $(COREOBJS) $(DRIVER_SERIAL)
 	$(FC) $(FCFLAGS) -o lpjserial $(COREOBJS) $(DRIVER_SERIAL) $(LDFLAGS) $(LIBS)
 
 clean::	
-	-rm lpj *.mod *.o
+	-rm lpj *.mod *__genmod* *.o 
