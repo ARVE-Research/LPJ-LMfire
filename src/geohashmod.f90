@@ -1,10 +1,8 @@
 module geohashmod
 
-implicit none
+use parametersmod, only : sp,dp,i4
 
-integer, parameter :: dp = selected_real_kind(9)      !8 byte real
-integer, parameter :: sp = selected_real_kind(4)      !4 byte real
-integer, parameter :: i4 = selected_int_kind(9)       !10^9 fits into 4 bytes
+implicit none
 
 integer(i4), parameter :: mv = huge(i4)  !add offset to fit into values into signed number
 

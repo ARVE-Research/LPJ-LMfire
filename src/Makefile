@@ -15,7 +15,7 @@ FCFLAGS  = -xHost
 # OR
 # debugging flags for ifort
 
-FCFLAGS = -debug -fpe0 -traceback -g -check -check noarg_temp_created -warn all
+FCFLAGS = -debug -fpe0 -traceback -g -check -check noarg_temp_created # -warn all
 
 # OR
 # debugging flags for gfortran

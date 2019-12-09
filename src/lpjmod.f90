@@ -696,26 +696,26 @@ do i = 1,3 !ntiles
 ! if (clay_mean >= 23.) estab(8) = .false.
 ! 
 ! if (afire_frac == 0.) estab(4) = .false.
-!
+
 ! ====== NB special conditions for Canada version ONLY =======
 
-if (year > 1) then
-
-  burnedf20 = sum(osv%tile(i)%burnedf_buf) / real(climbuf)
-
-		if (burnedf20 > 0.) then
-				FRI20 = 1. / burnedf20
-		else
-				FRI20 = 100000.  !just choose some arbitrary big number
-		end if
-else
-  FRI20 = 100000.
-end if
+! if (year > 1) then
+! 
+!   burnedf20 = sum(osv%tile(i)%burnedf_buf) / real(climbuf)
+! 
+! 		if (burnedf20 > 0.) then
+! 				FRI20 = 1. / burnedf20
+! 		else
+! 				FRI20 = 100000.  !just choose some arbitrary big number
+! 		end if
+! else
+!   FRI20 = 100000.
+! end if
 
 ! if (FRI20 < 50.) estab(1) = .false.
 ! if (FRI20 < 30.) estab(4) = .false.
 
-! ===== end special conditions =====
+! ===== end special conditions for Canada version ONLY =====
   
   call establishment(pftpar,present,survive,estab,nind,lm_ind,sm_ind,rm_ind,hm_ind,lm_sapl,sm_sapl,rm_sapl,hm_sapl,pft%tree, &
                      crownarea,fpc_grid,lai_ind,height,sla,wooddens,latosa,prec,reinickerp,litter_ag_fast,litter_ag_slow,litter_bg,  &

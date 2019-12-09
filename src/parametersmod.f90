@@ -1,5 +1,7 @@
 module parametersmod
 
+use iso_fortran_env, only : int8,int16,int32,int64,real32,real64,input_unit,output_unit,error_unit
+
 implicit none
 
 public :: area
@@ -8,12 +10,12 @@ public :: area
 
 !type
 
-integer, parameter :: i1 = selected_int_kind(1)
-integer, parameter :: i2 = selected_int_kind(4)
-integer, parameter :: i4 = selected_int_kind(8)
-integer, parameter :: i8 = selected_int_kind(13)
-integer, parameter :: sp = selected_real_kind(4)
-integer, parameter :: dp = selected_real_kind(13)
+integer, parameter :: i1 = int8    ! 1 byte integer
+integer, parameter :: i2 = int16   ! 2 byte integer
+integer, parameter :: i4 = int32   ! 4 byte integer
+integer, parameter :: i8 = int64   ! 8 byte integer
+integer, parameter :: sp = real32  ! 4 byte real
+integer, parameter :: dp = real32  ! 8 byte real
 
 !size
 
@@ -22,13 +24,17 @@ integer, parameter :: bytes_dp = sizeof(0._dp)
 
 !parameters
  
+integer, parameter :: stdin  = input_unit
+integer, parameter :: stdout = output_unit
+integer, parameter :: stderr = error_unit
+
 integer, parameter :: npft     =  9 
 integer, parameter :: npftpar  = 51
 integer, parameter :: nsoilpar =  7
 integer, parameter :: ncvar    =  3
 integer, parameter :: climbuf  = 20
-integer, parameter :: nspec    = 6   !trace gas species from biomass burning
-integer, parameter :: nhclass  = 7   !number of height classes for discretization
+integer, parameter :: nspec    =  6   !trace gas species from biomass burning
+integer, parameter :: nhclass  =  7   !number of height classes for discretization
 
 real, parameter :: allom1 = 100
 real, parameter :: allom2 =  40
