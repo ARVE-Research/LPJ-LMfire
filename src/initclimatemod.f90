@@ -25,7 +25,7 @@ implicit none
 
 real(dp), parameter :: bmb  = 1048576.d0 !bytes in one Mb
 
-character(4), dimension(nclimv), parameter :: varname = [ 'tmp', 'pre', 'cld', 'wet', 'dtr', 'wnd', 'lght' ]
+character(4), dimension(nclimv), parameter :: varname = [ ' tmp', ' pre', ' cld', ' wet', ' dtr', ' wnd', 'lght' ]
 
 !arguments
 

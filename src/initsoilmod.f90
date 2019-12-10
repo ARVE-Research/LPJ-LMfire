@@ -221,14 +221,25 @@ ncstat = nf90_get_var(soilfid,varid,sand,start=[srtx,srty,1],count=[cntx,cnty,la
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
 ncstat = nf90_get_att(soilfid,varid,'scale_factor',scale_factor)
-if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+if (ncstat == -43) then  ! attribute not present
+  scale_factor = 1.
+else if (ncstat /= nf90_noerr) then
+  call netcdf_err(ncstat)
+end if
 
 ncstat = nf90_get_att(soilfid,varid,'add_offset',add_offset)
-if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+if (ncstat == -43) then  ! attribute not present
+  add_offset = 0.
+else if (ncstat /= nf90_noerr) then
+  call netcdf_err(ncstat)
+end if
 
 sand = sand * scale_factor + add_offset
 
 !---
+
+scale_factor = 1.
+add_offset   = 0.
 
 ncstat = nf90_inq_varid(soilfid,'clay',varid)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
@@ -237,10 +248,18 @@ ncstat = nf90_get_var(soilfid,varid,clay,start=[srtx,srty,1],count=[cntx,cnty,la
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
 ncstat = nf90_get_att(soilfid,varid,'scale_factor',scale_factor)
-if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+if (ncstat == -43) then  ! attribute not present
+  scale_factor = 1.
+else if (ncstat /= nf90_noerr) then
+  call netcdf_err(ncstat)
+end if
 
 ncstat = nf90_get_att(soilfid,varid,'add_offset',add_offset)
-if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+if (ncstat == -43) then  ! attribute not present
+  add_offset = 0.
+else if (ncstat /= nf90_noerr) then
+  call netcdf_err(ncstat)
+end if
 
 clay = clay * scale_factor + add_offset
 
