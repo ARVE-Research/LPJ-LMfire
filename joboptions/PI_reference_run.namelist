@@ -8,6 +8,7 @@
  soilfile         = '/Volumes/arve/shared/datasets/soils/soilgrids1km/soil000ka/soil30m.nc'
  co2file          = '/Volumes/arve/shared/datasets/GHG/ghg2.nc'
  topofile         = '/Volumes/arve/shared/datasets/topo/dgvm_input/topofile_integrated_000ka.nc'
+ pftparsfile      = '/Users/jkaplan/Documents/science_projects/lpjmpi/github/LPJ-LMfire/pftpars_global.csv'
  nspinyrsout      = 150
  maxmem           = 12288.
  lu_turn_yrs      = 0.

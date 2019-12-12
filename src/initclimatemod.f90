@@ -18,14 +18,14 @@ use netcdf
 use typesizes
 use errormod,       only : netcdf_err,ncstat
 use iovariablesmod, only : cfid,cntx,cnty,srtx,srty,climatemonths,climateyears,ibuf,varinfo,nclimv, &
-                           maxmem,input_sp,input_i2,timebuflen,geolon,geolat
+                           maxmem,input_sp,input_i2,timebuflen,geolon,geolat,projgrid
 implicit none
 
 !parameters
 
 real(dp), parameter :: bmb  = 1048576.d0 !bytes in one Mb
 
-character(4), dimension(nclimv), parameter :: varname = [ ' tmp', ' pre', ' cld', ' wet', ' dtr', ' wnd', 'lght' ]
+character(4), dimension(nclimv), parameter :: varname = [ 'tmp', 'pre', 'cld', 'wet', 'dtr', 'wnd', 'lght' ]
 
 !arguments
 
@@ -127,33 +127,37 @@ end if
 !------------------------------
 !read in the lon and lat arrays
 
-!   ncstat = nf90_inq_varid(cfid,'lon',varid)
-!   if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
-!
-!   ncstat = nf90_get_var(cfid,varid,ibuf(:,1)%lon,start=[srtx],count=[cntx])
-!   if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
-!
-!   ncstat = nf90_inq_varid(cfid,'lat',varid)
-!   if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
-!
-!   ncstat = nf90_get_var(cfid,varid,ibuf(1,:)%lat,start=[srty],count=[cnty])
-!   if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
-!
-!   !copy across
-!   !would not be necessary with grids that have explicit x and y for the dimension variables (e.g., projected grids).
-!
-!   do j = 1,cnty
-!     ibuf(:,j)%lon = ibuf(:,1)%lon
-!   end do
-!
-!   do i = 1,cntx
-!     ibuf(i,:)%lat = ibuf(1,:)%lat
-!   end do
+if (not(projgrid)) then
 
-write(*,*) 'je bug 1'
+  ncstat = nf90_inq_varid(cfid,'lon',varid)
+  if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
-ibuf%lon = geolon
-ibuf%lat = geolat
+  ncstat = nf90_get_var(cfid,varid,ibuf(:,1)%lon,start=[srtx],count=[cntx])
+  if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+  ncstat = nf90_inq_varid(cfid,'lat',varid)
+  if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+  ncstat = nf90_get_var(cfid,varid,ibuf(1,:)%lat,start=[srty],count=[cnty])
+  if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+  !copy across
+  !would not be necessary with grids that have explicit x and y for the dimension variables (e.g., projected grids).
+
+  do j = 1,cnty
+    ibuf(:,j)%lon = ibuf(:,1)%lon
+  end do
+
+  do i = 1,cntx
+    ibuf(i,:)%lat = ibuf(1,:)%lat
+  end do
+
+else
+
+  ibuf%lon = geolon
+  ibuf%lat = geolat
+
+end if
 
 !-----
 !memory checks and input buffer setup

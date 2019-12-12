@@ -16,24 +16,19 @@
 !       8. Populus
 ! 	9. No-boreal
 
-subroutine pftparameters(pftpar,sla,tree,evergreen, &
-     &  summergreen,raingreen,needle,boreal,lm_sapl,sm_sapl,hm_sapl, &
-     &  rm_sapl,latosa,allom1,allom2,allom3, &
-     &  allom4,wooddens,co2)
+subroutine pftparameters(pftpar,sla,tree,evergreen,summergreen,raingreen,needle,boreal,lm_sapl,sm_sapl,hm_sapl, &
+                         rm_sapl,latosa,allom1,allom2,allom3,allom4,wooddens,co2)
 
-use iovariablesmod, only : pftfile
+use parametersmod, only : npft,npftpar,nsoilpar,ncvar,pi,reinickerp
+! use iovariablesmod, only : pftparsfile
 	 
 implicit none
 
-!     PARAMETERS:
-      integer npft,npftpar,nsoilpar,ncvar, ierror
-        parameter (npft=9,npftpar=51,nsoilpar=7,ncvar=3)
-      real pi
-        parameter (pi=3.14159265)
-      real reinickerp
-        parameter (reinickerp=1.6)
+! PARAMETERS:
 
-!     ARGUMENTS:
+character(220) :: pftparsfile = 'pftpars_global.csv'
+
+! ARGUMENTS:
       real pftpar(1:npft,1:npftpar),sla(1:npft),co2(1:3)
       logical tree(1:npft),evergreen(1:npft)
       logical summergreen(1:npft),raingreen(1:npft),needle(1:npft)
@@ -44,14 +39,18 @@ implicit none
       real allom1,allom2,allom3,allom4
 
 
-!     LOCAL VARIABLES:
-      integer n,pft
-      real table(1:npft,1:npftpar)
-      real lai_sapl       !sapling or initial grass LAI
-      real x
-      real lmtorm         !non-waterstressed leafmass to rootmass ratio
-      real stemdiam       !sapling stem diameter
-      real height_sapl    !sapling height
+! LOCAL VARIABLES:
+
+integer :: ierror
+integer :: n
+integer :: pft
+
+real table(1:npft,1:npftpar)
+real lai_sapl       !sapling or initial grass LAI
+real x
+real lmtorm         !non-waterstressed leafmass to rootmass ratio
+real stemdiam       !sapling stem diameter
+real height_sapl    !sapling height
 
 !-----------------------------------------------------------------------------
  
@@ -86,7 +85,7 @@ implicit none
 !     23  lower range of temperature optimum for photosynthesis
 !     24  upper range of temperature optimum for photosynthesis
 !     25  high temperature limit for CO2 unptake
-!	  26  optimal Ci/Ca ratio
+!	    26  optimal Ci/Ca ratio
 
 !     BIOCLIMATIC LIMITS
  
@@ -124,34 +123,29 @@ implicit none
 
 ! Lecture de la table des parametres a partir d'un fichier csv
 ! Emeline Chaste, avril 2016
-      
-	call getarg(4,pftfile)  
+! NB currently the filename needs to be hardwired in here, because it is read by each of the worker nodes and otherwise would require
+! an mpi_bcast in mpimod to all the workers in advance of starting the run. Not worth it to code this at the moment (JOK 2019/12)
 	  
-    open (unit = 15, file=pftfile, STATUS='OLD', ACTION='READ', IOSTAT=ierror)
-	  
-	!write(*,*) 'jai ouvert la table'
+open(15,file=pftparsfile,status='old',iostat=ierror)
+  
+! write(0,*) 'jai ouvert la table',trim(pftparsfile)
 
-	if (ierror .ne. 0) then
-		write(*,*) 'File pft parameters cannot be open'
-	else 
-        read (15, *)
-        do pft = 1, npft
-		!write(*,*) pft 
+if (ierror /= 0) then
+  write(*,*) 'Error opening PFT parameters file: ',trim(pftparsfile)
+  stop
+else 
+  read (15, *)
+  do pft = 1, npft
+    read (15, *) table(pft,:)
+     do n=1,npftpar
+       pftpar(pft,n)=table(pft,n)
+    end do
+  end do
+end if
+         
+close(15)
 
-				read (15, *) table(pft,:)
-				!write(*,*) table(pft,:)
-				
-				do n=1,npftpar
-					pftpar(pft,n)=table(pft,n)
-					!write(*,*) table(pft,n)
-				end do
-        
-        end do
-    end if
-		  		 
-    close (unit = 15)
-	
-	!write(*,*) 'jai correctement lu les parametres des PFTs'
+! write(*,*) 'jai correctement lu les parametres des PFTs'
 
 ! Déchiffrage des parametres des PFTs
 

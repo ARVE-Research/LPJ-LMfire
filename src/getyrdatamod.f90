@@ -115,6 +115,7 @@ integer :: x
 integer :: y
 integer :: lyear
 integer :: itime
+integer :: nl
 
 type(orbitpars) :: orbit
 
@@ -168,10 +169,33 @@ if (year == 1) then
     in_master(i)%elev      = soil(x,y)%elv
     in_master(i)%slope     = soil(x,y)%slopeangle  !FLAG: added by MP, 13.12.2011
     in_master(i)%landf     = soil(x,y)%landf       !FLAG: added by MP, 09.08.2012
-    in_master(i)%soil%sand = soil(x,y)%sand
-    in_master(i)%soil%clay = soil(x,y)%clay
-    in_master(i)%soil%orgm = soil(x,y)%orgm
-    in_master(i)%soil%zpos = soil(x,y)%zpos
+    
+    ! in_master expects two layers of soil. if soil has more layers, take an average of the top 30 cm (two layers) and the rest
+    
+    nl = size(soil(x,y)%zpos)
+    
+    if (nl > 2) then
+    
+      in_master(i)%soil%sand(1) = sum(soil(x,y)%sand(1:2)) / 2
+      in_master(i)%soil%sand(2) = sum(soil(x,y)%sand(3:nl)) / (nl-2)
+
+      in_master(i)%soil%clay(1) = sum(soil(x,y)%clay(1:2)) / 2
+      in_master(i)%soil%clay(2) = sum(soil(x,y)%clay(3:nl)) / (nl-2)
+
+      in_master(i)%soil%orgm(1) = sum(soil(x,y)%orgm(1:2)) / 2
+      in_master(i)%soil%orgm(2) = sum(soil(x,y)%orgm(3:nl)) / (nl-2)
+
+      in_master(i)%soil%zpos(1) = sum(soil(x,y)%zpos(1:2)) / 2
+      in_master(i)%soil%zpos(2) = sum(soil(x,y)%zpos(3:nl)) / (nl-2)
+    
+    else
+    
+      in_master(i)%soil%sand = soil(x,y)%sand
+      in_master(i)%soil%clay = soil(x,y)%clay
+      in_master(i)%soil%orgm = soil(x,y)%orgm
+      in_master(i)%soil%zpos = soil(x,y)%zpos
+
+    end if
     
 !     write(stdout,*)'SETTING OUTPUT SOIL' 
 !     write(stdout,*)in_master(i)%soil%sand

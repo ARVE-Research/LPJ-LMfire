@@ -19,7 +19,7 @@ use iovariablesmod,  only : cfile_spinup,cfile_transient,soilfile,              
                             fixedco2,ocean_uptake,cal_year,nspinyrsout,outputvar,    &
                             lu_turn_yrs,popdfile,poppfile,maxmem,bounds,                     &
                             outputfile,srtx,srty,cntx,cnty,endx,endy,inputlonlen,inputlatlen, &
-                            lucc,cellindex,lonvect,latvect,co2vect,nolanduse,nclimv,calcforagers,projgrid,geolon,geolat,startyr_foragers
+                            lucc,cellindex,lonvect,latvect,co2vect,nolanduse,nclimv,calcforagers,projgrid,geolon,geolat,startyr_foragers,pftparsfile
 use coordsmod,       only : parsecoords
 use initsoilmod,     only : initsoil
 use initclimatemod,  only : initclimate
@@ -75,6 +75,7 @@ namelist /joboptions/ &
   co2file,            &
   popdfile,           &
   poppfile,           &
+  pftparsfile,        &
   spinupyears,        &
   transientyears,     &
   dospinup,           &
@@ -109,6 +110,8 @@ open(10,file=jobfile,status='old')
 read(10,nml=joboptions)
 
 close(10)
+
+! write(0,*)'PFTPARS FILE',pftparsfile
 
 if (spinupyears <= 0) then
   write(stdout,*)'no years indicated for spinup!'
