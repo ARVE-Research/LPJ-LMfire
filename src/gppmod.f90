@@ -422,7 +422,7 @@ do m = 1,12
 !                               rd,agd,adt2,inhibx1(pft),inhibx2(pft),inhibx3(pft),inhibx4(pft),pft)
 
           call photosynthesis(ca,mtemp(m),fpar,mpar_day(m),mdayl(m),c4(pft),lambdam(pft), &
-                              rd,agd,adtmm,inhibx1(pft),inhibx2(pft),inhibx3(pft),inhibx4(pft),pft)
+                              rd,agd,adt2,inhibx1(pft),inhibx2(pft),inhibx3(pft),inhibx4(pft),pft)
 
 
           !Evaluate fmid at the point lambda = xmid fmid will be an increasing function with xmid,
