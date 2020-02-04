@@ -69,6 +69,7 @@ COREOBJS = overprint.o       \
        waterbalancemod.o \
        pedotransfermod.o \
        simplesoilmod.o   \
+       photosynthesismod.o       \
        nppmod.o          \
        gppmod.o          \
        establishmentmod.o\
@@ -81,7 +82,6 @@ COREOBJS = overprint.o       \
        soiltemperaturemod.o   \
        summerphenology.o      \
        reproduction.o         \
-       photosynthesis.o       \
        isotope.o              \
        pftparameters.o        \
        fire.o                 \
