@@ -12,9 +12,10 @@ subroutine calcgpp(present,co2,soilpar,pftpar,lai_ind,fpc_grid,mdayl,mtemp,mpar_
 
 !Calculation of GPP, explicitly linking photosynthesis and water balance through canopy conductance feedback
 
-use parametersmod,   only : sp,npft,npftpar,nsoilpar,ncvar,ndaymonth,i8
-use waterbalancemod, only : waterbalance
-use weathergenmod,   only : rmsmooth,daily
+use parametersmod,     only : sp,npft,npftpar,nsoilpar,ncvar,ndaymonth,i8
+use waterbalancemod,   only : waterbalance
+use weathergenmod,     only : rmsmooth,daily
+use photosynthesismod, only : photosynthesis
 
 implicit none
 
@@ -216,8 +217,12 @@ do pft = 1,npft
 
       fpar = fpc_grid(pft)
 
-      call photosynthesis(ca,mtemp(m),fpar,mpar_day(m),mdayl(m),c4(pft),sla(pft),nmax(pft),lambdam(pft), &
+!       call photosynthesis(ca,mtemp(m),fpar,mpar_day(m),mdayl(m),c4(pft),sla(pft),nmax(pft),lambdam(pft), &
+!                           rd,agd,adtmm,inhibx1(pft),inhibx2(pft),inhibx3(pft),inhibx4(pft),pft)
+
+      call photosynthesis(ca,mtemp(m),fpar,mpar_day(m),mdayl(m),c4(pft),lambdam(pft), &
                           rd,agd,adtmm,inhibx1(pft),inhibx2(pft),inhibx3(pft),inhibx4(pft),pft)
+
 
       if (tsecs(m) > 0.) then
 
@@ -413,8 +418,12 @@ do m = 1,12
           !Call photosynthesis to determine alternative total daytime photosynthesis estimate (adt2) implied by
           !Eqns 2 & 19, Haxeltine & Prentice 1996, and current guess for lambda (xmid)
 
-          call photosynthesis(ca,mtemp(m),fpar,mpar_day(m),mdayl(m),c4(pft),sla(pft),nmax(pft),xmid, &
-                              rd,agd,adt2,inhibx1(pft),inhibx2(pft),inhibx3(pft),inhibx4(pft),pft)
+!           call photosynthesis(ca,mtemp(m),fpar,mpar_day(m),mdayl(m),c4(pft),sla(pft),nmax(pft),xmid, &
+!                               rd,agd,adt2,inhibx1(pft),inhibx2(pft),inhibx3(pft),inhibx4(pft),pft)
+
+          call photosynthesis(ca,mtemp(m),fpar,mpar_day(m),mdayl(m),c4(pft),lambdam(pft), &
+                              rd,agd,adtmm,inhibx1(pft),inhibx2(pft),inhibx3(pft),inhibx4(pft),pft)
+
 
           !Evaluate fmid at the point lambda = xmid fmid will be an increasing function with xmid,
           !with a solution (fmid=0) between x1 and x2
