@@ -212,12 +212,12 @@ litter_ag_fast = max(litter_ag_fast,0.)
 litter_ag_slow = max(litter_ag_slow,0.)
 litter_bg      = max(litter_bg,0.)
 
-!do pft=1,npft
-!  if (fpc_grid(pft) < 0. .or. fpc_grid(pft) > 1.) write(stdout,*)'resetting pft ',pft,fpc_grid(pft)
-!end do
+do pft=1,npft
+ if (fpc_grid(pft) < 0. .or. fpc_grid(pft) > 1.) write(stdout,*)'resetting pft ',pft,fpc_grid(pft)
+end do
 
-!fpc_grid = max(fpc_grid,0.)
-!fpc_grid = min(fpc_grid,1.)
+! fpc_grid = max(fpc_grid,0.)
+! fpc_grid = min(fpc_grid,1.)
 
 end subroutine light
 
