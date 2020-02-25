@@ -1,5 +1,7 @@
 module lightmod
 
+use parametersmod, only : stdout
+
 implicit none
 
 public :: light
