@@ -954,7 +954,13 @@ do i = 1,3 !ntiles
 
   do a = 1,npft
     if (present(a) .and. pft(a)%tree) then
+     
+    
      call allomind(a,height(a),hclass(:,a))
+
+     write(stderr,*)'call height',a,height(a)   !,hclass(:,a)
+
+
     end if
   end do
 

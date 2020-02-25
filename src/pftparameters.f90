@@ -159,15 +159,21 @@ close(15)
         
 !       Assign leaf and phenology logicals
 
+   if (pftpar(pft,14) == 3) then
+     tree(pft) = .false.
+   else
+     tree(pft) = .true.
+   end if
+
         if (pftpar(pft,15).le.2.0) then
-          tree(pft)=.true.
+!          tree(pft)=.true.
           if (pftpar(pft,14).eq.2.0) then
             needle(pft)=.true.
           else
             needle(pft)=.false.
           endif
         else
-          tree(pft)=.false.
+!          tree(pft)=.false.
           needle(pft)=.false.
         endif
 
