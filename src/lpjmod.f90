@@ -50,7 +50,7 @@ type(statevars), target, intent(inout) :: osv  !state variables sent back out wi
 integer :: ntiles
 logical :: spinup
 integer :: year
-  
+
 !---------------------------------------------------------------
 !array location
 
@@ -142,7 +142,7 @@ real(sp) :: unusable
 !instantaneous gridcell state variables
 
 real(sp) :: gdd         !current-year growing degree days
-real(sp) :: mtemp_max   !temperature of the warmest month (deg C)  
+real(sp) :: mtemp_max   !temperature of the warmest month (deg C)
 
 !local state variables
 
@@ -167,7 +167,7 @@ type(sizeind), dimension(nhclass,npft) :: hclass
 
 !daily pft state variables
 
-real(sp), dimension(npft) :: wscal        !mean daily water scalar (among leaf-on days) (0-1 scale) 
+real(sp), dimension(npft) :: wscal        !mean daily water scalar (among leaf-on days) (0-1 scale)
 
 real(sp), dimension(365,npft) :: dphen    !net daily leaf-on fraction
 real(sp), dimension(365,npft) :: dphen_t  !daily leaf-on fraction due to temperature phenology
@@ -202,7 +202,7 @@ real(sp), pointer :: afire_frac
 real(sp), pointer :: gdd20        !20-year average growing degree days
 real(sp), pointer :: k_fast_ave   !running average k_fast for subroutine littersom
 real(sp), pointer :: k_slow_ave   !running average k_slow for subroutine littersom
-real(sp), pointer :: litterC_bg  
+real(sp), pointer :: litterC_bg
 real(sp), pointer :: litterC_fast
 real(sp), pointer :: litterC_slow
 real(sp), pointer :: livebiomass
@@ -295,9 +295,9 @@ real(sp) :: avg_cont_area	! average size of a natural patch at a given landuse f
 real(sp) :: totnat_area		! total natural area of a gridcell at a given landuse fraction, in m2
 real(sp) :: avg_patch_number 	! average number of natural patches per gridcell at a given landuse fraction
 real(sp) :: median_distance	! auxiliary for median distance to the edge of a natural patch, in (m)
-real(sp) :: nbl			! normalized boundary length; for boundary between natural and used part; normalized to 
+real(sp) :: nbl			! normalized boundary length; for boundary between natural and used part; normalized to
                                 ! the max. possible boundary length when having a chessboard-type distribution of kernels
-integer(sp) :: allnosnowdays                                  
+integer(sp) :: allnosnowdays
 
 real(sp) :: forager_ppd
 real(sp) :: forager_fin
@@ -315,6 +315,14 @@ real(sp), allocatable, dimension(:,:) :: help_me
 
 integer :: startyr_foragers
 
+real(sp) :: cflux_surf_atmos    !soil fast pool decomposition flux to atmosphere
+real(sp) :: cflux_fast_atmos    !soil fast pool decomposition flux to atmosphere
+real(sp) :: cflux_slow_atmos    !soil slow pool decomposition flux to atmosphere
+
+! real(sp) :: Tsat
+! real(sp) :: T33
+! real(sp) :: T1500
+real(sp) :: cflux_mean
 !declarations end here
 !---------------------------------------------------------------
 
@@ -332,7 +340,7 @@ year   = in%year
 co2 = in%co2
 
 !co2 = 324.
- 
+
 if (ntiles > 1) then
   lucc = .true.
 else
@@ -359,7 +367,7 @@ startyr_foragers = in%startyr_foragers
 !   write(*,*)'year', year, osv%tile(1)%litter_ag_fast(:,1)
 !  write(*,*)
 !end if
- 
+
 !  if (in%idx == 1 .and. in%year >= 1) then
 !   write(stdout,*) 'year: ', year,in%lon,in%lat
 !   write(stdout,'(12f9.2)')in%climate%temp
@@ -414,7 +422,7 @@ call daily(wind,dwind,.true.)
 call daily(in%climate%prec,dprec,.false.)
 
 dtemps = 0.5 * (dtmn + dtmx)
-  
+
 !write(stdout,*)'flag A'
 
 !correct for potential out of bounds interpolation
@@ -449,7 +457,7 @@ do dyr = 1,365  !calculate radiation budget and PET
 
  call radpet(in%orbit,in%lat,tcm,Pjj,dyr,Ratm,met_out(dyr))
  !write(*,*)'after radpet', dyr,met_out(dyr)%prec,met_out(dyr)%lght
- 
+
 end do
 
 !write(stdout,*)'flag A3'
@@ -469,12 +477,12 @@ end do
 !  else if(dprec(d) /= 0.) then
 !    dry = 0
 !  end if
-  
+
 !  if(dry > maxdry) maxdry = dry
-!  if(dprec(d) > maxprec) maxprec = dprec(d)  
+!  if(dprec(d) > maxprec) maxprec = dprec(d)
 !end do
 
-!write(*,'(i5,2f10.4,i5,2f10.2)') year, minval(met_out%tmin), maxval(met_out%tmax), maxdry, maxprec, sum(dprec)      
+!write(*,'(i5,2f10.4,i5,2f10.2)') year, minval(met_out%tmin), maxval(met_out%tmax), maxdry, maxprec, sum(dprec)
 
 osv%met = met_out(365)  !store the last day of the year for the next year's simulation
 
@@ -567,9 +575,9 @@ if (lucc) then
 
   unusable = in%human%landuse(1)
   cropfrac = in%human%landuse(2)
-  
+
   call alcc(j,in,osv,cropfrac,unusable,coverfrac,recoverf)
-  
+
   !write(stdout,*)'alcc',unusable,cropfrac,coverfrac
 
 end if
@@ -640,22 +648,22 @@ do i = 1,3 !ntiles
 
   !--------------------------------------------------------------------------------------
   !initializations (needed?)
-    
+
   pftCflux = 0.
   mpftCflux = 0.
-  mBBpft = 0. 
+  mBBpft = 0.
   mburnedf = 0.
-  
+
   !set up soil parameters
-  
-  call simplesoil(osv%tile(i)%soil,soilpar)
-  
+
+  call simplesoil(osv%tile(i)%soil,soilpar) !Tsat,T33,T1500
+
   !write(stdout,*) 'after simplesoil'
-  
+
   !write(stdout,*)'soilpar',soilpar
 
   !write(stdout,*)osv%tile(i)%soil
-  
+
  !soilpar(1) =  19.060502
  !soilpar(2) =   5.789572
  !soilpar(3) =  30.
@@ -663,22 +671,22 @@ do i = 1,3 !ntiles
  !soilpar(5) = 0.2
  !soilpar(6) = 0.65
  !soilpar(7) = 0.4
-  
+
   !write(stdout,*)soilpar(1),soilpar(3)
   !write(stdout,*)soilpar(2),soilpar(4)
-  
+
   !--------------------------------------------------------------------------------------
   !control establishment of woody vegetation based on alcc and total density for recovering vegetation
 
   call tile_landuse(lutype(i),recoverf,estab_lim,estab,nind,fpc_grid)
-    
+
   do a = 1, npft
    if ((nind(a) <= 0.) .and. ((lm_ind(a,1) .ne. 0.) .or. (sm_ind(a,1) .ne. 0.) .or. (hm_ind(a,1) .ne. 0.) .or. (rm_ind(a,1) .ne. 0.))) then
      write(stdout,'(a,i4,7f14.7)') 'contradiction nind - C-pools, lu: ',a, in%lon, in%lat, nind(a), lm_ind(a,1), sm_ind(a,1), hm_ind(a,1), rm_ind(a,1)
    end if
   end do
 
-  !Establishment of new individuals (saplings) of woody PFTs, grass establishment, 
+  !Establishment of new individuals (saplings) of woody PFTs, grass establishment,
   !removal of PFTs not adapted to current climate, update of individual structure and FPC
 
   !if (i == 2) then
@@ -689,20 +697,20 @@ do i = 1,3 !ntiles
 !
 ! set up limits to etablishment for special conditions
 ! clay_mean = (osv%tile(i)%soil%clay(1) + osv%tile(i)%soil%clay(3))/2
-! 
+!
 ! if (clay_mean >= 20.) estab(1) = .false.
 ! if (clay_mean >= 13.) estab(3) = .false.
 ! if (clay_mean >= 18.) estab(4) = .false.
 ! if (clay_mean >= 23.) estab(8) = .false.
-! 
+!
 ! if (afire_frac == 0.) estab(4) = .false.
 
 ! ====== NB special conditions for Canada version ONLY =======
 
 ! if (year > 1) then
-! 
+!
 !   burnedf20 = sum(osv%tile(i)%burnedf_buf) / real(climbuf)
-! 
+!
 ! 		if (burnedf20 > 0.) then
 ! 				FRI20 = 1. / burnedf20
 ! 		else
@@ -716,36 +724,36 @@ do i = 1,3 !ntiles
 ! if (FRI20 < 30.) estab(4) = .false.
 
 ! ===== end special conditions for Canada version ONLY =====
-  
+
   call establishment(pftpar,present,survive,estab,nind,lm_ind,sm_ind,rm_ind,hm_ind,lm_sapl,sm_sapl,rm_sapl,hm_sapl,pft%tree, &
                      crownarea,fpc_grid,lai_ind,height,sla,wooddens,latosa,prec,reinickerp,litter_ag_fast,litter_ag_slow,litter_bg,  &
                      allom1,allom2,allom3,acflux_estab,leafondays,leafoffdays,leafon,estab_pft,afire_frac,osv%tile(i)%soil%clay, osv%tile(i)%soil%sand)
-                     
-!  if(i==2) write(stdout,'(a,i3,9f14.4)') 'after establishment',i, litter_ag_fast(:,1)               
-                     
+
+!  if(i==2) write(stdout,'(a,i3,9f14.4)') 'after establishment',i, litter_ag_fast(:,1)
+
   do a = 1, npft
    if ((nind(a) <= 0.) .and. ((lm_ind(a,1) .ne. 0.) .or. (sm_ind(a,1) .ne. 0.) .or. (hm_ind(a,1) .ne. 0.) .or. (rm_ind(a,1) .ne. 0.))) then
      write(stdout,'(a,i4,7f14.7)') 'contradiction nind - C-pools, estab: ', a, in%lon, in%lat, nind(a), lm_ind(a,1), sm_ind(a,1), hm_ind(a,1), rm_ind(a,1)
    end if
-  end do                     
-                     
-                     
+  end do
+
+
   !if (i == 2) then
   !  write(stdout,*)'ag litter 0',litter_ag_fast(8,1),litter_ag_slow(8,1)
   !end if
 
 !  write(stdout,'(a,9f14.7)') 'after establishment', nind
 
-                     
-  where (lm_ind(:,1) <= 0.) present = .false. 
-    
-!  write(stdout,*) 'reset after establishment', present    
+
+  where (lm_ind(:,1) <= 0.) present = .false.
+
+!  write(stdout,*) 'reset after establishment', present
 
   !light competition among trees and between trees and grasses
 
-  call light(present,pft%tree,lm_ind,sm_ind,hm_ind,rm_ind,crownarea,fpc_grid,fpc_inc,nind,litter_ag_fast,litter_ag_slow,litter_bg,sla,fpc_tree_max) 
-  
-!  if(i==2)   write(stdout,'(a,i3,9f14.4)') 'after light1',i, litter_ag_fast(:,1) 
+  call light(present,pft%tree,lm_ind,sm_ind,hm_ind,rm_ind,crownarea,fpc_grid,fpc_inc,nind,litter_ag_fast,litter_ag_slow,litter_bg,sla,fpc_tree_max)
+
+!  if(i==2)   write(stdout,'(a,i3,9f14.4)') 'after light1',i, litter_ag_fast(:,1)
 
 !  write(stdout,'(a,10f8.3)')'after light',fpc_grid,sum(fpc_grid)
 
@@ -758,24 +766,24 @@ do i = 1,3 !ntiles
   call snow(dtemp,dprec,treefrac,snow0,snowpack,dmelt,in%idx)  !new f90 routine
 
   snow0 = snowpack(365)
-  
+
   nosnowdays = 0.
 
   a = 1
   do m = 1,12
 
     b = a + ndaymonth(m) - 1
-    
+
     if(temp(m) > 0.) nosnowdays(m) = count(snowpack(a:b) <= 0.)
 
     a = b + 1
 
   end do
-  
+
   allnosnowdays = sum(nosnowdays)
 
   !if (in%idx == 1) write(*,*)'outgoing',snow0,treefrac
-  
+
 !  write(stdout,*) 'after snow'
 
   !--------------------------------------------------------------------------------------
@@ -789,15 +797,15 @@ do i = 1,3 !ntiles
   !write(stdout,'(12f10.3)')mdayl
   !write(stdout,'(12f10.1)')mpar_day*0.001
   !write(stdout,'(12f10.1)')dcld(midday)*100.
-  
+
   !do a = 1,npft
   !  write(stdout,*)a,fpc_grid(a),lai_ind(a)
 !end do
 
   call calcgpp(present,[co2,-8.,0.],soilpar,pftpar,lai_ind,fpc_grid,mdayl,temp,mpar_day,dphen_t,w,dpet,dprec,dmelt,   &
                sla,agpp,alresp,arunoff_surf,arunoff_drain,arunoff,mrunoff,dwscal365,dphen_w,dphen,wscal,mgpp,mlresp,  &
-               mw1,dw1,aaet,leafondays,leafoffdays,leafon,pft%tree,pft%raingreen,year,mat20,wscal_v,in%idx)           
-  
+               mw1,dw1,aaet,leafondays,leafoffdays,leafon,pft%tree,pft%raingreen,year,mat20,wscal_v,in%idx)
+
 !  write(stdout,*)'after calcgpp ',present
 
   !write(stdout,'(13f10.1)')agpp(8,1),mgpp(:,8,1)
@@ -809,27 +817,27 @@ do i = 1,3 !ntiles
   call soiltemp(soilpar,temp,temp0,mtemp_soil,mw1,in%idx)
 
   !interpolate monthly soil temperature to daily values
-  
+
 !  write(stdout,*)mtemp_soil
-  
+
   !call rmsmooth(mtemp_soil,ndaymonth,[mtemp_soil(12),mtemp_soil(1)],dtemp_soil)
   call daily(mtemp_soil,dtemp_soil,.true.)
 
   !autotrophic respiration and NPP
-  
+
 !  write(stdout,*)'flag D2a',lm_ind(4,1) !dtemp(1),dtemp_soil(1)
 
   call calcnpp(dtemp,dtemp_soil,dphen,present,nind,lm_ind(:,1),sm_ind(:,1),hm_ind(:,1),rm_ind(:,1),cstore(:,1),mgpp(:,:,1),mnpp(:,:,1),anpp(:,1))
-    
+
   bm_inc = anpp
   anpp = max(0.,anpp)
-  
+
 !  write(stdout,*)'flag D2b',lm_ind(7:8,1)
 
   !call npp(pftpar,dtemp,dtemp_soil,pft%tree,dphen,nind,year,lm_ind,sm_ind,rm_ind,mgpp,anpp,mnpp,bm_inc,present,agpp,co2,aresp)
 
   !write(stdout,'(i5,14f10.1)')year,anpp(8,1),bm_inc(8,1),mnpp(:,8,1)
-    
+
   !write(stdout,'(a,9f11.4)')'GPP    ',agpp(:,1)
   !write(stdout,'(a,9f11.4)')'NPP    ',anpp(:,1)
   !write(stdout,'(a,9f11.4)')'respire',aresp(:)
@@ -843,15 +851,15 @@ do i = 1,3 !ntiles
   !end if
 
   call reproduction(bm_inc,lm_sapl,sm_sapl,hm_sapl,rm_sapl,litter_ag_fast,litter_ag_slow,present,pft%tree,[co2,-8.,0.])
- 
-!  if(i==2)   write(stdout,'(a,i3,9f14.4)') 'after reproduction',i, litter_ag_fast(:,1) 
+
+!  if(i==2)   write(stdout,'(a,i3,9f14.4)') 'after reproduction',i, litter_ag_fast(:,1)
 !  write(stdout,*)'flag D2d',lm_ind(:,1)
 
   !leaf, sapwood, and fine-root turnover
 
   call turnover(pftpar,present,lm_ind,sm_ind,hm_ind,rm_ind,litter_ag_fast,litter_ag_slow,litter_bg,nind,turnover_ind,year)
-  
-!  if(i==2)   write(stdout,'(a,i3,9f14.4)') 'after turnover',i, litter_ag_fast(:,1) 
+
+!  if(i==2)   write(stdout,'(a,i3,9f14.4)') 'after turnover',i, litter_ag_fast(:,1)
 
   !if (i == 2) then
   !  write(stdout,*)'ag litter 2',litter_ag_fast(8,1),litter_ag_slow(8,1)
@@ -865,24 +873,24 @@ do i = 1,3 !ntiles
   !write(stdout,*)
 
   call killplant(bm_inc,present,pft%tree,lm_ind,rm_ind,hm_ind,sm_ind,nind,litter_ag_fast,litter_ag_slow,litter_bg)
-  
-!  if(i==2)   write(stdout,'(a,i3,9f14.4)') 'after killplant',i, litter_ag_fast(:,1) 
+
+!  if(i==2)   write(stdout,'(a,i3,9f14.4)') 'after killplant',i, litter_ag_fast(:,1)
 
   !allocation of annual carbon increment to leaf, stem and fine root compartments
-  
+
 !  write(stdout,*)'flag D3a',present
   !write(stdout,*)'flag D3b',lm_ind(:,1)
   !write(stdout,*)'flag D3a',hm_ind(:,1)
   !write(stdout,*)'flag D2b',lm_ind(:,1)
-  
+
   call allocation(pftpar,allom1,allom2,allom3,latosa,wooddens,reinickerp,pft%tree,sla,wscal,nind,bm_inc,lm_ind,sm_ind,     &
                   hm_ind,rm_ind,crownarea,fpc_grid,lai_ind,height,litter_ag_fast,litter_ag_slow,litter_bg,fpc_inc,present)
-                  
-!  if(i==2)   write(stdout,'(a,i3,9f14.4)') 'after allocation',i, litter_ag_fast(:,1)                               
-                  
+
+!  if(i==2)   write(stdout,'(a,i3,9f14.4)') 'after allocation',i, litter_ag_fast(:,1)
+
   !check validity of allocation and correct
   !heartwood can be zero, but all other pools have to be positive to have valid allometry
-  
+
   do a = 1,npft
     if (.not.pft(a)%tree) cycle
 
@@ -890,14 +898,14 @@ do i = 1,3 !ntiles
     treecarbon(2) = sm_ind(a,1)
     treecarbon(3) = rm_ind(a,1)
     treecarbon(4) = hm_ind(a,1)
-    
+
     if (any(treecarbon(1:3) <= 0.) .and. (sum(treecarbon) > 0. .or. nind(a) > 0.)) then
-      
+
       write(stdout,*)'invalid allometry, resetting',year, present(a)
       write(stdout,'(2f10.2,i4,5f14.7)')in%lon,in%lat,a,nind(a),lm_ind(a,1),sm_ind(a,1),hm_ind(a,1),rm_ind(a,1)
-      
-      !read(*,*) 
-      
+
+      !read(*,*)
+
       !stop
 
       litter_ag_fast(a,1) = litter_ag_fast(a,1) + nind(a) * lm_ind(a,1)
@@ -913,37 +921,37 @@ do i = 1,3 !ntiles
 
     end if
   end do
-  
-  !Implement light competition and background mortality among tree PFTs 
-  !(including heat damage and due to lower limit of npp for boreal trees) 
+
+  !Implement light competition and background mortality among tree PFTs
+  !(including heat damage and due to lower limit of npp for boreal trees)
 
   !write(stdout,*)'after alloc'
   !do a = 1,npft
   !  write(stdout,*)a,fpc_grid(a),lai_ind(a)
   !end do
   !write(stdout,*)
-  
+
   !if (any(lm_ind(:,1) < 0.)) then
 !    write(stdout,*)'flag D3a',in%lon,in%lat,lm_ind(:,1)
   !end if
-  
+
   call mortality(pftpar,present,pft%tree,pft%boreal,bm_inc,turnover_ind,sla,lm_ind,sm_ind,hm_ind,rm_ind,nind,year,litter_ag_fast,litter_ag_slow, &
-                 litter_bg,dtemp,anpp,mtemp_max) 
-                 
+                 litter_bg,dtemp,anpp,mtemp_max)
+
   do a = 1, npft
    if ((nind(a) <= 0.) .and. ((lm_ind(a,1) .ne. 0.) .or. (sm_ind(a,1) .ne. 0.) .or. (hm_ind(a,1) .ne. 0.) .or. (rm_ind(a,1) .ne. 0.))) then
      write(stdout,'(a,i4,7f14.7)') 'contradiction nind - C-pools, mortality: ',a, in%lon, in%lat, nind(a), lm_ind(a,1), sm_ind(a,1), hm_ind(a,1), rm_ind(a,1)
-   end if  
-  end do                 
-                 
-!  if(i==2)   write(stdout,'(a,i3,9f14.4)') 'after mortality',i, litter_ag_fast(:,1)                           
+   end if
+  end do
+
+!  if(i==2)   write(stdout,'(a,i3,9f14.4)') 'after mortality',i, litter_ag_fast(:,1)
 
 
   !light competition between trees and grasses
 
   call light(present,pft%tree,lm_ind,sm_ind,hm_ind,rm_ind,crownarea,fpc_grid,fpc_inc,nind,litter_ag_fast,litter_ag_slow,litter_bg,sla,fpc_tree_max)
-  
-!  if(i==2)   write(stdout,'(a,i3,9f14.4)') 'after light2',i, litter_ag_fast(:,1) 
+
+!  if(i==2)   write(stdout,'(a,i3,9f14.4)') 'after light2',i, litter_ag_fast(:,1)
 
   !write(stdout,'(a,i4,10f8.3)')'before fire',year,fpc_grid,sum(fpc_grid)
 
@@ -954,8 +962,8 @@ do i = 1,3 !ntiles
 
   do a = 1,npft
     if (present(a) .and. pft(a)%tree) then
-     
-    
+
+
      call allomind(a,height(a),hclass(:,a))
 
      !write(stderr,*)'call height',a,height(a)   !,hclass(:,a)
@@ -968,57 +976,57 @@ do i = 1,3 !ntiles
   !section: harvest and burning on managed land - wildfire on unmanaged land
 
   osv%carbon%crop_harvest = 0.
-  
+
   !----------------------------------------------------------------------------
   !landscape fractioning, based on assumption that subgrid-kernels will be randomely distributed; calculations based on a testgrid of 10000 sub-kernels
 
-  call landscape_fractality(coverfrac, in%cellarea, avg_cont_area, totnat_area, avg_patch_number, median_distance, nbl) 
-  
-  !---------------------------------------------------------------------------- 
-  
+  call landscape_fractality(coverfrac, in%cellarea, avg_cont_area, totnat_area, avg_patch_number, median_distance, nbl)
+
+  !----------------------------------------------------------------------------
+
 !  goto 20
-  
+
   if (lutype(i) == 2) then   !harvest of agricultural crops and reset of agricultural biomass on used land
-    
-!    write(stdout,'(a,i3,9f14.4)') 'before harvest',i, litter_ag_fast(:,1)    
+
+!    write(stdout,'(a,i3,9f14.4)') 'before harvest',i, litter_ag_fast(:,1)
 
     call harvest(i,j,osv)
-    
+
 !    write(stdout,'(a,i3,9f14.4)') 'after harvest',i, litter_ag_fast(:,1)
-        
+
     call managedburn(i,j,acflux_fire(1),afire_frac,litter_ag_fast(:,1),pftCflux)
-    
+
 !    write(stdout,'(a,13i5,f14.7)') 'after managedburn', nosnowdays, allnosnowdays, afire_frac
-    
+
     do m = 1, 12
-    
+
          mBBpft(:,m) = pftCflux(:) * real(nosnowdays(m))/real(allnosnowdays)  * 0.001 * 1./0.45	!distribute the pftCflux equally on all days with a monthly temperature > 0. degrees Celsius
       									!convert from g C to kg dry matter, hence the multiplication factors
-         mburnedf(m) = afire_frac * real(nosnowdays(m))/real(allnosnowdays)       
-                    
-    end do     
-      
+         mburnedf(m) = afire_frac * real(nosnowdays(m))/real(allnosnowdays)
+
+    end do
+
 !    write(stdout,'(9f14.7)')  mpftCflux
 !    write(stdout,'(12f14.7)')  temp
 
   else     !biomass destruction by wildfire
 
     afire_frac = 0.
-    
+
 !    goto 20
 
     if (dospitfire .and. ((spinup .and. year > 0) .or. .not. spinup)) then
-      
+
       burnedf20 = sum(osv%tile(i)%burnedf_buf) / real(climbuf)
-      
-      forager_pd20 = sum(osv%tile(i)%forager_pd_buf) / real(climbuf) 
-    
+
+      forager_pd20 = sum(osv%tile(i)%forager_pd_buf) / real(climbuf)
+
 !      write(stdout,*) 'Forager density: ', year, forager_pd20
 
       !calculate annual burn target
 
 !      write(stdout,*)osv%annburntarget(1),grasscover,dgrassdt
-      
+
       if (year > 800) then
 !        if (grasscover < 0.5 .and. abs(dgrassdt) > 0.01) then
 !          osv%annburntarget(1) = min(osv%annburntarget(1) + 0.05,1.)
@@ -1026,39 +1034,39 @@ do i = 1,3 !ntiles
 !          osv%annburntarget(1) = max(osv%annburntarget(1) - 0.05,0.)
 !       end if
 !        osv%annburntarget(1)= max(min(1.*(1-grasscover)*max(-dgrassdt,0.)/0.01,1.),0.)
-        osv%annburntarget(1)= max(min(1.*(1-grasscover)*max(-dgrassdt,0.)/0.05,1.),0.) 
+        osv%annburntarget(1)= max(min(1.*(1-grasscover)*max(-dgrassdt,0.)/0.05,1.),0.)
       end if
 
 !      write(stdout,*)osv%annburntarget(1),grasscover,dgrassdt
 
       omega_o0 = 0.    !initialize omega_o0 here, this should carry over from one year to the next but ok for Boreal simulations
-	  
+
       d = 1
       do m = 1,12
-        
+
         mburnedf(m) = 0.
         mBBpft(:,m) = 0.
-        
+
         do dm = 1,ndaymonth(m)
-        
+
           call spitfire(year,i,j,d,in,met_out(d),dw1(d),snowpack(d),dphen(d,:),wscal_v(d,:),osv,spinup,avg_cont_area,burnedf20,forager_pd20,FDI,omega_o0,omega0,BBpft,Ab,hclass)
 
           mBBpft(:,m) = mBBpft(:,m) + BBpft  !accumulate biomass burned totals
-          
+
           mburnedf(m) = mburnedf(m) + Ab/(in%cellarea * 1e-4) !convert cell area to ha, as Ab is in ha
 
           d = d + 1
 
         end do
       end do
-      
+
       !add the agricultural burned biomass to the total burned biomass, by PFT
 
       !write(stdout,*)'enter biomassburned',afire_frac
       if (afire_frac > 0.) call burnedbiomass(i,j,osv,afire_frac,year)  !account for annual burned biomass
-        
+
       !fill burnedf buffer with burned fraction for this year
-      
+
       osv%tile(i)%burnedf_buf = eoshift(osv%tile(i)%burnedf_buf,-1,afire_frac)
 
       !if (i==1) write(*,'(f7.4)')burnedf20 !osv%tile(i)%burnedf_buf
@@ -1069,11 +1077,11 @@ do i = 1,3 !ntiles
 
     end if
   end if
-  
+
 !  write(stdout,*) 'tile', i
 !  write(stdout,'(12f12.7)') mburnedf
 !  write(stdout,*)
-  
+
   20 continue
 
 !  if (i==1) write(*,'(a,2i4,6f14.7)') 'ANNUAL BURNEDF: ', year, i, afire_frac, in%human%popd
@@ -1085,7 +1093,7 @@ do i = 1,3 !ntiles
    end if
   end do
 
-!  if(i==2)   write(stdout,'(a,i3,9f14.4)') 'after fire',i, litter_ag_fast(:,1)   
+!  if(i==2)   write(stdout,'(a,i3,9f14.4)') 'after fire',i, litter_ag_fast(:,1)
 !  write(stdout,'(a,i4,10f8.3)') 'after fire: ', year, fpc_grid,sum(fpc_grid)
 
   !----------------------------------------------------------------------------
@@ -1094,14 +1102,19 @@ do i = 1,3 !ntiles
   !This is done after fire, so that fire probability is calculated on litter remaining
   !before year's decomposition. Include here agricultural litter etc.
 
-  call hetresp(litter_ag_fast,litter_ag_slow,litter_bg,mw1,mtemp_soil,cpool_surf,cpool_fast,cpool_slow,arh,mrh,year, & 
-                  k_fast_ave,k_slow_ave,litter_decom_ave,osv%tile(i)%soil%clay,osv%tile(i)%soil%bulk,spinup,in%idx)
-                  
-!  if(i==2)   write(stdout,'(a,i3,9f14.4)') 'after hetresp',i, litter_ag_fast(:,1)                   
+  call hetresp(litter_ag_fast,litter_ag_slow,litter_bg,mw1,mtemp_soil,cpool_surf,cpool_fast,cpool_slow,arh,mrh,year, &
+                  k_fast_ave,k_slow_ave,litter_decom_ave,osv%tile(i)%soil%clay,osv%tile(i)%soil%bulk,spinup,in%idx, &
+                  cflux_surf_atmos,cflux_fast_atmos,cflux_slow_atmos)
 
-  !call littersom2(litter_ag_fast,litter_ag_slow,litter_bg,mw1,mtemp_soil,cpool_fast,cpool_slow,arh,mrh,year, & 
+!  if(i==2)   write(stdout,'(a,i3,9f14.4)') 'after hetresp',i, litter_ag_fast(:,1)
+
+  !call littersom2(litter_ag_fast,litter_ag_slow,litter_bg,mw1,mtemp_soil,cpool_fast,cpool_slow,arh,mrh,year, &
   !                k_fast_ave,k_slow_ave,litter_decom_ave,osv%tile(i)%soil%clay,osv%tile(i)%soil%bulk,spinup)
 
+  call soilpco2(litter_ag_fast,litter_ag_slow,litter_bg,mw1,mtemp_soil,cpool_surf,cpool_fast, &
+                    cpool_slow,arh,mrh,year,k_fast_ave,k_slow_ave,litter_decom_ave,osv%tile(i)%soil%clay, &
+                    osv%tile(i)%soil%bulk,spinup,in%idx,cflux_surf_atmos,cflux_fast_atmos,cflux_slow_atmos, &
+                    osv%tile(i)%soil,soilpar,cflux_mean) !in%climate%temp,in%co2,
 
   !light competition between trees and grasses
 
@@ -1111,16 +1124,16 @@ do i = 1,3 !ntiles
   end if
 
   call light(present,pft%tree,lm_ind,sm_ind,hm_ind,rm_ind,crownarea,fpc_grid,fpc_inc,nind,litter_ag_fast,litter_ag_slow,litter_bg,sla,fpc_tree_max)
-  
-!  if(i==2)   write(stdout,'(a,i3,9f14.4)') 'after light3',i, litter_ag_fast(:,1) 
-  
+
+!  if(i==2)   write(stdout,'(a,i3,9f14.4)') 'after light3',i, litter_ag_fast(:,1)
+
   if (any(fpc_grid < 0.)) then
     write(stdout,*)'light2',in%lon,in%lat,fpc_grid  !'(a,2f10.2,9f14.7)'
     stop
   end if
-  
+
 !  write(stdout,'(a,i4,10f8.3)')'after light',year,fpc_grid,sum(fpc_grid)
-!  write(stdout,*) 
+!  write(stdout,*)
 
 
 
@@ -1141,13 +1154,13 @@ do i = 1,3 !ntiles
 
   !---------------
   !summary section
-  
+
   !plant_carbon = nind * (lm_ind(:,1) + sm_ind(:,1) + hm_ind(:,1))  !only aboveground part for now
   plant_carbon = nind * (lm_ind(:,1) + sm_ind(:,1) + hm_ind(:,1) + rm_ind(:,1))  !pft vector
   above_carbon = nind * (lm_ind(:,1) + sm_ind(:,1) + hm_ind(:,1))  !pft vector
- 
+
 !  plant_carbon = nind * (lm_ind(:,1) + sm_ind(:,1) + hm_ind(:,1))
-  
+
   !sum across pfts
 
   livebiomass  = sum(plant_carbon)
@@ -1159,19 +1172,19 @@ do i = 1,3 !ntiles
   grid_gpp(1)  = sum(agpp(:,1)) ! E.C. avril 2016
 
   tilecarbon = livebiomass + litterC_fast + litterC_slow + litterC_bg + cpool_surf(1) + cpool_fast(1) + cpool_slow(1)
-  
+
 !  write(stdout,*) 'before forager routines'
 
 !  goto 40
 
-  if (i /= 2 .and. ((spinup .and. year > 100) .or. .not. spinup) .and. in%human%foragerPD > 0.) then 
-    
+  if (i /= 2 .and. ((spinup .and. year > 100) .or. .not. spinup) .and. in%human%foragerPD > 0.) then
+
 !    call foragers(apet,aaet,in%elev,in%lat,grid_npp(1),livebiomass,soilpar(3),temp,prec,mw1,forager_ppd)
-    
+
 !    write(stdout,*) 'after call to foragers: ', forager_ppd
-    
+
 !    call popgrowth(forager_ppd,forager_pd,forager_fin,forager_fout)
-    
+
 !    write(stdout,*) 'after call to popgrowth:', forager_pd
 
     !write(stdout,*)'before call to simpleforagers',year,forager_pd
@@ -1181,38 +1194,38 @@ do i = 1,3 !ntiles
     !write(*,*)year,forager_pd
 
     !forager_pd = 0.025
-    
+
     osv%tile(i)%forager_pd_buf = eoshift(osv%tile(i)%forager_pd_buf,-1,forager_pd)
-      
+
   else if(in%human%foragerPD == 0.) then
-    
-    forager_pd = 0. 
-    
-    osv%tile(i)%forager_pd_buf = 0.   
+
+    forager_pd = 0.
+
+    osv%tile(i)%forager_pd_buf = 0.
 
   end if
-  
+
 !  40 continue
 
   a = 1
   do m = 1,12
 
     b = a + ndaymonth(m) - 1
-    
+
     mLAI(:,m) = lai_ind * sum(dphen(a:b,:),dim=1) / ndaymonth(m)
 
     a = b + 1
 
   end do
 
-  !---------------------------------------------------------------------------- 
+  !----------------------------------------------------------------------------
   !10-year running mean grass cover and long-term rate of change in grass cover
 
   dgrassdt   = grasscover - (0.9 * grasscover + 0.1 * sum(fpc_grid(8:9)))
   grasscover = 0.9 * grasscover + 0.1 * sum(fpc_grid(8:9))
 
-  !---------------------------------------------------------------------------- 
-    
+  !----------------------------------------------------------------------------
+
 end do  !sub-grid tile loop
 
 !write(stdout,*)'flag E'
@@ -1236,7 +1249,7 @@ do i = 1, ntiles
   help_me(i,:) = osv%tile(i)%mburnedf * osv%tile(i)%coverfrac
 end do
 
-!to make it easier in netcdfoutputmod, and since we are only interested in the total, not tilewise, already do the tile-integration here and then put it 
+!to make it easier in netcdfoutputmod, and since we are only interested in the total, not tilewise, already do the tile-integration here and then put it
 !back in osv%tile(1)%mburnedf, and then put that out in netcdfoutputmod
 
 osv%tile(1)%mburnedf = sum(help_me(:,:), dim=1)

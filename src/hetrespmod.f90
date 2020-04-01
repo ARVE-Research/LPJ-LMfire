@@ -209,7 +209,7 @@ do m = 1,12
   end do
 
   !sum up decomposition over all pfts and all pools
-  
+
   litter_decom(m) = sum(litterdag_fast + litterdag_slow + litterdag_bg)
 
   !write(stdout,*)'hetresp',mw1
@@ -232,19 +232,19 @@ do m = 1,12
   cpool_slow(1) = cpool_slow(1) + cflux_litter_soil * slowfrac
 
   !calculate SOM decomposition
-  
+
   cflux_fast_atmos = cpool_fast(1) * ek_sf(m) !eqn 4
   cflux_slow_atmos = cpool_slow(1) * ek_ss(m) !eqn 4
 
   mrh(m,1) = cflux_litter_atmos + cflux_fast_atmos + cflux_slow_atmos
-  
+
   respflux(1,m) = cflux_litter_atmos
   respflux(2,m) = cflux_fast_atmos
   respflux(3,m) = cflux_slow_atmos
 
   cpool_fast(1) = max(cpool_fast(1) - cflux_fast_atmos,0.)
   cpool_slow(1) = max(cpool_slow(1) - cflux_slow_atmos,0.)
-  
+
 end do
 
 arh = sum(mrh,dim=1)
@@ -279,14 +279,14 @@ if (spinup .and. year == soil_equil_year + 1 .and. k_fast_ave > 0. .and. k_slow_
   cpool_fast(1) = (soilfrac * fastfrac * litter_decom_ave(1)) / k_fast_ave   !eqn 7
 
   cpool_slow(1) = (soilfrac * slowfrac * litter_decom_ave(1)) / k_slow_ave   !eqn 7
-     
+
 else if (year <= soil_equil_year) then
 
   !Update running average respiration rates and litter input
 
   k_fast_ave = k_fast_ave + sum(k_soil_fast) / syr
   k_slow_ave = k_slow_ave + sum(k_soil_slow) / syr
-  
+
   litter_decom_ave(1) = litter_decom_ave(1) + sum(litter_decom) / syr
 
 end if
@@ -301,7 +301,8 @@ end subroutine littersom2
 !-------------------------------------------------------------------------------------------------------------
 
 subroutine hetresp(litter_ag_fast,litter_ag_slow,litter_bg,mw1,tsoil,cpool_surf,cpool_fast,cpool_slow,  &
-                     arh,mrh,year,k_fast_ave,k_slow_ave,litter_decom_ave,clay,bulk,spinup,idx)
+                     arh,mrh,year,k_fast_ave,k_slow_ave,litter_decom_ave,clay,bulk,spinup,idx, &
+                     cflux_surf_atmos,cflux_fast_atmos,cflux_slow_atmos)
 
 use parametersmod, only : sp,npft,npftpar,nsoilpar,ncvar,i8
 
@@ -511,7 +512,7 @@ do m = 1,12
   end do
 
   !sum up decomposition over all pfts and all pools
-  
+
   litter_decom(m) = sum(litterdag_fast + litterdag_slow + litterdag_bg)
 
   !write(stdout,*)'hetresp',mw1
@@ -532,9 +533,9 @@ do m = 1,12
 
   cpool_fast(1) = cpool_fast(1) + cflux_litter_soil * fastfrac
   cpool_slow(1) = cpool_slow(1) + cflux_litter_soil * slowfrac
-  
+
   !transfer remaining fast litter to surface SOM pool with turnover time of klit2som
-  
+
   lit2som = dt * klit2som * litter_ag_fast(:,1)  !amount of litter to transfer to soil (vector over PFTs)
 
   litter_ag_fast(:,1) = max(litter_ag_fast(:,1) - lit2som,0.)
@@ -542,7 +543,7 @@ do m = 1,12
   cpool_surf(1) = cpool_surf(1) + sum(lit2som)  !sum across all pfts
 
   !calculate SOM decomposition
-  
+
   cflux_surf_atmos = cpool_surf(1) * ek_lf(m) !eqn 4
   cflux_fast_atmos = cpool_fast(1) * ek_sf(m) !eqn 4
   cflux_slow_atmos = cpool_slow(1) * ek_ss(m) !eqn 4
@@ -552,7 +553,7 @@ do m = 1,12
   cpool_surf(1) = max(cpool_surf(1) - cflux_surf_atmos,0.)
   cpool_fast(1) = max(cpool_fast(1) - cflux_fast_atmos,0.)
   cpool_slow(1) = max(cpool_slow(1) - cflux_slow_atmos,0.)
-  
+
 end do
 
 arh = sum(mrh,dim=1)
@@ -587,18 +588,18 @@ if (spinup .and. year == soil_equil_year + 1 .and. k_fast_ave > 0. .and. k_slow_
   cpool_fast(1) = (soilfrac * fastfrac * litter_decom_ave(1)) / k_fast_ave   !eqn 7
 
   cpool_slow(1) = (soilfrac * slowfrac * litter_decom_ave(1)) / k_slow_ave   !eqn 7
-     
+
 else if (year <= soil_equil_year) then
 
   !Update running average respiration rates and litter input
 
   k_fast_ave = k_fast_ave + sum(k_soil_fast) / syr
   k_slow_ave = k_slow_ave + sum(k_soil_slow) / syr
-  
+
   litter_decom_ave(1) = litter_decom_ave(1) + sum(litter_decom) / syr
 
 end if
-                  
+
 end subroutine hetresp
 
 !-------------------------------------------------------------------------------------------------------------

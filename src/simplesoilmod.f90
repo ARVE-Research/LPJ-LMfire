@@ -75,20 +75,20 @@ do l = 1,nl
   sand  = soil%sand(l)
   clay  = soil%clay(l)
   OM    = soil%orgm(l)
-  
+
   silt = 100. - (sand + clay)
-  
+
 !   write(0,*)'SOIL',l,sand,silt,clay,OM
-  
+
   if (sand < 0.) then
     valid(l) = .false.
     cycle
   end if
 
   Csoil = OrgM(l) / omcf  !layer
-  
+
   orgC = Csoil
-  
+
   !write(stdout,*)'lyr ',l,' tile',i
   !write(stdout,*)'dz  ',dz(l)
   !write(stdout,*)'Csol',Csoil
@@ -96,15 +96,15 @@ do l = 1,nl
   !because bulk density depends strongly on organic matter content and
   !weakly on wilting point water content, we guess an initial value and
   !iterate to a stable solution
-  
+
   T1500 = 0.1
-  
+
   bulk = fbulk(orgC,T1500*100.,clay,zpos(l),silt)
-  
+
   it = 1
 
   do
-    
+
     !convert SOM to mass fraction and calculate the difference in OM content
 
     soilmass = bulk * 1.e6 * dz(l)     !(g) (m-2)  note: g cm-3 * (m*100=cm) 100cm * 100cm = g
@@ -130,7 +130,7 @@ do l = 1,nl
     if (abs(bulk - blk0) < 0.001 .or. it > 50) exit
 
     blk0 = bulk
-    
+
     it = it + 1
 
   end do
@@ -140,7 +140,7 @@ do l = 1,nl
   call calctheta(sand/100.,clay/100.,OM/100.,bulk,Tsat,T33,T1500)
 
   !update layer-integrated WHC
-      
+
   whc(l) = 1000. * dz(l) * (T33 - T1500)  !mm
 
   !calculate saturated conductivity
@@ -158,9 +158,9 @@ do l = 1,nl
   !write(stdout,*)'T33 ',T33
   !write(stdout,*)'Twp ',T1500
   !write(stdout,*)'Ksat',Ksat(l)
-  
+
   soil%bulk(l) = bulk
-  
+
 end do  !layers
 
 where (.not. valid)  !assign a typical rock value for non-soil layers
@@ -185,7 +185,7 @@ soilpar(7) = 0.4    !thermal diffusivity at field capacity (100% WHC)
 !  write(stdout,*)'Ksat',soilpar(1:2)
 !  write(stdout,*)'whc ',soilpar(3:4)
 
-end subroutine simplesoil 
+end subroutine simplesoil
 
 !---------------------------------------------------------------------------
 
