@@ -119,6 +119,8 @@ real(sp) :: recoverf  !fraction of the gridcell that is recovering from land use
 real(sp) :: treefrac
 
 real(sp), dimension(7) :: soilpar
+real(sp), dimension(2,2) :: soilprop    ! porosity and field capacity for each soil layer (m3 m-3)
+
 
 !real, dimension(npft) :: gpp_temp
 !real, dimension(npft) :: npp_temp
@@ -182,6 +184,8 @@ real(sp), dimension(12) :: mtemp_soil  !monthly soil temperature (deg C)
 real(sp), dimension(12) :: mw1         !monthly soil layer 1 water content (fraction of available water holding capacity)
 
 real(sp), dimension(12,ncvar) :: mrh   !monthly heterotrophic respiration (gC/m2)
+real(sp), dimension(12,ncvar) :: mrh   !monthly heterotrophic respiration (gC/m2)
+real(sp), dimension(12,4) :: hetresp_mon   !monthly pool-specific heterotrophic respiration (gC/m2)
 
 !monthly pft state variables
 
@@ -315,14 +319,6 @@ real(sp), allocatable, dimension(:,:) :: help_me
 
 integer :: startyr_foragers
 
-real(sp) :: cflux_surf_atmos    !soil fast pool decomposition flux to atmosphere
-real(sp) :: cflux_fast_atmos    !soil fast pool decomposition flux to atmosphere
-real(sp) :: cflux_slow_atmos    !soil slow pool decomposition flux to atmosphere
-
-! real(sp) :: Tsat
-! real(sp) :: T33
-! real(sp) :: T1500
-real(sp) :: cflux_mean
 !declarations end here
 !---------------------------------------------------------------
 
@@ -656,7 +652,7 @@ do i = 1,3 !ntiles
 
   !set up soil parameters
 
-  call simplesoil(osv%tile(i)%soil,soilpar) !Tsat,T33,T1500
+  call simplesoil(osv%tile(i)%soil,soilpar,soilprop) !Tsat,T33,T1500
 
   !write(stdout,*) 'after simplesoil'
 
@@ -1104,17 +1100,21 @@ do i = 1,3 !ntiles
 
   call hetresp(litter_ag_fast,litter_ag_slow,litter_bg,mw1,mtemp_soil,cpool_surf,cpool_fast,cpool_slow,arh,mrh,year, &
                   k_fast_ave,k_slow_ave,litter_decom_ave,osv%tile(i)%soil%clay,osv%tile(i)%soil%bulk,spinup,in%idx, &
-                  cflux_surf_atmos,cflux_fast_atmos,cflux_slow_atmos)
+                  hetresp_mon)
+
+  call soilpco2(co2,soilpar,temp,mtemp_soil,mw1,hetresp_mon,soilcconc)
+
 
 !  if(i==2)   write(stdout,'(a,i3,9f14.4)') 'after hetresp',i, litter_ag_fast(:,1)
 
   !call littersom2(litter_ag_fast,litter_ag_slow,litter_bg,mw1,mtemp_soil,cpool_fast,cpool_slow,arh,mrh,year, &
   !                k_fast_ave,k_slow_ave,litter_decom_ave,osv%tile(i)%soil%clay,osv%tile(i)%soil%bulk,spinup)
 
-  call soilpco2(litter_ag_fast,litter_ag_slow,litter_bg,mw1,mtemp_soil,cpool_surf,cpool_fast, &
-                    cpool_slow,arh,mrh,year,k_fast_ave,k_slow_ave,litter_decom_ave,osv%tile(i)%soil%clay, &
-                    osv%tile(i)%soil%bulk,spinup,in%idx,cflux_surf_atmos,cflux_fast_atmos,cflux_slow_atmos, &
-                    osv%tile(i)%soil,soilpar,cflux_mean) !in%climate%temp,in%co2,
+
+!   call soilpco2(litter_ag_fast,litter_ag_slow,litter_bg,mw1,mtemp_soil,cpool_surf,cpool_fast, &
+!                     cpool_slow,arh,mrh,year,k_fast_ave,k_slow_ave,litter_decom_ave,osv%tile(i)%soil%clay, &
+!                     osv%tile(i)%soil%bulk,spinup,in%idx,cflux_surf_atmos,cflux_fast_atmos,cflux_slow_atmos, &
+!                     osv%tile(i)%soil,soilpar,cflux_mean) !in%climate%temp,in%co2,
 
   !light competition between trees and grasses
 

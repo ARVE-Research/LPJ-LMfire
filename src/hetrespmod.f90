@@ -302,7 +302,7 @@ end subroutine littersom2
 
 subroutine hetresp(litter_ag_fast,litter_ag_slow,litter_bg,mw1,tsoil,cpool_surf,cpool_fast,cpool_slow,  &
                      arh,mrh,year,k_fast_ave,k_slow_ave,litter_decom_ave,clay,bulk,spinup,idx, &
-                     cflux_surf_atmos,cflux_fast_atmos,cflux_slow_atmos)
+                     hetresp_mon)
 
 use parametersmod, only : sp,npft,npftpar,nsoilpar,ncvar,i8
 
@@ -330,8 +330,9 @@ real(sp), dimension(:), intent(inout) :: cpool_fast
 real(sp), dimension(:), intent(inout) :: cpool_slow
 real(sp), dimension(:), intent(inout) :: litter_decom_ave
 
-real(sp), dimension(:),   intent(out) :: arh
-real(sp), dimension(:,:), intent(out) :: mrh
+real(sp), dimension(:),   intent(out) :: arh   ! annual integrated heterotrophic respiration (gC m-2)
+real(sp), dimension(:,:), intent(out) :: mrh   ! monthly integrated heterotrophic respiration (gC m-2)
+real(sp), dimension(:,:), intent(out) :: hetresp_mon   ! monthly pool-specific heterotrophic respiration (gC m-2)
 
 integer(i8), intent(in) :: idx
 
@@ -549,6 +550,11 @@ do m = 1,12
   cflux_slow_atmos = cpool_slow(1) * ek_ss(m) !eqn 4
 
   mrh(m,1) = cflux_litter_atmos + cflux_surf_atmos + cflux_fast_atmos + cflux_slow_atmos
+  
+  hetresp_mon(m,1) = cflux_litter_atmos
+  hetresp_mon(m,2) = cflux_surf_atmos
+  hetresp_mon(m,3) = cflux_fast_atmos
+  hetresp_mon(m,4) = cflux_slow_atmos
 
   cpool_surf(1) = max(cpool_surf(1) - cflux_surf_atmos,0.)
   cpool_fast(1) = max(cpool_fast(1) - cflux_fast_atmos,0.)

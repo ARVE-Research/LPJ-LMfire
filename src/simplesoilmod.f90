@@ -8,7 +8,7 @@ contains
 
 !---------------------------------------------------------------------------
 
-subroutine simplesoil(soil,soilpar)
+subroutine simplesoil(soil,soilpar,soilprop)
 
 use parametersmod,   only : sp
 use mpistatevarsmod, only : soildata
@@ -18,6 +18,7 @@ implicit none
 
 type(soildata), intent(inout) :: soil  !state variables sent back out with MPI
 real(sp), dimension(:), intent(out) :: soilpar
+real(sp), dimension(:,:), intent(out) :: soilprop
 
 integer :: nl
 integer :: l
@@ -146,7 +147,10 @@ do l = 1,nl
   !calculate saturated conductivity
 
   Ksat(l) = fKsat(Tsat,T33,T1500)
-
+  
+  soilprop(l,1) = Tsat
+  soilprop(l,2) = T33
+  
   !write(stdout,*)'layer',l
   !write(stdout,*)'sand',sand
   !write(stdout,*)'silt',silt

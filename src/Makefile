@@ -3,8 +3,8 @@
 #---------------------------------------------
 # specify the fortran and C compilers here. normally this needs to be the MPI version of the compiler
 
-CC = mpicc
-FC = mpifort
+CC = mpiicc
+FC = mpiifort
 
 # specify the compiler options. choose either optimized or debugging flags, or neither
 
@@ -26,19 +26,21 @@ FCFLAGS = -debug -fpe0 -traceback -g -check -check noarg_temp_created # -warn al
 # specify the location of your netcdf install
 
 # netcdf=/alcc/gpfs2/home/geo/georwa/local
-netcdf=/usr/local
+netcdf=/share1/netcdf/4.7.1-impi
+hdf=/share1/hdf5/1.10.5-impi
 
 #---- should not need to change anything below this line ----
 
 # pointers to netcdf directories
 
+HDF_LIB=$(hdf)/lib
 NC_LIB=$(netcdf)/lib
 NC_INC=$(netcdf)/include
 
 # preprocessor and linker flags
 
 CPPFLAGS = -Difort -I$(NC_INC)
-LDFLAGS  = -L$(NC_LIB)
+LDFLAGS  = -L$(NC_LIB) -L$(HDF_LIB)
 
 # --- required libraries --- may not always need libcurl, depends on the HDF install
 
