@@ -184,7 +184,6 @@ real(sp), dimension(12) :: mtemp_soil  !monthly soil temperature (deg C)
 real(sp), dimension(12) :: mw1         !monthly soil layer 1 water content (fraction of available water holding capacity)
 
 real(sp), dimension(12,ncvar) :: mrh   !monthly heterotrophic respiration (gC/m2)
-real(sp), dimension(12,ncvar) :: mrh   !monthly heterotrophic respiration (gC/m2)
 real(sp), dimension(12,4) :: hetresp_mon   !monthly pool-specific heterotrophic respiration (gC/m2)
 
 !monthly pft state variables
@@ -319,6 +318,7 @@ real(sp), allocatable, dimension(:,:) :: help_me
 
 integer :: startyr_foragers
 
+real(sp),       dimension(12) :: soilcconc     ! column averaged CO2 concentration (ppm)
 !declarations end here
 !---------------------------------------------------------------
 
@@ -1102,8 +1102,11 @@ do i = 1,3 !ntiles
                   k_fast_ave,k_slow_ave,litter_decom_ave,osv%tile(i)%soil%clay,osv%tile(i)%soil%bulk,spinup,in%idx, &
                   hetresp_mon)
 
-  call soilpco2(co2,soilpar,temp,mtemp_soil,mw1,hetresp_mon,soilcconc)
 
+  write(stdout,*) osv%tile(i)%soil%zpos
+
+  ! call soilpco2(co2,osv%tile(i)%soil%zpos,soilpar,temp,mtemp_soil,mw1,hetresp_mon,soilcconc)
+  ! write(stdout,*) soilconc
 
 !  if(i==2)   write(stdout,'(a,i3,9f14.4)') 'after hetresp',i, litter_ag_fast(:,1)
 
@@ -1111,10 +1114,6 @@ do i = 1,3 !ntiles
   !                k_fast_ave,k_slow_ave,litter_decom_ave,osv%tile(i)%soil%clay,osv%tile(i)%soil%bulk,spinup)
 
 
-!   call soilpco2(litter_ag_fast,litter_ag_slow,litter_bg,mw1,mtemp_soil,cpool_surf,cpool_fast, &
-!                     cpool_slow,arh,mrh,year,k_fast_ave,k_slow_ave,litter_decom_ave,osv%tile(i)%soil%clay, &
-!                     osv%tile(i)%soil%bulk,spinup,in%idx,cflux_surf_atmos,cflux_fast_atmos,cflux_slow_atmos, &
-!                     osv%tile(i)%soil,soilpar,cflux_mean) !in%climate%temp,in%co2,
 
   !light competition between trees and grasses
 
