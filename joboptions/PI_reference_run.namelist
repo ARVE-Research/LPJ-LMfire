@@ -4,11 +4,11 @@
  dotransient      = .false.
  spinupyears      = 15 !1020 !36 30-year cycles
  transientyears   = 140  
- cfile_spinup     = '/Volumes/arve/shared/datasets/climate/dgvm_input/timeslice/spinup1871.nc'
- soilfile         = '/Volumes/arve/shared/datasets/soils/soilgrids1km/soil000ka/soil30m.nc'
- co2file          = '/Volumes/arve/shared/datasets/GHG/ghg2.nc'
- topofile         = '/Volumes/arve/shared/datasets/topo/dgvm_input/topofile_integrated_000ka.nc'
- pftparsfile      = '/Users/jkaplan/Documents/science_projects/lpjmpi/github/LPJ-LMfire/pftpars_global.csv'
+ cfile_spinup     = '/group/esd_kaplan/datasets/dgvm_input/climate/spinup1871.nc'
+ soilfile         = '/group/esd_kaplan/datasets/dgvm_input/soils/soil30m.nc'
+ co2file          = '/group/esd_kaplan/datasets/dgvm_input/ghg/ghg2.nc'
+ topofile         = '/group/esd_kaplan/datasets/dgvm_input/topography/topofile_integrated_000ka.nc'
+ pftparsfile      = '/home/jkaplan/LPJ-LMfire/pftpars_global.csv'
  nspinyrsout      = 1020
  maxmem           = 12288.
  lu_turn_yrs      = 0.

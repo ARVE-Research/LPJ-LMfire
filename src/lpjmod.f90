@@ -1103,7 +1103,7 @@ do i = 1,3 !ntiles
                   hetresp_mon)
 
 
-  write(stdout,*) osv%tile(i)%soil%zpos
+  write(stdout,*)osv%tile(i)%soil%zpos
 
   ! call soilpco2(co2,osv%tile(i)%soil%zpos,soilpar,temp,mtemp_soil,mw1,hetresp_mon,soilcconc)
   ! write(stdout,*) soilconc
