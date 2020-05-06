@@ -35,7 +35,7 @@ use killplantmod,     only : killplant
 use soiltemperaturemod, only : soiltemp
 use foragersmod,      only : foragers,popgrowth,simpleforagers
 use individualmod,    only : sizeind,allomind
-
+use soilco2mod,       only : soilco2
 use landscape_geometrymod, only : landscape_fractality
 
 !use lpjstatevarsmod,  only : gsv,sv,ov  !TEMPORARY
@@ -318,7 +318,9 @@ real(sp), allocatable, dimension(:,:) :: help_me
 
 integer :: startyr_foragers
 
-real(sp),       dimension(12) :: soilcconc     ! column averaged CO2 concentration (ppm)
+real(sp), dimension(12) :: soilco2conc     ! monthly CO2 concentration (ppm) per layer (incl. surface)
+real(sp), dimension(3) :: soilcconc_dec ! December CO2 soil layer concentrations (incl. surface)
+
 !declarations end here
 !---------------------------------------------------------------
 
@@ -652,7 +654,7 @@ do i = 1,3 !ntiles
 
   !set up soil parameters
 
-  call simplesoil(osv%tile(i)%soil,soilpar,soilprop) !Tsat,T33,T1500
+  call simplesoil(osv%tile(i)%soil,soilpar,soilprop)
 
   !write(stdout,*) 'after simplesoil'
 
@@ -1102,11 +1104,18 @@ do i = 1,3 !ntiles
                   k_fast_ave,k_slow_ave,litter_decom_ave,osv%tile(i)%soil%clay,osv%tile(i)%soil%bulk,spinup,in%idx, &
                   hetresp_mon)
 
+  !zpos = osv%tile(i)%soil%zpos(1:2)
+  ! write(stdout,*)
 
-  write(stdout,*)osv%tile(i)%soil%zpos
-
-  ! call soilpco2(co2,osv%tile(i)%soil%zpos,soilpar,temp,mtemp_soil,mw1,hetresp_mon,soilcconc)
-  ! write(stdout,*) soilconc
+  ! Initial conditions for January soilco2 are surface co2 (mg CO2 m^-3)
+  if (spinup .eq. 1) then
+      do a = 1, 3, 1
+          soilcconc_dec(a) = (co2 * 44.01 / 1000.) * 101325. / (8.3143 * (273.15 + temp(1)))
+      end do
+  end if
+  write(stdout,*) 'soilcconc December: ', soilcconc_dec
+  call soilco2(co2,osv%tile(i)%soil,soilprop,temp,mtemp_soil,mw1,hetresp_mon,soilcconc_dec,soilco2conc)
+   write(stdout,*) 'soil CO2 (ppm): ', soilco2conc
 
 !  if(i==2)   write(stdout,'(a,i3,9f14.4)') 'after hetresp',i, litter_ag_fast(:,1)
 
