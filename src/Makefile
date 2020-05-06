@@ -91,6 +91,7 @@ COREOBJS = overprint.o       \
        netcdfoutputmod.o \
        landscape_geometrymod.o \
        foragersmod.o \
+       soilco2mod.o \
        lpjmod.o
 
 DRIVER_PARALLEL = mpimod.o     \

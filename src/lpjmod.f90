@@ -318,8 +318,8 @@ real(sp), allocatable, dimension(:,:) :: help_me
 
 integer :: startyr_foragers
 
-real(sp), dimension(12) :: soilco2conc     ! monthly CO2 concentration (ppm) per layer (incl. surface)
-real(sp), dimension(3) :: soilcconc_dec ! December CO2 soil layer concentrations (incl. surface)
+real(sp), pointer, dimension(:) :: soilco2conc    ! monthly CO2 concentration, whole soil column mean (ppm)
+real(sp), pointer, dimension(:) :: soilcconc_dec  ! December soil CO2 concentrations (2 soil layers + surface, from surface down) (mg CO2 m-3) 
 
 !declarations end here
 !---------------------------------------------------------------
@@ -642,7 +642,9 @@ do i = 1,3 !ntiles
   dgrassdt         => osv%tile(i)%dgrassdt
   mLAI             => osv%tile(i)%mLAI
   mBBpft           => osv%tile(i)%mBBpft
-  mburnedf	   => osv%tile(i)%mburnedf
+  mburnedf	       => osv%tile(i)%mburnedf
+  soilco2conc      => osv%tile(i)%soilco2conc
+  soilcconc_dec    => osv%tile(i)%soilcconc_dec
 
   !--------------------------------------------------------------------------------------
   !initializations (needed?)

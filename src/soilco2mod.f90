@@ -72,7 +72,7 @@ real(sp), allocatable, dimension(:) :: soilcconc_nz ! soilcconc aggregated to nz
 
 nz = size(soil%zpos,dim=1)
 
-allocate(z(nl+1)) ! layers incl. atmosphere/surface layer
+allocate(z(nz+1)) ! layers incl. atmosphere/surface layer
 allocate(porespace(nz))
 allocate(soilcconc_nz(nz))
 
