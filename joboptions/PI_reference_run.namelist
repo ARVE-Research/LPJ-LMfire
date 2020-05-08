@@ -14,7 +14,7 @@
  lu_turn_yrs      = 0.
  outputvar     = 'cover','albiomass','livebiomass','litterC_fast','litterC_slow','litterC_bg','soilC_surf',
                  'soilC_fast','soilC_slow','burnedf','coverfrac','tilecarbon','NPP','GPP','nind', 'pftalbiomass',
-                 'NBP','acflux_fire','fireCO2','fireCO','fireCH4','fireVOC','fireTPM','fireNOx','mLAI','mBBpft','mburnedf','height'
+                 'NBP','acflux_fire','fireCO2','fireCO','fireCH4','fireVOC','fireTPM','fireNOx','mLAI','mBBpft','mburnedf','height','soilco2'
  nolanduse     = .true.
 /
 

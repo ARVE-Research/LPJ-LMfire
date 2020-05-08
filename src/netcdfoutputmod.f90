@@ -419,6 +419,23 @@ call putvar3d(ofid,tpos,'mburnedf',rvar2d)
 deallocate(rvar2d)
 
 !-----
+! soil CO2 concentrations
+
+y = size(sv(1)%tile(1)%soilco2conc)
+
+allocate(rvar2d(ncells,y))
+
+do i = 1,ncells
+  do j = 1,12
+    rvar2d(i,j) = sv(i)%tile(1)%soilco2conc(j)
+  end do
+end do
+
+call putvar3d(ofid,tpos,'soilco2',rvar2d)
+
+deallocate(rvar2d)
+
+!-----
 
 !monthly mean LAI, per PFT
 

@@ -26,7 +26,7 @@ varinfo(26) = 'acflux_fire', 'Carbon emissions from fire',       'g m-2 a-1', 3,
 !other state variables
 varinfo(14) = 'burnedf',     'fraction of the gridcell burned','fraction',  3, 'lon', 'lat', 'time'
 varinfo(15) = 'cover',       'PFT cover fraction',             'fraction',  4, 'lon', 'lat', 'pft', 'time'
-varinfo(16) = 'pftalbiomass','carbon in living biomass aboveground', 'g m-2',     4, 'lon', 'lat', 'pft', 'time'
+varinfo(16) = 'pftalbiomass','carbon in living biomass aboveground', 'g m-2',4, 'lon', 'lat', 'pft', 'time'
 varinfo(17) = 'nind',        'PFT individual density',         'ind m-2',   4, 'lon', 'lat', 'pft', 'time'
 varinfo(34) = 'crownarea',   'PFT crownarea',                  'm-2',       4, 'lon', 'lat', 'pft', 'time'
 varinfo(25) = 'soilmoisture','soil moisture fraction of FC',   'fraction',  4, 'lon', 'lat', 'layer', 'time'
@@ -51,5 +51,6 @@ varinfo(35) = 'foragerPD',   'Population density of foragers',    'persons 100 k
 varinfo(36) = 'mLAI',        'PFT Monthly LAI',                       'm2 m-2',            5, 'lon', 'lat', 'pft', 'month', 'time'
 varinfo(37) = 'mBBpft',      'PFT Monthly biomass burned',            'kg dry matter m-2', 5, 'lon', 'lat', 'pft', 'month', 'time'
 varinfo(39) = 'mburnedf'     'monthly burned fraction of the gridcell','fraction',         4, 'lon', 'lat', 'month', 'time'
-varinfo(40) = 'height'	     'tree height per pft', m, 4, 'lon', 'lat', 'pft', 'time'
+varinfo(40) = 'height',	     'tree height per pft',               'm',          4, 'lon', 'lat', 'pft',   'time'
+varinfo(43) = 'soilco2',     'soil CO2 concentrations',           'ppm',        4, 'lon', 'lat', 'month', 'time'
 /
