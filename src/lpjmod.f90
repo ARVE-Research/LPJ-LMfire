@@ -958,7 +958,7 @@ do i = 1,3 !ntiles
     
      call allomind(a,height(a),hclass(:,a))
 
-     write(stderr,*)'call height',a,height(a)   !,hclass(:,a)
+     !write(stderr,*)'call height',a,height(a)   !,hclass(:,a)
 
 
     end if
