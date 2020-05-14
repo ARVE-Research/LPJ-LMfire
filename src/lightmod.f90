@@ -16,7 +16,7 @@ subroutine light(present,tree,lm_ind,sm_ind,hm_ind,rm_ind,crownarea,fpc_grid,fpc
 !recoded in f90 by Jed Kaplan, 04/2010. Should give the same result as the original code if 
 !tree competition section is not commented out.
 
-use parametersmod, only : sp,npft
+use parametersmod, only : sp,npft,stdout
 
 implicit none
 
@@ -215,11 +215,11 @@ litter_ag_slow = max(litter_ag_slow,0.)
 litter_bg      = max(litter_bg,0.)
 
 do pft=1,npft
- if (fpc_grid(pft) < 0. .or. fpc_grid(pft) > 1.) write(stdout,*)'resetting pft ',pft,fpc_grid(pft)
+  if (fpc_grid(pft) < 0. .or. fpc_grid(pft) > 1.) write(stdout,*)'resetting pft ',pft,fpc_grid(pft)
 end do
 
-! fpc_grid = max(fpc_grid,0.)
-! fpc_grid = min(fpc_grid,1.)
+fpc_grid = max(fpc_grid,0.)
+fpc_grid = min(fpc_grid,1.)
 
 end subroutine light
 
