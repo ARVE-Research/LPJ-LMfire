@@ -3,8 +3,8 @@
 #---------------------------------------------
 # specify the fortran and C compilers here. normally this needs to be the MPI version of the compiler
 
-CC = mpicc
-FC = mpifort
+CC = mpiicc
+FC = mpiifort
 
 # specify the compiler options. choose either optimized or debugging flags, or neither
 
@@ -26,7 +26,7 @@ FCFLAGS = -debug -fpe0 -traceback -g -check -check noarg_temp_created # -warn al
 # specify the location of your netcdf install
 
 # netcdf=/alcc/gpfs2/home/geo/georwa/local
-netcdf=/usr/local
+netcdf=/alcc/gpfs2/home/geo/georwa/local
 
 #---- should not need to change anything below this line ----
 

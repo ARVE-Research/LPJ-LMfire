@@ -1,6 +1,6 @@
 module spitfiremod
 
-use parametersmod,    only : sp,dp,npft
+use parametersmod,    only : sp,dp,npft,O2
 use parametersmod, only : stdout,stderr
 
 implicit none
@@ -10,6 +10,7 @@ public  :: burnedbiomass
 public  :: managedburn 
 private :: calcROS
 private :: firemortality
+private :: probignit
 
 real(sp), parameter :: me_lf  =  0.2       !moisture of extinction for live grass fuels: fractional moisture above which fuel does not burn (fraction) (20%)
 real(sp), parameter :: h      = 18.        !heat content of fuel (kJ g-1)  5kwh/kgs
@@ -27,7 +28,10 @@ real(sp), dimension(4) :: me_fc = [ 0.404, 0.487, 0.525, 0.544 ]
 !alternate parameter sets come from the SPITFIRE f77 code - lpjmain_spitfire270106.f
   
 
-real(sp), dimension(npft) :: ieffpft !ignition efficiency parameter
+real(sp), dimension(npft) :: ieffpft !ignition efficiency parameter (pft)
+real(sp), dimension(npft) :: ieffpft_ox !ignition effiency parameter (pft*ox)
+real(sp) :: ieffox_g  !oxygen ignition effiency parameter for grasses
+real(sp) :: ieffox_w  !oxygen ignition efficiency parameter for trees
 
 real(sp), dimension(npft) :: m_ex    !moisture of extinction
 
@@ -78,6 +82,41 @@ real(sp), dimension(npft)   :: ann_kill     !annual total probability of mortali
 contains
 
 !-----------------------------------------------------------------------------------------------------------------------------------------------------
+
+! Probability of ignition for oxygen concentration:
+!------------------------------
+! Equation for the probability of ignition with varying oxygen concentrations,
+
+real(sp) function probignit(O2,M)
+! taken from:
+! Watson, A.J. and Lovelock, J.E., 2013. The dependence of flame
+! spread and probability of ignition on atmospheric oxygen: an experimental
+! investigation. Fire Phenomena and the Earth System, An Interdisciplinary
+! Guide to Fire Science: West Sussex, UK, John Wiley and Sons, pp.273-287.
+
+implicit none
+real(sp), intent(in) :: O2  !atmospheric oxygen concentration input
+real(sp), intent(in) :: M   !Fuel moisture content input
+real(sp) :: fm  !Fuel moisture with limits so that equation is valid but fuel
+               !moisture in the rest of model is unaffected
+
+if((M*100)<0.5)then
+  fm=0.5
+else if ((M*100)>60) then
+  fm=60
+else
+  fm=(M*100)
+end if
+
+probignit = (308.02-(27.406*O2)+(0.634*(O2**(2)))-(0.0044*(O2**(3))))*log(fm) &
+            -633.54+(42.327*O2)-(0.2194*(O2**(2)))-(0.0075*(O2**(3)))
+
+if (probignit<0) then
+probignit = 0.1
+end if
+
+end function probignit
+!-----------------------------
 
 subroutine managedburn(i,j,acflux_fire,afire_frac,litter_ag_fast,pftCflux)
 
@@ -200,6 +239,7 @@ real(sp) :: dry_o
 real(sp) :: prob
 
 integer  :: l
+integer  :: q
 
 real(sp), intent(inout) :: Ab             !area burned (ha d-1)
 real(sp) :: Abfrac         !fractional area burned on the gridcell (fraction)
@@ -600,99 +640,6 @@ Uforward = 60. * Ustar !(0.4 * Ustar * treecover + 0.6 * Ustar * grascover)
 !  Uforward = 60. * Ustar
 !end if
 
-!---------------------------
-!part 2.2.1, ignition events
-
-!lightning
-
-!efficiency of lightning ignition decreases with increasing burned area
-
-!calculate weighted average ieff
-
-ieff_avg = sum(fpc_grid * ieffpft) / sum(fpc_grid)
-!ieff_avg = 1.
-
-burnedf = totburn / area_ha
-!ieff = 0.2 * (1. - burnedf) / (1. + 25. * burnedf) * ieff_avg   !1. hyperbolic function that results in a steep decline in ignition efficiency with increasing area burned
-!ieff = 0.8 * (1. - burnedf) / (1. + 100. * burnedf) * ieff_avg  !eq2
-!ieff = 0.5 * (1. - burnedf) / (1. + 100. * burnedf) * ieff_avg  !eq3
-!ieff = 0.4 * (1. - burnedf) / (1. + 100. * burnedf) * ieff_avg  !eq4
-!ieff = 0.5 * (1. - burnedf) / (1. + 150. * burnedf) * ieff_avg  !eq5
-!ieff = 0.4 * (1. - burnedf) / (1. + 150. * burnedf) * ieff_avg  !eq6
-!ieff = 0.3 * (1. - burnedf) / (1. + 50. * burnedf) * ieff_avg  !eq7
- 
-
-
-!if(abs(input%lat) <= 60.d0) then
-!   latscale = 1. / (4.16 + 2.16 * cos(3.d0 * input%lat * pir))
-!else
-!   latscale = 0.5
-!end if
-
-latscale = 1. 	!FLAG: we are now already using a climate file that holds the transformed strikes from the flashes (pre-processed)
-
-!=========================================================================================================================
-
-!if(.not. input%spinup .and. year > 115) then
-!light = light  * 1.2 				! assuming an 80% detection efficiency for the ground sensors (Alaska groundstrike data)  
-!end if    
-
-!=========================================================================================================================
-
-!if (met%prec < 10. .and. cumfires == 0 .and. burnedf == 0. .and. light*area_ha >= 1.) then
-!if(met%prec < 10.) then 
-  !nlig = light * latscale * ieff  ! 0.1  !total flashes * 20% cloud-to-ground * 10% ignition efficiency (ha-1 d-1)
-  !nlig = 1./area_ha
-!else
-!  nlig = 0.
-!end if
-
-!--------------------------------------------------------------------------------
-!human ignitions
-
-if(FDI > (0.25)) then
-   riskfact = 1. / (1.2172 * pi * FDI) * exp(-1. * (log(FDI) + 1.2963) ** 2 / 0.18)	!peak at FDI 0.25 
-else
-  riskfact = 1.
-end if 
-
-!number of people on the gridcell who are most active in maintaining the fire regime
-
-!FLAG=====================
-
-!PD(1) = 0.01
-
-!FLAG=====================
-
-if (PD(1) > 0.) then
-  people = int(PD(1) * area * 1.e-6)  !hunter-gatherers
-  group  = 1
-else if (PD(2) > 0.) then
-  people = int(PD(2) * area * 1.e-6)  !farmers
-  group  = 2
-else
-  people = int(PD(3) * area * 1.e-6)  !pastoralists
-  group  = 3
-end if
-
-if (people > 0) people = max(people / 10, 1)   !only every 10th person lights fire unless there are less than 10 people 
-
-if (people > 0) then
-  if((input%spinup .and. year >= input%startyr_foragers) .or. .not. input%spinup) then
-
-				calchumanfire = .true.
-				annburntarget = osv%annburntarget
-
-		end if   
-else
-  calchumanfire = .false.
-end if
-
-if(input%spinup .and. year < 800) then
-  calchumanfire = .false.
-end if
-
-!human ignitions ends here
 
 !--------------------------------------------------------------------------------
 !part 2.2.2, fuel moisture content
@@ -808,6 +755,123 @@ if (me_avg == 0.) then
   write(*,*)'me_problem',netfuel,m_e , rdf , me_lf , rlf
   stop
 end if
+
+!if (d==230)then
+!write(*,*)'omega_nl: ',omega_nl
+!write(*,*)'omega_o: ',omega_o
+!end if
+
+!---------------------------
+!part 2.2.1, ignition events
+!This section moved here for oxygen calculations which require fuel moisture to
+!be calculated prior.
+
+!lightning
+
+burnedf = totburn / area_ha
+
+!ignition effiency due to oxygen concentration
+
+!normalised around present day concentration
+ieffox_g = probignit(O2,omega_nl)/probignit(20.95,omega_nl)
+ieffox_w = probignit(O2,omega_o)/probignit(20.95,omega_o)
+
+
+!scale ieffpft by ignition effiency due to oxygen concentration 
+do q=1,9
+   if (q>7) then
+      ieffpft_ox(q)=ieffpft(q)*ieffox_g
+   else
+      ieffpft_ox(q)=ieffpft(q)*ieffox_w
+   end if
+end do
+
+!calculate weighted average ieff
+ieff_avg = sum(fpc_grid * ieffpft_ox) / sum(fpc_grid)
+
+
+!ieff = 0.2 * (1. - burnedf) / (1. + 25. * burnedf) * ieff_avg   !1. hyperbolic
+!function that results in a steep decline in ignition efficiency with increasing
+!area burned
+!ieff = 0.8 * (1. - burnedf) / (1. + 100. * burnedf) * ieff_avg  !eq2
+!ieff = 0.5 * (1. - burnedf) / (1. + 100. * burnedf) * ieff_avg  !eq3
+!ieff = 0.4 * (1. - burnedf) / (1. + 100. * burnedf) * ieff_avg  !eq4
+!ieff = 0.5 * (1. - burnedf) / (1. + 150. * burnedf) * ieff_avg  !eq5
+!ieff = 0.4 * (1. - burnedf) / (1. + 150. * burnedf) * ieff_avg  !eq6
+!ieff = 0.3 * (1. - burnedf) / (1. + 50. * burnedf) * ieff_avg  !eq7
+ 
+!if(abs(input%lat) <= 60.d0) then
+!   latscale = 1. / (4.16 + 2.16 * cos(3.d0 * input%lat * pir))
+!else
+!   latscale = 0.5
+!end if
+
+latscale = 1.   !FLAG: we are now already using a climate file that holds the
+                !transformed strikes from the flashes (pre-processed)
+!=========================================================================================================================
+!if(.not. input%spinup .and. year > 115) then
+!light = light  * 1.2                           ! assuming an 80% detection
+!efficiency for the ground sensors (Alaska groundstrike data)  
+!end if    
+!=========================================================================================================================
+!if (met%prec < 10. .and. cumfires == 0 .and. burnedf == 0. .and. light*area_ha
+!>= 1.) then
+!if(met%prec < 10.) then 
+  !nlig = light * latscale * ieff  ! 0.1  !total flashes * f0% cloud-to-ground *
+  !10% ignition efficiency (ha-1 d-1)
+  !nlig = 1./area_ha
+!else
+!  nlig = 0.
+!end if
+!--------------------------------------------------------------------------------
+
+!human ignitions
+if(FDI > (0.25)) then
+   riskfact = 1. / (1.2172 * pi * FDI) * exp(-1. * (log(FDI) + 1.2963) ** 2 / 0.18)   !peak at FDI 0.25 
+else
+  riskfact = 1.
+end if 
+
+!number of people on the gridcell who are most active in maintaining the fire regime
+
+!FLAG=====================
+
+!PD(1) = 0.01
+
+!FLAG=====================
+
+if (PD(1) > 0.) then
+  people = int(PD(1) * area * 1.e-6)  !hunter-gatherers
+  group  = 1
+else if (PD(2) > 0.) then
+  people = int(PD(2) * area * 1.e-6)  !farmers
+  group  = 2
+else
+  people = int(PD(3) * area * 1.e-6)  !pastoralists
+  group  = 3
+end if
+
+if (people > 0) people = max(people / 10, 1)   !only every 10th person lights fire unless there are less than 10 people 
+
+if (people > 0) then
+  if((input%spinup .and. year >= input%startyr_foragers) .or. .not. input%spinup) then
+
+                                calchumanfire = .true.
+                                annburntarget = osv%annburntarget
+
+                end if   
+
+else
+  calchumanfire = .false.
+end if
+
+if(input%spinup .and. year < 800) then
+  calchumanfire = .false.
+end if
+
+!human ignitions ends here
+
+
 
 !---------------------------
 !part 2.2.3, fire danger

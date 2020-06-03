@@ -958,7 +958,7 @@ do i = 1,3 !ntiles
     
      call allomind(a,height(a),hclass(:,a))
 
-     !write(stderr,*)'call height',a,height(a)   !,hclass(:,a)
+     write(stderr,*)'call height',a,height(a)   !,hclass(:,a)
 
 
     end if
@@ -1032,7 +1032,6 @@ do i = 1,3 !ntiles
 !      write(stdout,*)osv%annburntarget(1),grasscover,dgrassdt
 
       omega_o0 = 0.    !initialize omega_o0 here, this should carry over from one year to the next but ok for Boreal simulations
-	  
       d = 1
       do m = 1,12
         
