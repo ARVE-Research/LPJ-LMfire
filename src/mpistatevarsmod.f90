@@ -174,6 +174,8 @@ type subgrid
   
   !monthly burned fraction of gridcell area
   real(sp), dimension(12) :: mburnedf
+  integer, dimension(12) :: mnfire
+  real(sp), dimension(12) :: mieff
   
   !state of the soil, 
   type(soildata) :: soil

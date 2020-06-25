@@ -151,7 +151,7 @@ end subroutine managedburn
 
 !-----------------------------------------------------------------------------------------------------------------------------------------------------
 
-subroutine spitfire(year,i,j,d,input,met,soilwater,snowpack,dphen,wscal,osv,spinup,avg_cont_area,burnedf20,forager_pd20,FDI,omega_o0,omega0,BBpft,Ab,ind)
+subroutine spitfire(year,i,j,d,input,met,soilwater,snowpack,dphen,wscal,osv,spinup,avg_cont_area,burnedf20,forager_pd20,FDI,omega_o0,omega0,BBpft,Ab,ind,numfires_nat,ieff)
 
 use parametersmod,   only : pir,npft,pi,pft,pftpar
 use weathergenmod,   only : metvars_out
@@ -326,15 +326,15 @@ real(sp), dimension(npft,4) :: dfuelw  !dead fuel load in 1- 10- 100- and 1000- 
 real(sp), dimension(nspec) :: Mx     !trace gas emissions (g x m-2)
 
 integer        :: numfires  !number of fires started on the grid cell today
-integer               :: numfires_hum
-integer               :: numfires_nat
+integer                :: numfires_hum
+integer, intent(inout) :: numfires_nat !output for the number of natural fires
 integer, save  :: peopfire_account
 real(sp) :: riskfact         !FDI dependent factor influencing people's fire behavior; people become more careful when fire danger is high
 
 !real(sp), parameter, dimension(3) :: max_ig = [15., 2. , 8.]                 !maximum number of human possible fire ignitions (Mha-1 day-1) 
 
 real(sp) :: burnedf
-real(sp) :: ieff
+real(sp), intent(inout) :: ieff !output for ignition efficiency
 real(sp) :: rho_livegrass
 real(sp) :: wind_multiplier
 real(sp) :: ieff_avg
@@ -905,7 +905,6 @@ if (light * area_ha > 0.) then
 !  ieff = FDI * (1. - burnedf) * 0.5  !constant 0.8 for the fact that not all of any landscape is flammable
   
   ieff = FDI * 1.0 * (1. - burnedf) / (1. + 25. * burnedf) * ieff_avg
-  
   prob = real(ranu(met%rndst)) * rng1 + half  !random value from (0,1)
 
   if (ieff > prob) then

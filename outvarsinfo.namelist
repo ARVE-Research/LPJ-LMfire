@@ -50,6 +50,8 @@ varinfo(32) = 'fireNOx',     'NOx emissions from biomass burning','g m-2 a-1',  
 varinfo(35) = 'foragerPD',   'Population density of foragers',    'persons 100 km-2',3,'lon', 'lat', 'time'
 varinfo(36) = 'mLAI',        'PFT Monthly LAI',                       'm2 m-2',            5, 'lon', 'lat', 'pft', 'month', 'time'
 varinfo(37) = 'mBBpft',      'PFT Monthly biomass burned',            'kg dry matter m-2', 5, 'lon', 'lat', 'pft', 'month', 'time'
-varinfo(39) = 'mburnedf'     'monthly burned fraction of the gridcell','fraction',         4, 'lon', 'lat', 'month', 'time'
-varinfo(40) = 'height'	     'tree height per pft', m, 4, 'lon', 'lat', 'pft', 'time'
+varinfo(39) = 'mburnedf',    'monthly burned fraction of the gridcell','fraction',         4, 'lon', 'lat', 'month', 'time'
+varinfo(40) = 'height',	     'tree height per pft', m, 4, 'lon', 'lat', 'pft', 'time'
+varinfo(43) = 'mnfire',      'monthly number of fires in the gridcell', 'count',           4, 'lon', 'lat', 'month', 'time'
+varinfo(44) = 'mieff',       'average monthly ignition efficiency per gridcell', 'fraction',4, 'lon', 'lat', 'month', 'time'
 /

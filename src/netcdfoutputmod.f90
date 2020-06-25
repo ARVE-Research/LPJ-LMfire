@@ -420,6 +420,42 @@ deallocate(rvar2d)
 
 !-----
 
+!-----
+!monthly number of fires in grid cell
+
+y = size(sv(1)%tile(1)%mnfire)        !ATTENTION: tile integration has already been done at end of lpjmod and put in tile 1, hence we only need to output tile1 for the integrated
+
+allocate(rvar2d(ncells,y))
+
+do i = 1,ncells
+  do j = 1,12
+    rvar2d(i,j) = sv(i)%tile(1)%mnfire(j)
+  end do
+end do
+
+call putvar3d(ofid,tpos,'mnfire',rvar2d)
+
+deallocate(rvar2d)
+
+!-----
+
+!-----
+!monthly average igntiion efficiency in grid cell                                                                                                                                                                              
+y = size(sv(1)%tile(1)%mieff)        !ATTENTION: tile integration has already been done at end of lpjmod and put in tile 1, hence we only need to output tile1 for the integrated
+
+allocate(rvar2d(ncells,y))
+
+do i = 1,ncells
+  do j = 1,12
+    rvar2d(i,j) = sv(i)%tile(1)%mieff(j)
+end do
+end do
+
+call putvar3d(ofid,tpos,'mieff',rvar2d)                                                                                                                                                                           
+deallocate(rvar2d)
+
+!-----
+
 !monthly mean LAI, per PFT
 
 allocate(rvar4d(cntx,cnty,npft,12))

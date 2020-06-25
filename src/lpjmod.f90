@@ -286,8 +286,10 @@ real(sp), pointer, dimension(:,:) :: mBBpft
 real(sp), pointer, dimension(:,:) :: mLAI
 
 !month
-real(sp), pointer, dimension(:) :: mburnedf	!monthly burned area fraction of gridcell
-integer, dimension(12) :: nosnowdays		!number of days in a month with temp > 0. without snowcover
+real(sp), pointer, dimension(:) :: mburnedf    !monthly burned area fraction of gridcell
+integer, pointer, dimension(:)  :: mnfire      !monthly number of fires
+real(sp), pointer, dimension(:) :: mieff       !monthly average ignition efficieny
+integer, dimension(12) :: nosnowdays           !number of days in a month with temp > 0. without snowcover
 
 !additional local variables
 real(sp) :: avg_cont_area	! average size of a natural patch at a given landuse fraction of the gridcell, in m2
@@ -310,8 +312,12 @@ real(sp), dimension(4) :: omega0
 real(sp), dimension(npft)  :: BBpft  !biomass burned from each PFT, sum of live and dead consumed (g dry matter m-2)
 
 real(sp) :: Ab	!area burned, ha per day
+integer :: numfires_nat !number of natural fires per day
+real (sp) :: ieff !ignition efficiency per day
 
 real(sp), allocatable, dimension(:,:) :: help_me
+integer,  allocatable, dimension(:,:) :: help_me2
+real(sp), allocatable, dimension(:,:) :: help_me3
 
 integer :: startyr_foragers
 
@@ -636,7 +642,9 @@ do i = 1,3 !ntiles
   dgrassdt         => osv%tile(i)%dgrassdt
   mLAI             => osv%tile(i)%mLAI
   mBBpft           => osv%tile(i)%mBBpft
-  mburnedf	   => osv%tile(i)%mburnedf
+  mburnedf         => osv%tile(i)%mburnedf
+  mnfire           => osv%tile(i)%mnfire
+  mieff            => osv%tile(i)%mieff
 
   !--------------------------------------------------------------------------------------
   !initializations (needed?)
@@ -645,6 +653,8 @@ do i = 1,3 !ntiles
   mpftCflux = 0.
   mBBpft = 0. 
   mburnedf = 0.
+  mnfire = 0.
+  mieff = 0.
   
   !set up soil parameters
   
@@ -1037,14 +1047,25 @@ do i = 1,3 !ntiles
         
         mburnedf(m) = 0.
         mBBpft(:,m) = 0.
+        mnfire(m)   = 0.
+        mieff(m)    = 0.
         
         do dm = 1,ndaymonth(m)
-        
-          call spitfire(year,i,j,d,in,met_out(d),dw1(d),snowpack(d),dphen(d,:),wscal_v(d,:),osv,spinup,avg_cont_area,burnedf20,forager_pd20,FDI,omega_o0,omega0,BBpft,Ab,hclass)
 
+          call spitfire(year,i,j,d,in,met_out(d),dw1(d),snowpack(d),dphen(d,:),wscal_v(d,:),osv,spinup,avg_cont_area,burnedf20,forager_pd20,FDI,omega_o0,omega0,BBpft,Ab,hclass,numfires_nat,ieff)
           mBBpft(:,m) = mBBpft(:,m) + BBpft  !accumulate biomass burned totals
           
           mburnedf(m) = mburnedf(m) + Ab/(in%cellarea * 1e-4) !convert cell area to ha, as Ab is in ha
+
+          if (numfires_nat <0) then
+           numfires_nat = 0
+          end if  
+          mnfire(m)   = mnfire(m) + numfires_nat
+
+          if (ieff <0) then
+           ieff = 0
+          end if
+          mieff(m)    = mieff(m) + (ieff/ndaymonth(m))
 
           d = d + 1
 
@@ -1229,20 +1250,28 @@ end do  !sub-grid tile loop
 !end if
 
 allocate(help_me(ntiles,12))
+allocate(help_me2(ntiles,12))
+allocate(help_me3(ntiles,12))
 
 do i = 1, ntiles
 !  write(stdout,'(i8,13f14.7)') i, osv%tile(i)%mburnedf, osv%tile(i)%coverfrac
   help_me(i,:) = osv%tile(i)%mburnedf * osv%tile(i)%coverfrac
+  help_me2(i,:) = osv%tile(i)%mnfire
+  help_me3(i,:) = osv%tile(i)%mieff
 end do
 
 !to make it easier in netcdfoutputmod, and since we are only interested in the total, not tilewise, already do the tile-integration here and then put it 
 !back in osv%tile(1)%mburnedf, and then put that out in netcdfoutputmod
 
 osv%tile(1)%mburnedf = sum(help_me(:,:), dim=1)
+osv%tile(1)%mnfire   = sum(help_me2(:,:), dim=1)
+osv%tile(1)%mieff    = sum(help_me3(:,:), dim=1)
 
 !write(stdout,'(a,12f14.7)') 'integrated', osv%tile(1)%mburnedf
 
 deallocate(help_me)
+deallocate(help_me2)
+deallocate(help_me3)
 
 end subroutine lpjcore
 
