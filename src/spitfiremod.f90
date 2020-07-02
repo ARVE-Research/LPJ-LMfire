@@ -111,7 +111,7 @@ end if
 probignit = (308.02-(27.406*O2)+(0.634*(O2**(2)))-(0.0044*(O2**(3))))*log(fm) &
             -633.54+(42.327*O2)-(0.2194*(O2**(2)))-(0.0075*(O2**(3)))
 
-if (probignit<0) then
+if (probignit<0.1) then
 probignit = 0.1
 end if
 
@@ -153,7 +153,7 @@ end subroutine managedburn
 
 subroutine spitfire(year,i,j,d,input,met,soilwater,snowpack,dphen,wscal,osv,spinup,avg_cont_area,burnedf20,forager_pd20,FDI,omega_o0,omega0,BBpft,Ab,ind,numfires_nat,ieff)
 
-use parametersmod,   only : pir,npft,pi,pft,pftpar
+use parametersmod,   only : pir,npft,pi,pft,pftpar,O2
 use weathergenmod,   only : metvars_out
 use mpistatevarsmod, only : inputdata,statevars
 use randomdistmod,   only : randomstate,ranu,rng1,half
@@ -776,7 +776,6 @@ burnedf = totburn / area_ha
 ieffox_g = probignit(O2,omega_nl)/probignit(20.95,omega_nl)
 ieffox_w = probignit(O2,omega_o)/probignit(20.95,omega_o)
 
-
 !scale ieffpft by ignition effiency due to oxygen concentration 
 do q=1,9
    if (q>7) then
@@ -786,9 +785,12 @@ do q=1,9
    end if
 end do
 
-!calculate weighted average ieff
-ieff_avg = sum(fpc_grid * ieffpft_ox) / sum(fpc_grid)
-
+!calculate weighted average ieff 
+if (O2<17) then 
+    ieff_avg = 0  !Fire's cannot ignite at low O2 concentrations
+else
+    ieff_avg = sum(fpc_grid * ieffpft_ox) / sum(fpc_grid)
+end if
 
 !ieff = 0.2 * (1. - burnedf) / (1. + 25. * burnedf) * ieff_avg   !1. hyperbolic
 !function that results in a steep decline in ignition efficiency with increasing
@@ -905,6 +907,12 @@ if (light * area_ha > 0.) then
 !  ieff = FDI * (1. - burnedf) * 0.5  !constant 0.8 for the fact that not all of any landscape is flammable
   
   ieff = FDI * 1.0 * (1. - burnedf) / (1. + 25. * burnedf) * ieff_avg
+
+  ! Set max of ieff as 1
+  if (ieff>1) then
+      ieff = 1
+  end if
+
   prob = real(ranu(met%rndst)) * rng1 + half  !random value from (0,1)
 
   if (ieff > prob) then
@@ -1786,9 +1794,6 @@ hm_ind         => osv%tile(i)%hm_ind(:,1)
 rm_ind         => osv%tile(i)%rm_ind(:,1)
 
 !-----------------------------------
-
-!write(stdout,*)'===end of year biomass removal:', year, '==='
-
 !write(stdout,*)'step 0a'
 !
 !write(stdout,'(a,9f10.1)')'1-hr grass ',annBBdead(:,1)

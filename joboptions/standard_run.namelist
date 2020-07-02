@@ -3,7 +3,7 @@
  dospinup         = .true.
  dotransient      = .false.
  spinupyears      = 5 !36 30-year cycles
- transientyears   = 140  
+ Transientyears   = 140  
  cfile_spinup     = '/gpfs/ts0/projects/Research_Project-T106778/Rayanne/LPJLMfire/Inputs/climatefile'
  cfile_transient  = '/gpfs/ts0/projects/Research_Project-T106778/Rayanne/LPJLMfire/Inputs/climatefile'
  soilfile         = '/gpfs/ts0/projects/Research_Project-T106778/Rayanne/LPJLMfire/Inputs/soil30m.nc'
