@@ -886,7 +886,7 @@ do i = 1,3 !ntiles
   !write(stdout,*)'flag D2b',lm_ind(:,1)
   
   call allocation(pftpar,allom1,allom2,allom3,latosa,wooddens,reinickerp,pft%tree,sla,wscal,nind,bm_inc,lm_ind,sm_ind,     &
-                  hm_ind,rm_ind,crownarea,fpc_grid,lai_ind,height,litter_ag_fast,litter_ag_slow,litter_bg,fpc_inc,present)
+                  hm_ind,rm_ind,crownarea,fpc_grid,lai_ind,height,litter_ag_fast,litter_ag_slow,litter_bg,fpc_inc,present,year)
                   
 !  if(i==2)   write(stdout,'(a,i3,9f14.4)') 'after allocation',i, litter_ag_fast(:,1)                               
                   

@@ -150,7 +150,7 @@ real(dp), parameter :: Smin  = 0.033d0  !irreducible water saturation of snow (f
 real(dp), parameter :: z0mg  = 0.01d0   !momentum roughness length for soil (m, CLM eqn 3.49)
 
 ! Atmospheric Oxygen parameters
-real(sp), parameter :: O2 = 30.0   !concentration of atmospheric oxygen
+real(sp), parameter :: O2 = 18   !concentration of atmospheric oxygen
 
 !other parameters
 

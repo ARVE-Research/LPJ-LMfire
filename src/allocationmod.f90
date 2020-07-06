@@ -24,7 +24,7 @@ contains
 subroutine allocation(pftpar,allom1,allom2,allom3,latosa,wooddens,                  &
                       reinickerp,tree,sla,wscal,nind,bm_inc,lm_ind,sm_ind,hm_ind,   &
                       rm_ind,crownarea,fpc_grid,lai_ind,height,litter_ag_fast,      &
-                      litter_ag_slow,litter_bg,fpc_inc,present)
+                      litter_ag_slow,litter_bg,fpc_inc,present,year)
 
 implicit none
 
@@ -36,6 +36,7 @@ real(sp), intent(in) :: allom3
 real(sp), intent(in) :: latosa
 real(sp), intent(in) :: wooddens
 real(sp), intent(in) :: reinickerp
+integer, intent(in) :: year ! to debug allocation error
 
 logical,  dimension(:),   intent(in)    :: present
 logical,  dimension(:),   intent(in)    :: tree
@@ -170,7 +171,7 @@ do pft = 1,npft
 
         !evaluate f(x1) = LHS of eqn (22) at x1
 
-        fx1 = root(lm,sm,hm,rm,bm_inc_ind,lm2rm,sla(pft),x1)
+        fx1 = root(lm,sm,hm,rm,bm_inc_ind,lm2rm,sla(pft),x1,year)
 
         !Find approximate location of leftmost root on the interval (x1,x2).
         !Subdivide (x1,x2) into nseg equal segments seeking change in sign of f(xmid) relative to f(x1).
@@ -184,7 +185,7 @@ do pft = 1,npft
 
           xmid = xmid + dx
 
-          fmid = root(lm,sm,hm,rm,bm_inc_ind,lm2rm,sla(pft),xmid)
+          fmid = root(lm,sm,hm,rm,bm_inc_ind,lm2rm,sla(pft),xmid,year)
 
           if (fmid * fx1 <= 0. .or. xmid >= x2) exit  !sign has changed or we are over the upper bound
 
@@ -202,7 +203,7 @@ do pft = 1,npft
 
         !Apply bisection method to find root on the new interval (x1,x2)
 
-        fx1 = root(lm,sm,hm,rm,bm_inc_ind,lm2rm,sla(pft),x1)
+        fx1 = root(lm,sm,hm,rm,bm_inc_ind,lm2rm,sla(pft),x1,year)
 
         if (fx1 >= 0.) then
           sign = -1.
@@ -225,7 +226,7 @@ do pft = 1,npft
 
           !calculate fmid = f(xmid) [eqn (22)]
 
-          fmid = root(lm,sm,hm,rm,bm_inc_ind,lm2rm,sla(pft),xmid)
+          fmid = root(lm,sm,hm,rm,bm_inc_ind,lm2rm,sla(pft),xmid,year)
 
           if (fmid * sign <= 0.) rtbis = xmid
 
@@ -394,7 +395,7 @@ end subroutine allocation
 
 !---------------------------------------------------------
 
-real(dp) function root(lm,sm,hm,rm,inc,lm2rm,sla,x)
+real(dp) function root(lm,sm,hm,rm,inc,lm2rm,sla,x,year)
 
 use parametersmod, only : pi,allom2,allom3,latosa,wooddens
 
@@ -402,10 +403,16 @@ implicit none
 
 !parameters
 
-real(sp), parameter :: pi4 = pi / 4.
-real(sp), parameter :: a1  = 2. / allom3
-real(sp), parameter :: a2  = 1. + a1
-real(sp), parameter :: a3  = allom2**a1
+real(dp), parameter :: pi4 = pi / 4.
+real(dp), parameter :: a1  = 2. / allom3
+real(dp), parameter :: a2  = 1. + a1
+real(dp), parameter :: a3  = allom2**a1
+
+real(dp) :: b1
+real(dp) :: b2
+real(dp) :: b3
+real(dp) :: b4
+real(dp) :: b5
 
 !arguments
 
@@ -417,11 +424,19 @@ real(sp), intent(in) :: hm     !individual heartwood mass
 real(sp), intent(in) :: rm     !individual root mass
 real(sp), intent(in) :: inc    !individual biomass increment
 real(sp), intent(in) :: x      !leafmass allocation amount as input
+integer, intent(in) :: year    !year of run, to debug allocation error
 
 !---
 
-root = a3 * ((sm + inc - x - ((lm + x) / lm2rm) + rm + hm) / wooddens) / pi4 - &
-            ((sm + inc - x - ((lm + x) / lm2rm) + rm) / ((lm + x) * sla * wooddens / latosa))**a2
+b1 = ((lm + x) / lm2rm)
+b2 = ((lm + x) * sla * wooddens / latosa)
+b3 = (sm + inc - x - b1 + rm)
+b4 = (b3 + hm) / wooddens
+b5 = (b3 / b2)**a2
+root = (b4 / pi4) - b5
+
+!root = a3 * ((sm + inc - x - ((lm + x) / lm2rm) + rm + hm) / wooddens) / pi4 - &
+!            ((sm + inc - x - ((lm + x) / lm2rm) + rm) / ((lm + x) * sla * wooddens / latosa))**a2
 
 end function root  
 
