@@ -1,6 +1,6 @@
 module parametersmod
 
-use iso_fortran_env, only : int8,int16,int32,int64,real32,real64,input_unit,output_unit,error_unit
+use iso_fortran_env, only : int8,int16,int32,int64,real32,real64,real128,input_unit,output_unit,error_unit
 
 implicit none
 
@@ -16,6 +16,7 @@ integer, parameter :: i4 = int32   ! 4 byte integer
 integer, parameter :: i8 = int64   ! 8 byte integer
 integer, parameter :: sp = real32  ! 4 byte real
 integer, parameter :: dp = real64  ! 8 byte real
+integer, parameter :: qp = real128 !for allocation error
 
 !size
 
@@ -150,7 +151,7 @@ real(dp), parameter :: Smin  = 0.033d0  !irreducible water saturation of snow (f
 real(dp), parameter :: z0mg  = 0.01d0   !momentum roughness length for soil (m, CLM eqn 3.49)
 
 ! Atmospheric Oxygen parameters
-real(sp), parameter :: O2 = 18   !concentration of atmospheric oxygen
+real(sp), parameter :: O2 = 36   !concentration of atmospheric oxygen
 
 !other parameters
 
