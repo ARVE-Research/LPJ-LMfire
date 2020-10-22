@@ -1,6 +1,6 @@
 module spitfiremod
 
-use parametersmod,    only : sp,dp,npft,O2
+use parametersmod,    only : sp,dp,npft,O2,PoI,MoE,HoC
 use parametersmod, only : stdout,stderr
 
 implicit none
@@ -11,6 +11,7 @@ public  :: managedburn
 private :: calcROS
 private :: firemortality
 private :: probignit
+private :: moistex
 
 real(sp), parameter :: me_lf  =  0.2       !moisture of extinction for live grass fuels: fractional moisture above which fuel does not burn (fraction) (20%)
 real(sp), parameter :: h      = 18.        !heat content of fuel (kJ g-1)  5kwh/kgs
@@ -34,6 +35,7 @@ real(sp) :: ieffox_g  !oxygen ignition effiency parameter for grasses
 real(sp) :: ieffox_w  !oxygen ignition efficiency parameter for trees
 
 real(sp), dimension(npft) :: m_ex    !moisture of extinction
+real(sp) :: me_ox                   !moisture of extinction for varying O2
 
 real(sp), dimension(npft) :: emCO2   !emission factor for CO2
 real(sp), dimension(npft) :: emCO    !emission factor for CO
@@ -116,6 +118,25 @@ probignit = 0.1
 end if
 
 end function probignit
+!-----------------------------
+
+
+! Moisture of extinction for oxygen concentration:
+!-----------------------------
+! Equation for the Moisture of extinction with varying oxygen concentrations,
+
+real(sp) function moistex(O2)
+! Taken from ! Watson, A.J. and Lovelock, J.E., 2013. The dependence of flame
+! spread and probability of ignition on atmospheric oxygen: an experimental
+! investigation. Fire Phenomena and the Earth System, An Interdisciplinary
+! Guide to Fire Science: West Sussex, UK, John Wiley and Sons, pp.273-287.
+
+implicit none
+real(sp), intent(in) :: O2  !atmopsheric oxygen concentration input
+
+moistex = (8*O2) - 128
+
+end function moistex
 !-----------------------------
 
 subroutine managedburn(i,j,acflux_fire,afire_frac,litter_ag_fast,pftCflux)
@@ -747,13 +768,41 @@ omega_o0 = omega_o
 !m_e = sum(m_ex * fpc_grid / sum(fpc_grid) * (litter_ag_slow + litter_ag_fast) / pftdeadfuel)        !FLAG MP: fpc-weight pft-dependent m_ex as well???
 m_e = sum(woi * me_fc) / sum(woi)
 
-me_avg = m_e * rdf + me_lf * rlf
+! If moisture of extinction switched on:
+if (MoE) then
 
+! calculate moisture of exintion scale depending on O2 normalised at 20.95%
+me_ox = moistex(O2) / moistex(20.95)
+
+! scale moisture of extinctions for PFTs by oxygen calculation
+me_avg =  m_e * rdf + me_lf * rlf * me_ox
+me_nl = (me_ox * me_fc(1) * woi(1) + me_lf * (wlivegrass + SOM_surf)) / (wfinefuel + SOM_surf)
+
+!if (d==200) then
+!write(*,*)'me_ox: ',me_ox
+!write(*,*)'new me_avg: ',me_avg
+!write(*,*)'standard me_avg: ',m_e * rdf + me_lf * rlf
+!write(*,*)'new me_nl: ',me_nl
+!write(*,*)'standard me_avg: ',(me_fc(1) * woi(1) + me_lf * (wlivegrass + SOM_surf)) / (wfinefuel + SOM_surf)
+!end if 
+
+else
+
+me_avg = m_e * rdf + me_lf * rlf
 me_nl = (me_fc(1) * woi(1) + me_lf * (wlivegrass + SOM_surf)) / (wfinefuel + SOM_surf)
 
 if (me_avg == 0.) then
   write(*,*)'me_problem',netfuel,m_e , rdf , me_lf , rlf
   stop
+end if
+end if
+
+if(me_avg >1)then
+me_avg = 1
+end if
+
+if(me_nl>1)then
+me_nl = 1
 end if
 
 !if (d==230)then
@@ -770,6 +819,7 @@ end if
 
 burnedf = totburn / area_ha
 
+if (PoI) then
 !ignition effiency due to oxygen concentration
 
 !normalised around present day concentration
@@ -792,6 +842,17 @@ else
     ieff_avg = sum(fpc_grid * ieffpft_ox) / sum(fpc_grid)
 end if
 
+else
+! if Probability of ignition switched off
+ieff_avg = sum(fpc_grid * ieffpft) / sum(fpc_grid)
+end if
+
+if (sum(fpc_grid * ieffpft_ox) / sum(fpc_grid)/= sum(fpc_grid * ieffpft) /sum(fpc_grid)) then
+!write(stdout,*)'PI on ieff_avg: ',sum(fpc_grid * ieffpft_ox) / sum(fpc_grid)
+!write(stdout,*)'PI off ieff_avg: ',sum(fpc_grid * ieffpft) / sum(fpc_grid)
+write(stdout,*)'difference in ieff_avg'
+end if
+
 !ieff = 0.2 * (1. - burnedf) / (1. + 25. * burnedf) * ieff_avg   !1. hyperbolic
 !function that results in a steep decline in ignition efficiency with increasing
 !area burned
@@ -809,7 +870,7 @@ end if
 !end if
 
 latscale = 1.   !FLAG: we are now already using a climate file that holds the
-                !transformed strikes from the flashes (pre-processed)
+               !transformed strikes from the flashes (pre-processed)
 !=========================================================================================================================
 !if(.not. input%spinup .and. year > 115) then
 !light = light  * 1.2                           ! assuming an 80% detection
@@ -880,11 +941,23 @@ end if
 
 if (grascover >= 0.6) then        !BURNING BEHAVIOR DOMINATED BY GRASS CHARACTERISTICS
   FDI = max(0.,(1. - omega_nl / me_nl))  !eqn. 8
+
+!if (d== 200) then
+!write(stdout,*)'new FDI',FDI
+!write(stdout,*)'old FDI', max(0.,(1. - omega_nl/((me_fc(1) * woi(1) + me_lf *(wlivegrass + SOM_surf)) / (wfinefuel + SOM_surf))))
+!end if
+
 else
   FDI = max(0.,(1. - omega_o / me_avg))  !eqn. 8
+! if (d== 200) then
+!write(stdout,*)'new FDI',FDI
+!write(stdout,*)'old FDI', max(0.,(1. - omega_o /m_e * rdf + me_lf * rlf))
+!end if
+
 end if
 
-!write(stdout,*)'FDI',d,omega_o,me_avg,FDI,NI,caf
+
+
 
 !if (FDI == 0.) then
 !  cumfires = 0        !extinguish all burning fires

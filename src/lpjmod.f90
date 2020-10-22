@@ -1,6 +1,6 @@
 module lpjmod
 
-use parametersmod, only : stdout,stderr
+use parametersmod, only : stdout,stderr,O2
 
 implicit none
 
@@ -1015,7 +1015,12 @@ do i = 1,3 !ntiles
 
     afire_frac = 0.
     
-!    goto 20
+
+!    Studies suggest that lower oxygen limit for fire is ~16% vol. (Watson,1978; Cope and Chaloner, 1980; Lenton and Watson, 2000b;Belcher and McElwain, 2008; Belcher et al., 2010)
+!    Therefore if oxygen is less than 17% atmospheric concentration, fire module not called.
+    if(O2<17)then
+       goto 20
+    end if
 
     if (dospitfire .and. ((spinup .and. year > 0) .or. .not. spinup)) then
       
