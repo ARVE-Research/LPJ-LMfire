@@ -12,9 +12,9 @@ private :: calcROS
 private :: firemortality
 private :: probignit
 private :: moistex
+private :: heatc
 
 real(sp), parameter :: me_lf  =  0.2       !moisture of extinction for live grass fuels: fractional moisture above which fuel does not burn (fraction) (20%)
-real(sp), parameter :: h      = 18.        !heat content of fuel (kJ g-1)  5kwh/kgs
 real(sp), parameter :: c2om   = 1. / 0.45  !conversion factor between Carbon and total mass of vegetation
 real(sp), parameter :: ST     = 0.055      !fraction of total vegetation mass that is mineral (non-flammable)
 real(sp), parameter :: ot     = 1. / 3.    !one third
@@ -35,7 +35,11 @@ real(sp) :: ieffox_g  !oxygen ignition effiency parameter for grasses
 real(sp) :: ieffox_w  !oxygen ignition efficiency parameter for trees
 
 real(sp), dimension(npft) :: m_ex    !moisture of extinction
-real(sp) :: me_ox                   !moisture of extinction for varying O2
+real(sp) :: me_ox                    !moisture of extinction for varying O2
+
+real(sp) :: h                        !heat content of fuel (kJ g-1)
+real(sp), dimension(npft) :: h_par_a !parameter alpha for HoC eqn for each PFT
+real(sp), dimension(npft) :: h_par_b !parameter beta for HoC eqn for each PFT
 
 real(sp), dimension(npft) :: emCO2   !emission factor for CO2
 real(sp), dimension(npft) :: emCO    !emission factor for CO
@@ -121,6 +125,7 @@ end function probignit
 !-----------------------------
 
 
+
 ! Moisture of extinction for oxygen concentration:
 !-----------------------------
 ! Equation for the Moisture of extinction with varying oxygen concentrations,
@@ -138,6 +143,25 @@ moistex = (8*O2) - 128
 
 end function moistex
 !-----------------------------
+
+
+
+! Heat of combustion equation for given oxygen content
+!----------------------------------
+real(sp) function heatc(alpha,beta,O2)
+
+implicit none
+real(sp), intent(in) :: alpha ! parameter defined for each PFT
+real(sp), intent(in) :: beta  ! parameter defined for each PFT
+real(sp), intent(in) :: O2    ! atmospheric oxygen concentration input
+
+heatc = (alpha/O2) + beta
+
+end function heatc
+!----------------------------------
+
+
+
 
 subroutine managedburn(i,j,acflux_fire,afire_frac,litter_ag_fast,pftCflux)
 
@@ -402,6 +426,7 @@ integer, save :: arsonists
 integer :: group
 
 !------------------
+
 !assignment
 
 ! Enregistrement des parametres 
@@ -413,6 +438,8 @@ emVOC    = pftpar(:,48)
 emTPM    = pftpar(:,49)
 emNOx    = pftpar(:,50) 
 rhobPFT  = pftpar(:,51) 
+h_par_a  = pftpar(:,52)
+h_par_b  = pftpar(:,53)
 
 
 !write(*,'(2i5,2f7.2,f7.1,f7.2)')year,d,met%tmin,met%tmax,met%prec,met%dayl
@@ -507,7 +534,11 @@ if (d == 1) then
   
   omega0 = 1.  !set fuel moisture to fully wet on first day (should handle this differently and carry through as state variable)
 
-  !write(stdout,*)'done writing annual stats'
+  !write(stdout,*)'done writing annual stats
+
+ if(input%lat == 30.75 .and. input%lon == -102.25 .and. year == 5) then
+write(*,*)'fpc_grid start; ',fpc_grid
+end if
 
   !unburneda = area_ha
 
@@ -517,9 +548,12 @@ if (d == 1) then
 
 end if
 
+
 if (snowpack > 0.) then  !no fire on days with snow on the ground
   if(bavard)  write(*,'(a16,4i6,6f14.7)') 'snowpack ', year,i,d,cumfires, met%prec, NI, afire_frac, PD
   cumfires = 0 		! extinguish all smouldering or burning fires  
+
+
   return
 end if  
 
@@ -639,6 +673,8 @@ totfuel = sum(deadfuel) + sum(livefuel) + cpool_surf(1)
 if (totfuel < 1000. .or. totvcover < 0.5) then
   if(bavard)  write(*,'(a16,4i6,13f14.4)')'no_fuel',year,i,d, cumfires, Ab, abarf, afire_frac, light*area_ha, 0., PD, met%prec, NI, PD
   cumfires = 0  
+
+
   return  !no fuel
 end if
 
@@ -819,8 +855,10 @@ end if
 
 burnedf = totburn / area_ha
 
+
 if (PoI) then
 !ignition effiency due to oxygen concentration
+
 
 !normalised around present day concentration
 ieffox_g = probignit(O2,omega_nl)/probignit(20.95,omega_nl)
@@ -839,19 +877,22 @@ end do
 if (O2<17) then 
     ieff_avg = 0  !Fire's cannot ignite at low O2 concentrations
 else
+
     ieff_avg = sum(fpc_grid * ieffpft_ox) / sum(fpc_grid)
 end if
 
+
+
 else
+
+
+
 ! if Probability of ignition switched off
 ieff_avg = sum(fpc_grid * ieffpft) / sum(fpc_grid)
+
+
 end if
 
-if (sum(fpc_grid * ieffpft_ox) / sum(fpc_grid)/= sum(fpc_grid * ieffpft) /sum(fpc_grid)) then
-!write(stdout,*)'PI on ieff_avg: ',sum(fpc_grid * ieffpft_ox) / sum(fpc_grid)
-!write(stdout,*)'PI off ieff_avg: ',sum(fpc_grid * ieffpft) / sum(fpc_grid)
-write(stdout,*)'difference in ieff_avg'
-end if
 
 !ieff = 0.2 * (1. - burnedf) / (1. + 25. * burnedf) * ieff_avg   !1. hyperbolic
 !function that results in a steep decline in ignition efficiency with increasing
@@ -955,7 +996,6 @@ else
 !end if
 
 end if
-
 
 
 
@@ -1092,12 +1132,12 @@ relmoist = omega_o / me_avg
 if (relmoist < 1.) then       !FDI not zero for this landscape component
 
   !write(stdout,*)'calcros',orgf*wn,rho_b,omega_o,relmoist
-
-  call calcROS(orgf*wn,rho_b,sigma,omega_o,relmoist,Uforward,ROSfsurface_w)
+  call calcROS(orgf*wn,rho_b,sigma,omega_o,relmoist,Uforward,ROSfsurface_w,fpc_grid)
 
 else
   ROSfsurface_w = 0.
 end if
+
   
 !  write(*,'(a,2i4,6f14.7)') 'tree-dominated_ROS ', year,d, ROSfsurface, Uforward, rho_b, sigma, relmoist, wn
   
@@ -1122,7 +1162,7 @@ end if
       sigma = sigma_i(1)
       relmoist = 0.99  !at moisture content just below extinction fire can spread
 
-      call calcROS(orgf*wn,rho_b,sigma,0.3,relmoist,Uforward,ROSfcrown)
+      call calcROS(orgf*wn,rho_b,sigma,0.3,relmoist,Uforward,ROSfcrown,fpc_grid)
 
     end if
 
@@ -1326,7 +1366,7 @@ end if
 if (Ab == 0.) then 
   if(bavard) write(*,'(a16,4i6,16f14.4)') 'Area_burned_zero ', year, i,d,cumfires,Ab,abarf,afire_frac,light*area_ha,nlig,FDI, met%prec, NI, grascover, omega_o, me_avg, omega_nl, me_nl, PD
 !  write(*,'(a16,4i6,29f14.4)') 'Area_burned_zero', year,i,d,cumfires,Ab,abarf,afire_frac,light*area_ha, nlig*area_ha,PD, area_ha, treecover, grascover, DT/1000., tfire/60., ROSfsurface*60./1000., ROSbsurface*60./1000., Uforward*60./1000.,  &
-!                                LB,LBtree,LBgrass,woi,omega_o,omega_o/me_avg,FDI,Isurface,slopefact, input%slope   
+!                                LB,LBtree,LBgrass,woi,omega_o,omega_o/me_avg,FDI,Isurface,slopefact, input%slope  
   return
 end if 
 
@@ -1454,6 +1494,8 @@ BBdead(:,4) = Abfrac * CF(3) * litter_ag_slow * 0.21   !100-hr
 BBdead(:,5) = Abfrac * CF(4) * litter_ag_slow * 0.67   !1000-hr
 
 annBBdead = annBBdead + BBdead
+
+!write(*,*)'anBBdead: ', annBBdead
 
 if (d == 0) then
   write(stdout,*)'last day spitfire'
@@ -1594,7 +1636,9 @@ end subroutine spitfire
 
 !-----------------------------------------------------------------------------------------------------------------------------------------------------
 
-subroutine calcROS(wn,rho_b,sigma,omega_o,relmoist,Uforward,rateofspread)
+subroutine calcROS(wn,rho_b,sigma,omega_o,relmoist,Uforward,rateofspread,fpc_grid)
+
+use parametersmod,   only : npft,O2
 
 !arguments
 
@@ -1604,6 +1648,7 @@ real(sp), intent(in)  :: sigma         !surface area to volume ratio of the fuel
 real(sp), intent(in)  :: omega_o       !relative moisture content of the fuel (unitless; 0=completely dry fuel)
 real(sp), intent(in)  :: relmoist      !relative moisture content of the fuel relative to its moisture of extinction (unitless; omega_o / m_e)
 real(sp), intent(in)  :: Uforward      !windspeed (m min-1)
+real(sp), dimension(npft), intent(in)  :: fpc_grid      !coverage of pfts
 
 real(sp), intent(out) :: rateofspread  !fire rate of spread (m min-1)
 
@@ -1631,6 +1676,28 @@ real(sp) :: nu_M           !moisture dampening coefficient (unitless)
 real(sp) :: xi             !propagating flux ratio; proportion of IR transferred to unburned fuels (dimensionless); in reality influenced by convection, radiation, flame contact and ignition-point transfer
 real(sp) :: windfact       !high wind multiplier for rate of spread (unitless)
 real(sp) :: Ums            !wind speed (m s-1)
+real(sp), dimension(npft) :: h_pft !heat of combustion for each PFT for given O2 concentration
+integer  :: i
+
+!------------------------------
+!Calculate average heat content:
+
+if (HoC) then
+
+! calulate HoC for each PFT for given O2
+do i = 1,npft
+h_pft(i) = heatc(h_par_a(i),h_par_b(i),O2)
+end do
+
+! find weighted average ver PFTs
+h = sum(fpc_grid*h_pft)/sum(fpc_grid)
+
+else
+
+! previous constant
+h = 18
+end if
+
 
 !-------------------------------
 !Terms used in several equations

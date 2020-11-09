@@ -30,7 +30,7 @@ integer, parameter :: stdout = output_unit
 integer, parameter :: stderr = error_unit
 
 integer, parameter :: npft     =  9 
-integer, parameter :: npftpar  = 51
+integer, parameter :: npftpar  = 53
 integer, parameter :: nsoilpar =  7
 integer, parameter :: ncvar    =  3
 integer, parameter :: climbuf  = 20

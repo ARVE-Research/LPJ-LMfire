@@ -731,6 +731,7 @@ do i = 1,3 !ntiles
                      crownarea,fpc_grid,lai_ind,height,sla,wooddens,latosa,prec,reinickerp,litter_ag_fast,litter_ag_slow,litter_bg,  &
                      allom1,allom2,allom3,acflux_estab,leafondays,leafoffdays,leafon,estab_pft,afire_frac,osv%tile(i)%soil%clay, osv%tile(i)%soil%sand)
                      
+
 !  if(i==2) write(stdout,'(a,i3,9f14.4)') 'after establishment',i, litter_ag_fast(:,1)               
                      
   do a = 1, npft
@@ -885,7 +886,7 @@ do i = 1,3 !ntiles
   !write(stdout,*)'flag D3a',hm_ind(:,1)
   !write(stdout,*)'flag D2b',lm_ind(:,1)
   
-  call allocation(pftpar,allom1,allom2,allom3,latosa,wooddens,reinickerp,pft%tree,sla,wscal,nind,bm_inc,lm_ind,sm_ind,     &
+  call allocation(in,pftpar,allom1,allom2,allom3,latosa,wooddens,reinickerp,pft%tree,sla,wscal,nind,bm_inc,lm_ind,sm_ind,     &
                   hm_ind,rm_ind,crownarea,fpc_grid,lai_ind,height,litter_ag_fast,litter_ag_slow,litter_bg,fpc_inc,present)
                   
 !  if(i==2)   write(stdout,'(a,i3,9f14.4)') 'after allocation',i, litter_ag_fast(:,1)                               
@@ -1023,7 +1024,7 @@ do i = 1,3 !ntiles
     end if
 
     if (dospitfire .and. ((spinup .and. year > 0) .or. .not. spinup)) then
-      
+
       burnedf20 = sum(osv%tile(i)%burnedf_buf) / real(climbuf)
       
       forager_pd20 = sum(osv%tile(i)%forager_pd_buf) / real(climbuf) 
@@ -1059,7 +1060,7 @@ do i = 1,3 !ntiles
 
           call spitfire(year,i,j,d,in,met_out(d),dw1(d),snowpack(d),dphen(d,:),wscal_v(d,:),osv,spinup,avg_cont_area,burnedf20,forager_pd20,FDI,omega_o0,omega0,BBpft,Ab,hclass,numfires_nat,ieff)
           mBBpft(:,m) = mBBpft(:,m) + BBpft  !accumulate biomass burned totals
-          
+
           mburnedf(m) = mburnedf(m) + Ab/(in%cellarea * 1e-4) !convert cell area to ha, as Ab is in ha
 
           if (numfires_nat <0) then
@@ -1077,6 +1078,7 @@ do i = 1,3 !ntiles
         end do
       end do
       
+
       !add the agricultural burned biomass to the total burned biomass, by PFT
 
       !write(stdout,*)'enter biomassburned',afire_frac
@@ -1146,8 +1148,6 @@ do i = 1,3 !ntiles
   
 !  write(stdout,'(a,i4,10f8.3)')'after light',year,fpc_grid,sum(fpc_grid)
 !  write(stdout,*) 
-
-
 
 
   !radioactive decay of 14C
@@ -1238,7 +1238,9 @@ do i = 1,3 !ntiles
 
   !---------------------------------------------------------------------------- 
     
+
 end do  !sub-grid tile loop
+
 
 !write(stdout,*)'flag E'
 

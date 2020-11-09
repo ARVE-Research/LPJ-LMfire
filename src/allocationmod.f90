@@ -21,15 +21,18 @@ contains
 
 !---------------------------------------------------------
 
-subroutine allocation(pftpar,allom1,allom2,allom3,latosa,wooddens,                  &
+subroutine allocation(input,pftpar,allom1,allom2,allom3,latosa,wooddens,                  &
                       reinickerp,tree,sla,wscal,nind,bm_inc,lm_ind,sm_ind,hm_ind,   &
                       rm_ind,crownarea,fpc_grid,lai_ind,height,litter_ag_fast,      &
                       litter_ag_slow,litter_bg,fpc_inc,present)
+
+use mpistatevarsmod, only : inputdata
 
 implicit none
 
 !arguments
 
+type(inputdata),   intent(in) :: input
 real(sp), intent(in) :: allom1
 real(sp), intent(in) :: allom2
 real(sp), intent(in) :: allom3
@@ -117,7 +120,7 @@ do pft = 1,npft
   sm = sm_ind(pft,1)
   hm = hm_ind(pft,1)
   rm = rm_ind(pft,1)
-  
+
   bm_inc_ind = bm_inc(pft,1) / nind(pft)
 
   !calculate this year's leaf to fine root mass ratio from mean annual water scalar and pft specific parameter
@@ -130,7 +133,6 @@ do pft = 1,npft
     !TREE ALLOCATION
 
     lm1 = latosa * sm / (wooddens * height(pft) * sla(pft))  !allometric leaf mass requirement
-
     lminc_ind_min = lm1 - lm  !eqn (27)
 
     !calculate minimum root production to support this leaf mass (i.e. lm_ind + lminc_ind_min)
@@ -150,7 +152,11 @@ do pft = 1,npft
 
       x1 = lminc_ind_min
       x2 = (bm_inc_ind - (lm / lm2rm - rm)) / (1. + 1. / lm2rm)
-      
+if(input%lat == 30.75 .and. input%lon == -102.25) then
+       write(*,*)'x1:  ',x1
+end if      
+
+
       dx = x2 - x1
       
       if (dx < 0.01) then
@@ -160,6 +166,7 @@ do pft = 1,npft
         !the root finding procedure
 
         lminc_ind = x1 + 0.5 * dx
+
 
       else
 
