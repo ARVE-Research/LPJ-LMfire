@@ -3,7 +3,7 @@ c     Adapted from Farquhar (1982) photosynthesis model, as simplified by
 c     Collatz et al 1991, Collatz et al 1992 and Haxeltine & Prentice 1996
 
       subroutine photosynthesis(ca,temp,fpar,par,dayl,c4,sla,nmax,
-     *  lambda,rd,agd,adtmm,x1,x2,x3,x4,pfti)
+     *  lambda,rd,agd,adtmm,x1,x2,x3,x4,pfti,lambdam)
 
       implicit none
 
@@ -62,11 +62,7 @@ c     LOCAL VARIABLES
       real s,sigma,vm,and,pa,je,jc,vmmax,cn,tk,t0,adt
       real tstress,k1,k2,k3,low,high
       integer i
-
-       do pft=1,npft
-        lambdam=pftpar(pft,26) 
-      enddo
-
+      
 c     Return without performing calculations if daylength 0 hours
 
       if (dayl.lt.0.01) then

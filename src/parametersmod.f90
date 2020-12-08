@@ -1,6 +1,6 @@
 module parametersmod
 
-use iso_fortran_env, only : input_unit,output_unit,error_unit
+use iso_fortran_env, only : input_unit,output_unit,error_unit,int8,int16,int32,int64,real32,real64
 
 implicit none
 
@@ -9,12 +9,12 @@ public :: area
 !-----------------------------------------------------------------------------------------------
 !type
 
-integer, parameter :: i1 = selected_int_kind(1)
-integer, parameter :: i2 = selected_int_kind(4)
-integer, parameter :: i4 = selected_int_kind(8)
-integer, parameter :: i8 = selected_int_kind(13)
-integer, parameter :: sp = selected_real_kind(4)
-integer, parameter :: dp = selected_real_kind(13)
+integer, parameter :: i1 = int8        ! 1 byte integer (signed, [-128,127])
+integer, parameter :: i2 = int16       ! 2 byte integer
+integer, parameter :: i4 = int32       ! 4 byte integer (default)
+integer, parameter :: i8 = int64       ! 8 byte integer
+integer, parameter :: sp = real32      ! 4 byte real (default)
+integer, parameter :: dp = real64      ! 8 byte real
 
 !size
 
@@ -161,6 +161,8 @@ real(dp), parameter :: Cmine  =     2.000e6  !Heat capacity of soil minerals (ty
 
 real(dp), parameter :: pir     = pi / 180.0d0
 real(dp), parameter :: piri    = 180.d0 / pi
+
+real(sp), parameter :: c2om  = 1. / 0.45   ! convert carbon to organic matter (dry mass) 
 
 contains
 

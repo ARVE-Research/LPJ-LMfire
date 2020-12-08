@@ -10,7 +10,7 @@ contains
 
 !------------------------------------------------------------------------------------------------------------
 
-subroutine alcc(j,input,osv,cropfrac,unusable,coverfrac,recoverf)
+subroutine alcc(j,input,osv,cropfrac,pastfrac,coverfrac,recoverf)
 
 use parametersmod,   only : sp,npft
 use mpistatevarsmod, only : inputdata,statevars
@@ -27,8 +27,8 @@ integer,  dimension(2), parameter :: lu_id = [ 1,3 ]
 integer,  intent(in)    :: j
 type(inputdata), intent(in) :: input
 real(sp), intent(out)   :: recoverf
-real(sp), intent(inout) :: unusable   !fraction of the gridcell that cannot be used
-real(sp), intent(inout) :: cropfrac
+real(sp), intent(inout) :: cropfrac   !fraction of the gridcell that cannot be used
+real(sp), intent(inout) :: pastfrac
 type(statevars), target, intent(inout) :: osv
 
 real(sp), dimension(:), intent(inout) :: coverfrac
@@ -53,7 +53,7 @@ integer  :: i
 integer  :: l
 
 real(sp) :: lndturn
-real(sp) :: usable
+real(sp) :: landuse
 
 real(sp) :: convf
 real(sp) :: excess
@@ -70,34 +70,28 @@ tf = input%human%lu_turnover
 convf  = 0.
 convft = convf
 
-cropfrac = min(max(0.,cropfrac),1.) !make sure cropfrac is between 0 and 1
+landuse = max(cropfrac + pastfrac,0.)
 
 !calculate the change in anthropogenic land use fraction
 !positive means increased land use, negative means abandonment
 
 !write(stdout,*)'flag 1a',tf
 
-lndturn = tf * cropfrac
-usable  = 1. - unusable
-
-if (cropfrac > usable) then   !this should only happen during the interpolation between 1850 and present-day
-  usable   = cropfrac
-  unusable = 1. - usable
-end if
+lndturn = tf * landuse
 
 !write(stdout,*)'flag 2'
 
 !if the deforestation + turnover is greater than the usable amount, limit clearance to the usable fraction
 
-convf = min(cropfrac - coverfrac(2) + lndturn,usable)  
+convf = min(landuse - coverfrac(2) + lndturn,1.)
 
-coverfrac(2) = cropfrac
+coverfrac(2) = landuse
 
 if (convf > 0.) then        !conversion to ag land use, there will always be some, because we have turnover of ag land
 
   !first take from the natural vegetation
   
-  convft(1) = min(convf,coverfrac(1) - unusable)
+  convft(1) = min(convf,coverfrac(1))
 
   coverfrac(1) = coverfrac(1) - convft(1)  !includes the turnover fraction
     
@@ -110,7 +104,7 @@ if (convf > 0.) then        !conversion to ag land use, there will always be som
     coverfrac(3) = coverfrac(3) - excess
     convft(2)    = excess
 
-    coverfrac(1) = unusable
+    coverfrac(1) = 0.
 
   end if
 

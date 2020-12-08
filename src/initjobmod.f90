@@ -5,7 +5,7 @@ use parametersmod, only : stdout,stderr
 implicit none
 
 public :: initjob
-public :: initlucc
+public :: inithumans
 
 contains
 
@@ -17,9 +17,9 @@ use parametersmod,   only : sp,dp,i8,area
 use iovariablesmod,  only : cfile_spinup,cfile_transient,soilfile,                            &
                             dospinup,dotransient,co2file,topofile,topofid,elvid,slopeid,landfid,topotime,          &
                             fixedco2,ocean_uptake,cal_year,nspinyrsout,outputvar,    &
-                            lu_turn_yrs,popdfile,poppfile,maxmem,bounds,                     &
+                            lu_turn_yrs,humanfile,maxmem,bounds,                     &
                             outputfile,srtx,srty,cntx,cnty,endx,endy,inputlonlen,inputlatlen, &
-                            lucc,cellindex,lonvect,latvect,co2vect,nolanduse,nclimv,calcforagers,projgrid,geolon,geolat,startyr_foragers
+                            calchumans,cellindex,lonvect,latvect,co2vect,nolanduse,nclimv,projgrid,geolon,geolat,startyr_foragers
 use coordsmod,       only : parsecoords
 use initsoilmod,     only : initsoil
 use initclimatemod,  only : initclimate
@@ -73,8 +73,7 @@ namelist /joboptions/ &
   soilfile,           &
   topofile,           &
   co2file,            &
-  popdfile,           &
-  poppfile,           &
+  humanfile,          &
   spinupyears,        &
   transientyears,     &
   dospinup,           &
@@ -250,30 +249,21 @@ write(stdout,*)'done with CO2'
 !-------------------------------
 !externally prescribed land use (ALCC)
 
-if (poppfile /= '' .and. popdfile /= '') then
-  write(stdout,*)'you cannot specify both a pop_p and pop_d file!'
-  stop
+if (humanfile /= '') then
+
+  calchumans = .true.
+  ntiles     = 3  ! never used, used (crop or pasture), abandoned/recovering
+
+  call inithumans()        !open the humans file here
+
+else  !world without people simulation
+
+  calchumans = .false.
+  ntiles     = 1
+
 end if
 
-if (poppfile /= '') then
-  calcforagers = .true.
-  lucc = .false.
-  ntiles = 1
-  call initpopp()
-
-else if (popdfile /= '') then
-  lucc = .true.
-  calcforagers = .false.
-  ntiles = 3
-  call initlucc()        !open the LUCC file here
-
-else
-  calcforagers = .false.
-  lucc = .false.
-  ntiles = 1
-end if
-
-write(stdout,'(a,i3)')'WARNING number of land use tiles used in this run: ',ntiles,lucc
+write(stdout,'(a,i3)')'WARNING number of land use tiles used in this run: ',ntiles,calchumans
 
 !-------------------
 
@@ -356,11 +346,11 @@ end subroutine initjob
 
 !-----------------------------------------------------------------------------------------------------------------
 
-subroutine initlucc()
+subroutine inithumans()
 
 use netcdf
 use typesizes
-use iovariablesmod, only : lucctime,popdfile,popfid,popdtime
+use iovariablesmod, only : humanfile,humanfid,popdtime,lu_sf,lu_ao
 use errormod,       only : ncstat,netcdf_err
 
 implicit none
@@ -370,65 +360,35 @@ integer :: varid
 integer :: tlen
 
 !-------
-!open the population density file
+!open the consolidate land use file
 
-ncstat = nf90_open(popdfile,nf90_nowrite,popfid)
+ncstat = nf90_open(humanfile,nf90_nowrite,humanfid)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
-ncstat = nf90_inq_dimid(popfid,'time',dimid)
+ncstat = nf90_inq_dimid(humanfid,'time',dimid)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
-ncstat = nf90_inquire_dimension(popfid,dimid,len=tlen)
-if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
-
-allocate(popdtime(tlen))
-
-ncstat = nf90_inq_varid(popfid,'time',varid)
-if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
-
-ncstat = nf90_get_var(popfid,varid,popdtime)
-if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
-  
-end subroutine initlucc
-
-!-----------------------------------------------------------------------------------------------------------------
-
-subroutine initpopp()
-
-!since you can only have either a popd or a popp file but not both, we recycle variables
-
-use netcdf
-use typesizes
-use iovariablesmod, only : lucctime,poppfile,popfid,popdtime
-use errormod,       only : ncstat,netcdf_err
-
-implicit none
-
-integer :: dimid
-integer :: varid
-integer :: tlen
-
-!-------
-!open the forager potential population density file
-  
-ncstat = nf90_open(poppfile,nf90_nowrite,popfid)
-if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
-
-ncstat = nf90_inq_dimid(popfid,'time',dimid)
-if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
-
-ncstat = nf90_inquire_dimension(popfid,dimid,len=tlen)
+ncstat = nf90_inquire_dimension(humanfid,dimid,len=tlen)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
 allocate(popdtime(tlen))
 
-ncstat = nf90_inq_varid(popfid,'time',varid)
+ncstat = nf90_inq_varid(humanfid,'time',varid)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
-ncstat = nf90_get_var(popfid,varid,popdtime)
+ncstat = nf90_get_var(humanfid,varid,popdtime)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
-end subroutine initpopp
+ncstat = nf90_inq_varid(humanfid,'lu_crop',varid)
+if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+ncstat = nf90_get_att(humanfid,varid,'scale_factor',lu_sf)
+if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+ncstat = nf90_get_att(humanfid,varid,'add_offset',lu_ao)
+if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+  
+end subroutine inithumans
 
 !-----------------------------------------------------------------------------------------------------------------
 

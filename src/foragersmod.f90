@@ -94,10 +94,10 @@ real(sp) :: animal_percent  !percent dependence on animals
 !-----------------------------------------
 !calculations start here
 
-!write(stdout,*)'enter foragers'
-!write(stdout,*)pet,aet,elev,lat,anpp,livebiomass,whc,mtemp,mprec
+!write(0,*)'enter foragers'
+!write(0,*)pet,aet,elev,lat,anpp,livebiomass,whc,mtemp,mprec
 
-!write(stdout,*) 'entering forager-routine'
+!write(0,*) 'entering forager-routine'
 
 if (anpp == 0.) then
   pd = 0.
@@ -117,7 +117,7 @@ lnpp = log10(anpp)
 !WATD, total annual water deficit (page 109)
 watd = max(pet - aet,0.)
 
-!write(stdout,*) 'watd:', watd
+!write(0,*) 'watd:', watd
 
 lwatd = log10(watd + 1.)  !log of above 
 
@@ -132,7 +132,7 @@ else
   lwatrgrc = 0.
 end if
 
-!write(stdout,*) 'lwatrgrc', lwatrgrc
+!write(0,*) 'lwatrgrc', lwatrgrc
 
 !for subsequent calculations using monthly extremes in temperature and precipitation
 
@@ -164,7 +164,7 @@ if (rrcorr2 < 0.) rrcorr2 = 12. - rrcorr2
 
 wret = sum(soilm * whc)
 
-!write(stdout,*) 'wret:', wret
+!write(0,*) 'wret:', wret
 
 !calculation of EXPREY (kg/km2)
 
@@ -172,7 +172,7 @@ exprey = 10.**(elef * 5.3081e-5 + llat * -0.300235 + lnpp * 1.200771 + lwatd * -
 
 expreya = 100 * (exprey + 0.01)
 
-!write(stdout,*) 'exprey:', exprey
+!write(0,*) 'exprey:', exprey
 
 !------------------------------------------------------------------
 
@@ -182,19 +182,19 @@ trange = mtemp(warmest_month) - mtemp(coldest_month)
 
 ltrange = log10(trange)
 
-!write(stdout,*) 'ltrange:', ltrange, mprec(wettest_month)
+!write(0,*) 'ltrange:', ltrange, mprec(wettest_month)
 
 !MRAIN, a measure of rainfall evenness (page 72)
 
 mrain = mprec(driest_month)/max(mprec(wettest_month) * 100.,1e-6)		!FLAG MP: this led to a division-by-zero in some desert places with no rain at all, threfore the max
 
-!write(stdout,*) 'mrain:', mrain
+!write(0,*) 'mrain:', mrain
 
 !calculation of EXWGT, anticipated weight of individual EXWGT (kg), see page 182
 
 exwgt = a + (b * ltrange) + (c * mrain)
 
-!write(stdout,*) 'exwgt:', exwgt
+!write(0,*) 'exwgt:', exwgt
 
 !variables for calculating TERMG2
 
@@ -205,7 +205,7 @@ exprim1 = ((anpp / 1000.) * 1.e8) * (1. - (bar5/85.)) * (1. - (livebiomass / 610
 
 exprim2 = exprim1 * (1. - (exprey / 20000.)**2) * (1. - (anpp / 63000.))
 
-!write(stdout,*) 'exprim2:', exprim2
+!write(0,*) 'exprim2:', exprim2
 
 !GROWC, effective growing season = number of consecutive months in which mean temp exceeds 8 deg C
 growc =  count(mtemp > 8.) 
@@ -215,7 +215,7 @@ et = ((18. * mtemp(warmest_month)) - (10. * mtemp(coldest_month))) / (mtemp(warm
 
 exprim3 = exprim2 - exprim2 * (1. - (growc / 12.)**2) * 1. - ((et - 7.) / 23.) !unbalanced parentheses in text, pg 180
 
-!write(stdout,*) 'exprim3:', exprim3
+!write(0,*) 'exprim3:', exprim3
 
 !MINIMALIST TERRESTRIAL MODEL
 
@@ -233,7 +233,7 @@ termd2 = termh2 + termg2
 
 pd = max((termd2 * 0.01),0.)  !convert to persons km-2	!FLAG MP: would go below zero in some low-productivity places, therefore constrained it
 
-!write(stdout,*) 'pd:', pd
+!write(0,*) 'pd:', pd
 
 !Percent plant dependence
 
@@ -243,9 +243,9 @@ plant_percent = termg2/termd2 * 100.
 
 animal_percent =  termh2/termd2 * 100.
 
-!write(stdout,*) 'animal_percent:', animal_percent
+!write(0,*) 'animal_percent:', animal_percent
 
-!write(stdout,*)termh2,termg2,termd2,plant_percent,animal_percent
+!write(0,*)termh2,termg2,termd2,plant_percent,animal_percent
 
 end subroutine foragers
 
@@ -259,12 +259,12 @@ implicit none
 
 real(sp), intent(in)    :: ppd     !potential popoulation density at gridcell carrying capacity (persons km-2)
 real(sp), intent(inout) :: pop     !actual popoulation density (persons km-2)
-real(sp), intent(inout) :: fin     !flux of people into the gridcell (persons km-2 yr-1)
+real(sp), intent(in) :: fin     !flux of people into the gridcell (persons km-2 yr-1)
 real(sp), intent(inout) :: fout
 
 real(sp), parameter :: pgr = 8.e-5  !Population growth rate (yr-1) Livi-Bacci (2007) table 1.2
 
-real(sp) :: pchange  !dP/dt change in population per time
+real(sp) :: dp  !dP/dt change in population per time
 
 !first calculate endogenous growth
 
@@ -282,20 +282,31 @@ else
     
 end if    
 
-!write(stdout,*)pop,ppd
+!write(0,*)pop,ppd
 
 !if below potential there is no out-migration
 
 if (pop <= ppd) then
   
   fout = 0.
+  
+  !fin is defined as the potential flux into the cell from neighboring regions based on the baseline site density
+  !it is set to 5% of the density-based (regional) population
+  
+  !pop = min(pop + 0.05*fin,ppd)
+
+  !as an alternative we use the logistic function again, suggesting that the growth rate equals the baseline density
+  
+  dp = fin
+  
+  pop = ppd * pop * exp(dp) / (ppd + pop *(exp(dp) - 1.))
 
 else
   !actual population > carrying capacity
   
   fout = pop - ppd
   pop = ppd
-  fin = 0.
+  !fin = 0.
 
 end if
 
@@ -303,7 +314,7 @@ end subroutine popgrowth
 
 !-----------------------------------------------------
 
-subroutine simpleforagers(PD0,tree,anpp,fpc_grid,forager_pd)
+subroutine simpleforagers(PD0,tree,anpp,fpc_grid,cellarea,forager_pd)
 
 !very simple subroutine to calculate potential density of foragers given herbaceous npp
 
@@ -311,28 +322,75 @@ use parametersmod, only : sp
 
 implicit none
 
-real(sp),               intent(in)    :: PD0    !baseline population density from kernel interpolation of archaeological sites
-logical,  dimension(:), intent(in)    :: tree
-real(sp), dimension(:), intent(in)    :: anpp
+real(sp),               intent(in)    :: PD0         !baseline population density from kernel interpolation of archaeological sites
+logical,  dimension(:), intent(in)    :: tree        !tree PFT
+real(sp), dimension(:), intent(in)    :: anpp        !annual NPP by PFT
 real(sp), dimension(:), intent(in)    :: fpc_grid
-real(sp),               intent(out) :: forager_pd
+real(sp),               intent(in)    :: cellarea    !gridcell area (m2)
+real(sp),               intent(inout) :: forager_pd
 
 !---
 
-real(sp), parameter :: npp0  = 600.  !baseline herbaceous NPP for baseline PD
-!real(sp), parameter :: PDmax = 1.646 !maximum forager PD under LGM conditions
+real(sp), parameter :: amp =   1.    !amplitude of the logistic function
+real(sp), parameter :: rng =  33.33  !range over which to have the main variance of the logistic function
+real(sp), parameter :: mid = 150.    !midpoint for the logistic function
+real(sp), parameter :: mxb =   1.   !maximum density boost factor for semi-open vegetation
+real(sp), parameter :: wid =   0.24  !shape factor for openness gaussian function
+real(sp), parameter :: scl = 1./rng
 
-real(sp) :: grassnppfrac
-real(sp) :: grassnpp
+real(sp), parameter :: PDmax = 1.646   !max HG PD from Bocquet-Appel et al 2005 (persons 100km-2)
+real(sp), parameter :: PDmean = 0.257  !mean HG PD from Bocquet-Appel et al 2005
+real(sp), parameter :: PDr = PDmax / PDmean !ratio between max and mean HG PD from Bocquet-Appel et al 2005
+
+integer,  parameter :: mingroupsize = 10   !mininum number of people in the gridcell to be considered as having any population
+
+integer :: people
+
+real(sp) :: grasscover
+real(sp) :: nppscale
+real(sp) :: totalnpp
+!real(sp) :: grassnpp
+real(sp) :: openness
+real(sp) :: carrycap
+real(sp) :: fout
+real(sp) :: fin
+real(sp) :: minPD
 
 !---
-!calculate the total annual NPP of the herbaceous vegetation
 
-grassnpp = sum(anpp * fpc_grid,mask=.not.tree)  !total NPP of the herbaceous vegetation in the cell
+grasscover = sum(fpc_grid,mask=.not.tree) * sum(fpc_grid)    !reduces the effective cover if the gridcell is not completely vegetated
 
-grassnppfrac = grassnpp / (npp0 * 0.50)
+!grassnpp = sum(anpp,mask=.not.tree)                          !total NPP of the herbaceous vegetation in the cell
+totalnpp = sum(anpp)
 
-forager_pd = PD0 * grassnppfrac
+nppscale = 1. / (1. + 0.15 * exp(-0.015 * totalnpp))**50      !geneneralized logistic function to describe the influence of total npp on HG density
+
+!nppscale = amp / (1. + exp(-scl*(totalnpp - mid)))           !logistic function to describe the influence of grass npp on HG density
+
+openness = mxb * exp(-(grasscover - 0.5)**2 / (2.* wid**2))  !gaussian function to describe the influence of landscape openness on HG density
+
+carrycap = PDmax * nppscale * openness                       !grass NPP and openness-limited carrying capacity (as a function of PDmax)
+
+!if there is no population currently in this gridcell calculate density at minimum group size
+!and put a seed group of people in the cell
+
+if (forager_pd == 0.) then
+  
+  minPD = real(mingroupsize) / (cellarea * 1.e-8)
+
+  if (carrycap > minPD) forager_pd = minPD
+
+end if
+
+call popgrowth(carrycap,forager_pd,fout,PD0)                 !logistic population growth model
+
+!check the total population of the gridcell, if it is less than the threshold minimum, set population to zero
+
+people = int(forager_pd * cellarea * 1.e-8)  !converting m2 to 100km2
+
+if (people < mingroupsize) forager_pd = 0.
+
+!write(*,'(i8,3f6.2,f7.1,3f8.4)')people,PD0,forager_pd,carrycap,grassnpp,grasscover,nppscale,openness
 
 end subroutine simpleforagers
 

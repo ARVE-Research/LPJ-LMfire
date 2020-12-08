@@ -148,6 +148,8 @@ implicit none
         
         end do
     end if
+    
+!     write(0,*)'PFTPAR',pftpar(9,26)
 		  		 
     close (unit = 15)
 	
@@ -209,7 +211,12 @@ implicit none
 
 !       SLA in m2/gC, leaf_longevity in years
 
-        sla(pft)=2.e-4*exp(6.15-0.46*log(pftpar(pft,7)*12.))
+        sla(pft) = 2.e-4 * exp(6.15 - 0.46 * log(pftpar(pft,7) * 12.))
+        
+        if (sla(pft) < 0.) then
+          write(0,*)'error in SLA calculation',pft,sla(pft),pftpar(pft,7)
+          stop
+        end if
 
 !       Define initial mass structure
 

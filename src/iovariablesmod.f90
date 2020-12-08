@@ -16,9 +16,8 @@ character(220) :: pftfile       !file containing pftparameters
 
 !optional input files
 character(220) :: cfile_transient = ''
-character(220) :: co2file  = ''  !or specify fixed CO2
-character(220) :: poppfile = ''  !file with potential population density of foragers
-character(220) :: popdfile = ''  !file with population density of different people
+character(220) :: co2file   = ''  !or specify fixed CO2
+character(220) :: humanfile = ''  !consolidated land use file, including crop and pasture fractions, and potential presence of hunter-gatherers
 
 integer :: startyr_foragers   !first year of spinup at which to introduce foragers (to allow vegetation to develop first)
 
@@ -37,9 +36,8 @@ integer  :: cfid2
 integer  :: soilfid
 integer  :: topofid
 
-logical  :: calcforagers
-logical  :: lucc
-integer  :: popfid
+logical  :: calchumans
+integer  :: humanfid
 
 integer  :: condfid
 
@@ -56,6 +54,9 @@ real(sp) :: sunp_sf
 real(sp) :: temp_ao
 real(sp) :: prec_ao
 real(sp) :: sunp_ao
+
+real(sp) :: lu_sf
+real(sp) :: lu_ao
 
 real(sp) :: lu_turn_yrs = 0. !absolute turnover time for anthopogenic land use (years)
 
@@ -114,8 +115,9 @@ type inputbuffer
 
   real(dp) :: lon
   real(dp) :: lat
-  real(sp), dimension(3) :: popd                     !human population density (person km-2) - three categories
-  real(sp) :: lu_turnover              !fraction of the land use part of the gridcell that is turned over every year
+  real(sp), dimension(3) :: popd                    !human population density (person km-2) - three categories
+  logical  :: hg_present                            !potential presence of hunter-gatherers
+  real(sp) :: lu_turnover                           !fraction of the land use part of the gridcell that is turned over every year
   real(sp), allocatable, dimension(:) :: temp       !mean monthly temperature (degC)
   real(sp), allocatable, dimension(:) :: prec       !total monthly precipitation (mm)
   real(sp), allocatable, dimension(:) :: cldp       !mean monthly cloud cover (%)
@@ -124,7 +126,7 @@ type inputbuffer
   real(sp), allocatable, dimension(:) :: temp0      !mean monthly temperature of the previous year (degC)
   real(sp), allocatable, dimension(:) :: wind       !mean monthly wind speed (m s-1)
   real(sp), allocatable, dimension(:) :: lght       !total lightning flashes (flashes km-2 day-1)
-  real(sp), allocatable, dimension(:) :: cropfrac   !fraction of gridcell used by humans (on each land use tile)
+  real(sp), allocatable, dimension(:) :: landuse    !fraction of gridcell used by humans (on each land use tile)
   real(sp), allocatable, dimension(:) :: co2        !CO2 concentration (ppm) (total CO2, 13C, and 14C)
 
 end type inputbuffer
@@ -186,14 +188,12 @@ real(dp), allocatable, dimension(:) :: latvect
 real(sp), allocatable, dimension(:,:) :: geolon  !geodetic longitude and latitude for projected grids
 real(sp), allocatable, dimension(:,:) :: geolat
 
-
 real(sp), allocatable, dimension(:) :: timevect
 real(sp), allocatable, dimension(:) :: outtimevect
 
 real(sp), allocatable, dimension(:,:,:,:) :: obuf_pft   !x,y,variable,pft (or pft)
 real(sp), allocatable, dimension(:,:,:,:) :: obuf_time  !x,y,variable,time
 
-integer, allocatable, dimension(:) :: lucctime
 integer, allocatable, dimension(:) :: popdtime
 
 integer :: srtx

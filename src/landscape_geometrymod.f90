@@ -1,6 +1,6 @@
 module landscape_geometrymod
 
-use parametersmod, only : sp, pi
+use parametersmod, only : sp, pi,stdout,stderr
 
 implicit none
 
@@ -53,6 +53,8 @@ patch_radius = sqrt(avg_cont_area / pi)
 median_distance = patch_radius * one_min_root
 
 nbl = 1.9978 * nolanduse_frac - 1.9979 * nolanduse_frac**2
+
+! write(stdout,'(a,4f8.4,2f14.1)')'landscape',coverfrac,nolanduse_frac,cellarea,avg_cont_area
 
 end subroutine landscape_fractality
 

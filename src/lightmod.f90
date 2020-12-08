@@ -11,8 +11,8 @@ contains
 subroutine light(present,tree,lm_ind,sm_ind,hm_ind,rm_ind,crownarea,fpc_grid,fpc_inc,  &
                  nind,litter_ag_fast,litter_ag_slow,litter_bg,sla,fpc_tree_max)
 
-!recoded in f90 by Jed Kaplan, 04/2010. Should give the same result as the original code if 
-!tree competition section is not commented out.
+! recoded in f90 by Jed Kaplan, 04/2010. Should give the same result as the original code if 
+! tree competition section is not commented out.
 
 use parametersmod, only : sp,npft
 
@@ -27,7 +27,7 @@ real(sp), dimension(:),   intent(in)    :: sla
 real(sp), dimension(:),   intent(in)    :: fpc_inc
 logical,  dimension(:),   intent(inout) :: present
 real(sp), dimension(:),   intent(inout) :: nind
-real(sp), dimension(:),   intent(inout) :: fpc_grid
+real(sp), dimension(:),   intent(out) :: fpc_grid
 real(sp), dimension(:),   intent(inout) :: crownarea
 real(sp), dimension(:,:), intent(inout) :: lm_ind
 real(sp), dimension(:,:), intent(inout) :: sm_ind
@@ -66,7 +66,7 @@ integer :: i
 !----------------------------------------------------------------------------------
 !calculate total woody FPC, FPC increment and grass cover (= crown area)
 
-where (crownarea > 0.) 
+where (lm_ind(:,1) > 0. .and. crownarea > 0.)
 
   lai_ind  = lm_ind(:,1) * sla / crownarea
   fpc_ind  = 1. - exp(-0.5 * lai_ind)
@@ -196,7 +196,7 @@ end if
 
 !-----------------
 
-where (crownarea > 0.) 
+where (lm_ind(:,1) > 0. .and. crownarea > 0.)
   lai_ind  = lm_ind(:,1) * sla / crownarea
   fpc_ind  = 1. - exp(-0.5 * lai_ind)
   fpc_grid = fpc_ind * nind * crownarea
@@ -212,12 +212,14 @@ litter_ag_fast = max(litter_ag_fast,0.)
 litter_ag_slow = max(litter_ag_slow,0.)
 litter_bg      = max(litter_bg,0.)
 
-!do pft=1,npft
-!  if (fpc_grid(pft) < 0. .or. fpc_grid(pft) > 1.) write(stdout,*)'resetting pft ',pft,fpc_grid(pft)
-!end do
+! do pft=1,npft
+!   if (fpc_grid(pft) < 0. .or. fpc_grid(pft) > 1.) then
+!     write(0,*)'invalid pft ',pft,fpc_grid(pft),fpc_ind(pft),nind(pft),crownarea(pft)
+!   end if
+! end do
 
-!fpc_grid = max(fpc_grid,0.)
-!fpc_grid = min(fpc_grid,1.)
+! fpc_grid = max(fpc_grid,0.)
+! fpc_grid = min(fpc_grid,1.)
 
 end subroutine light
 

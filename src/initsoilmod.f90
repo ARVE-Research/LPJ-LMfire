@@ -48,8 +48,8 @@ character(10) :: projectedgrid
 
 character(3), dimension(2) :: dimname
 
-real(sp) :: scale_factor
-real(sp) :: add_offset
+real(sp) :: scale_factor = 1.
+real(sp) :: add_offset   = 0.
 
 real(sp), parameter, dimension(6) :: zpos_std = [ 2.5, 10., 22.5, 45., 80., 150. ]  !standard depths to soil midpoint (from soilgrids1km)
 
@@ -74,6 +74,8 @@ if (ncstat == nf90_enotatt .or. trim(projectedgrid) /= 'true') then
   projgrid = .false.
   
   dimname = ['lon','lat']
+
+  write(stdout,*)'input data is in a lon-lat grid!'
   
 else
 
@@ -202,10 +204,10 @@ ncstat = nf90_get_var(soilfid,varid,sand,start=[srtx,srty,1],count=[cntx,cnty,la
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
 ncstat = nf90_get_att(soilfid,varid,'scale_factor',scale_factor)
-if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+! if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
 ncstat = nf90_get_att(soilfid,varid,'add_offset',add_offset)
-if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+! if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
 sand = sand * scale_factor + add_offset
 
@@ -218,10 +220,10 @@ ncstat = nf90_get_var(soilfid,varid,clay,start=[srtx,srty,1],count=[cntx,cnty,la
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
 ncstat = nf90_get_att(soilfid,varid,'scale_factor',scale_factor)
-if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+! if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
 ncstat = nf90_get_att(soilfid,varid,'add_offset',add_offset)
-if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+! if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
 clay = clay * scale_factor + add_offset
 

@@ -75,11 +75,13 @@ real(sp), dimension(npft,5) :: annBBdead    !annual total biomass burned from de
 real(sp), dimension(npft,3) :: annBBlive    !annual biomass burned from live fuel by fuel type and PFT (g m-2)
 real(sp), dimension(npft)   :: ann_kill     !annual total probability of mortality
 
+integer :: cumhumig     !cumulative annual human ignitions
+
 contains
 
 !-----------------------------------------------------------------------------------------------------------------------------------------------------
 
-subroutine managedburn(i,j,acflux_fire,afire_frac,litter_ag_fast,pftCflux)
+subroutine managedburn(i,j,acflux_fire,afire_frac,litter_ag_fast,pftCflux,managedburnf)
 
 use parametersmod,   only : npft
 
@@ -88,6 +90,8 @@ implicit none
 integer, intent(in) :: i  !tile index
 integer, intent(in) :: j  !gridcell index
 
+real(sp), optional, intent(in) :: managedburnf  ! fractional area of used land that is burned
+
 real(sp),               intent(out)   :: acflux_fire     !carbon flux from biomass burning (gC m-2 d-1)
 real(sp),               intent(out)   :: afire_frac      !fraction of the gridcell burned
 real(sp), dimension(:), intent(inout) :: litter_ag_fast  !aboveground litter, fast turnover (g C m-2) per PFT
@@ -95,16 +99,29 @@ real(sp), dimension(:), intent(inout) :: litter_ag_fast  !aboveground litter, fa
 real(sp), dimension(npft), intent(inout) :: pftCflux
 
 !-------
+! implementation of managed burning
+! new for 2018: in order to accommodate runs to the present-day or future,
+! the burned fraction on managed land is now an optional variable
+! provided as input in the driver programs
+! the baseline and fallback value is 20% of used land area, following Pfeiffer et al., 2013
+! with C emissions based on 50% of aboveground biomass
+!-------
 
-!implementation of managed burning, 20% of used land area, with C emissions based on 20% of aboveground biomass
+if (present(managedburnf)) then
 
-acflux_fire = 0.
+  if (managedburnf < 0.) then
+    write(0,*)'error in managedburnf',managedburnf
+    stop
+  end if
 
-afire_frac = 0.2   !20% of agricultural tile
+  afire_frac = managedburnf
+else
+  afire_frac = 0.2   !20% of agricultural tile
+end if
 
-pftCflux   = litter_ag_fast * afire_frac    !100% of the crop remains are burned on the burned fraction of managed land
+pftCflux = litter_ag_fast * afire_frac * 0.5  !50% of the crop remains are burned on the burned fraction of managed land
 
-litter_ag_fast = litter_ag_fast - pftCflux   !reduction in aboveground litter
+litter_ag_fast = max(litter_ag_fast - pftCflux,0.)   !reduction in aboveground litter
 
 acflux_fire = sum(pftCflux)
 
@@ -124,23 +141,23 @@ implicit none
 
 !arguments
 
-integer, intent(in) :: year  !year number, for diagnostic output, to be removed later
-integer, intent(in) :: i  !tile index
-integer, intent(in) :: j  !gridcell index
-integer, intent(in) :: d  !day of the year
-type(inputdata),   intent(in) :: input
-type(metvars_out), intent(inout) :: met
-real(sp),          intent(in) :: soilwater
-real(sp),          intent(in) :: snowpack
-real(sp),          intent(in) :: burnedf20           !20-year running mean of burned fraction
-real(sp), 	   intent(in) :: forager_pd20		!20-year running mean forager population density km-1 as calculated by foragersmod
-real(sp),          intent(inout) :: avg_cont_area        !average contiguous area size of non-used part of the gridcell (ha)
-real(sp),	   intent(inout) :: FDI
-real(sp), 	   intent(inout) :: omega_o0
-real(sp), dimension(4), intent(inout) :: omega0     !moisture content of each fuel class on the previous day
-real(sp), dimension(:), intent(in) :: dphen                !phenological state (1=full leaf; 0=no leaves) per pft, on this day
-real(sp), dimension(:), intent(in) :: wscal          !water scalar (supply/demand <= 1) per pft, on this day
-logical, intent(in) :: spinup
+integer,                intent(in)    :: year           !year number, for diagnostic output, to be removed later
+integer,                intent(in)    :: i              !tile index
+integer,                intent(in)    :: j              !gridcell index
+integer,                intent(in)    :: d              !day of the year
+type(inputdata),        intent(in)    :: input
+type(metvars_out),      intent(inout) :: met
+real(sp),               intent(in)    :: soilwater
+real(sp),               intent(in)    :: snowpack
+real(sp),               intent(in)    :: burnedf20      !20-year running mean of burned fraction
+real(sp), 	            intent(in)    :: forager_pd20		!20-year running mean forager population density km-1 as calculated by foragersmod
+real(sp),               intent(in)    :: avg_cont_area  !average contiguous area size of non-used part of the gridcell (m2)
+real(sp),	              intent(inout) :: FDI
+real(sp), 	            intent(inout) :: omega_o0
+real(sp), dimension(4), intent(inout) :: omega0         !moisture content of each fuel class on the previous day
+real(sp), dimension(:), intent(in)    :: dphen          !phenological state (1=full leaf; 0=no leaves) per pft, on this day
+real(sp), dimension(:), intent(in)    :: wscal          !water scalar (supply/demand <= 1) per pft, on this day
+logical,                intent(in)    :: spinup
 
 type(sizeind), dimension(:,:) :: ind   !size of the individuals by PFT and height class
 
@@ -192,6 +209,8 @@ integer, pointer :: cumfires  !number of fires currently burning
 
 !local variables
 
+real(sp) :: patchsize  !mean size of a contiguous patch of natural vegetation (ha)
+
 real(sp), dimension(3) :: annburntarget   !desired fraction of the gridcell to burn: foragers, farmers, pastoralists
 
 real(sp), dimension(4) :: dry
@@ -216,7 +235,7 @@ real(sp) :: ROSfsurface_w  !forward rate of spread of fire in woody fuels (m min
 real(sp) :: ROSfcrown      !forward rate of spread of fire in crown (m min-1)
 real(sp) :: ROSbsurface    !backward rate of spread of fire (m min-1)
 real(sp) :: Uforward       !mean wind speed (m min-1)
-real(sp) :: abarf
+real(sp) :: abarf          !mean size of an individual fire on a single day (ha)
 real(sp) :: area_ha        !gridcell area (ha)
 real(sp) :: kPD
 
@@ -330,7 +349,11 @@ real(sp),dimension(npft) :: rho_pft      !bulk density of dead fuel per pft mass
 logical :: crownfire
 logical :: bavard = .false.
 
+integer, dimension(3) :: allpop   !total number of people on the gridcell, by group
 integer :: people   !total number of people on the gridcell
+
+integer, parameter :: minpgrp = 10  !minimum population size for a group of people to be considered as present in a gridcell
+
 logical :: calchumanfire
 
 integer  :: uniquefires  !number of unique fires one person can start in one day (without burning into one another)
@@ -362,9 +385,18 @@ BBpft = 0.
 
 calchumanfire = .false.
 
-!PD    = input%human%popd 
+!------------------------------------------
+!initialize human population density
 
-! PD = 0.
+PD = 0.
+
+!NB the section here should be fixed so you don't have to switch one or the other on or off
+
+!for runs using farmers, e.g., late preindustrial, uncomment this line
+
+! PD    = input%human%popd 
+
+!for runs using foragers only, e.g., LGM, uncomment this line
 
 PD(1) = forager_pd20
 
@@ -459,6 +491,8 @@ if (d == 1) then
   !if (cumfires > 0) then
   !  write(stdout,*) 'BEGIN SPITFIRE: ', year, PD, cumfires !light * area_ha
   !end if
+  
+  cumhumig = 0
 
 end if
 
@@ -477,8 +511,6 @@ end if
 if ((precsum >= 10. .and. sum(fpc_grid(8:9)) <= 0.6) .or. (precsum >= 3. .and. sum(fpc_grid(8:9)) > 0.6)) then  !extinguish all currently burning or smoldering fires
   cumfires = 0 
 end if
-
-  
 
 !---
 !bulk density of standing grass biomass (function of average GDD)
@@ -1050,15 +1082,26 @@ tfire = 241. / (1. + 240. * exp(-11.06 * FDI))  !eqn. 14 (minutes)
 DT = tfire * (ROSfsurface + ROSbsurface)
 
 !---
-!mean fire area
+! mean fire size under idealized conditions
 
-avg_cont_area = max(avg_cont_area,10.)                ! assumption is that the smallest possible size of a kernel is 1 ha: nothing will be fractionated to a size less than 1 ha
+abarf = (pi / (4. * LB) * DT**2) * 1.e-4  !average size of an individual fire (eqn. 11) (ha)
 
-abarf = (pi / (4. * LB) * DT**2) * 0.0001 * slopefact  !average size of an individual fire (eqn. 11) (ha)
+!---
+! passive suppression through landscape fragmentation
 
-!write(stdout,*) 'abarf', abarf, LB, DT, slopefact, avg_cont_area
+! 1. fragmentation through terrain complexity
+! reduction of mean fire size by slope factor
 
-abarf = min(abarf,avg_cont_area)                ! the size of an individual fire is not allowed to be greater than the average contiguous patch size
+abarf = abarf * slopefact
+
+! 2. fragmentation through land use
+! reduction of maximum fire size by mean size of a contiguous patch of vegetation
+
+patchsize = max(avg_cont_area * 1.e-4,1.)   ! conversion of m2 to ha, smallest possible patch size 1 ha
+
+abarf = min(abarf,patchsize)                ! the size of an individual fire is not allowed to be greater than the average contiguous patch size
+
+! if (abarf > 0.) write(stdout,'(a,f14.4,f10.4,f10.2,f10.4,f14.1,f10.1)')'abarf', abarf, LB, DT, slopefact, avg_cont_area,patchsize
 
 !---------------------------
 !human-caused fires
@@ -1071,7 +1114,11 @@ cumfires = max(cumfires - nhig + arsonists,0)
 
 !total area and fraction of gridcell burned
 
-if (calchumanfire .and. abarf > 0. .and. abarf < 100.) then  !avoid starting very large fires
+!avoid starting fires on days when abarf is very small (<100 m2) or when a large fire (>100 ha) could start  
+
+! write(stdout,*)'calchumanfire',year,i,d,calchumanfire
+
+if (calchumanfire .and. abarf > 0.1 .and. abarf < 100.) then
 
   !human burning
   !calculate number of human ignitions based on mean fire size and total number of people on the gridcell
@@ -1080,7 +1127,7 @@ if (calchumanfire .and. abarf > 0. .and. abarf < 100.) then  !avoid starting ver
 
   firewidth = DT / LB
 
-  uniquefires = walkdist / firewidth
+  uniquefires = max(nint(walkdist / firewidth),1)
   
   !potential burned area of one person on this day
 
@@ -1126,6 +1173,13 @@ nhig = nhig * riskfact			  ! reduce number of fires caused when FDI gets above 0
 numfires_nat = int(nlig)! * area_ha)  !lightning fires started on this day
 numfires_hum = nhig                       !human fires started on this day
 
+!cumulate the number of human-caused fires this year (aggregated to one per person per day)
+
+! if (people > 0) write(0,*)'arsonists',year,d,people,nhig,arsonists
+
+cumhumig = cumhumig + arsonists
+
+!count all fires currently burning
 
 numfires = numfires_nat + numfires_hum
 
@@ -1133,6 +1187,10 @@ numfires = numfires_nat + numfires_hum
 
 !cumfires = cumfires + numfires             !accumulate all fire since last time FDI was not zero
 cumfires = cumfires + numfires - nint(burnedf * real(cumfires + numfires))          ! allow naturally-caused fires to carry over from one day to the next
+
+!if (numfires_hum > 0) then
+!  write(*,'(2i6,f10.6,2i6,f8.1,2f13.6,i12)')year,d,PD(1),people,arsonists,walkdist,firewidth,abarf,numfires_hum
+!end if
 
 !if (calchumanfire .and. abarf > 0. .and. abarf < 100.) then  !avoid starting very large fires
 !  write(*,'(i6,f10.4,6i10,2f10.6,f10.1,f10.6)')d,firewidth, uniquefires, numfires_nat, numfires_hum, cumfires, arsonists,people, PD(1),afire_frac,totburn,abarf
@@ -1290,7 +1348,9 @@ afire_frac = afire_frac + Abfrac
 
 !write(*,'(a16,4i6,29f14.4)') 'BURNDAY', year,i,d,cumfires,Ab,abarf,afire_frac,light*area_ha, nlig*area_ha,PD, area_ha, treecover, grascover, DT/1000., tfire/60., ROSfsurface*60./1000., ROSbsurface*60./1000., Uforward*60./1000.,  &
 !                                LB,LBtree,LBgrass,woi,omega_o,omega_o/me_avg,FDI,Isurface,slopefact,input%slope
-if(bavard) write(*,'(a16,4i10,23f14.3)') 'BURNDAY', year,i,d,cumfires,AB,abarf,afire_frac,light*area_ha,nlig,FDI,woi,omega_o,omega_o/me_avg,Isurface, met%prec, NI, grascover, omega_o, me_avg, omega_nl, me_nl, PD
+if(bavard) write(*,'(a16,4i10,23f14.3)') 'BURNDAY', year,i,d,cumfires,AB,abarf,afire_frac,light*area_ha,nlig,FDI, &
+                                                    woi,omega_o,omega_o/me_avg,Isurface, met%prec, NI, grascover, &
+                                                    omega_o, me_avg, omega_nl, me_nl, PD
 
 !-------------------------------------------
 !update litter pools to remove burned litter

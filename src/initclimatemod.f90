@@ -118,42 +118,50 @@ if (.not.allocated(ibuf)) then
       allocate(ibuf(i,j)%temp0(timelen))
       allocate(ibuf(i,j)%lght(timelen))
       allocate(ibuf(i,j)%wind(timelen))
-      allocate(ibuf(i,j)%cropfrac(2))
+      allocate(ibuf(i,j)%landuse(3))
     end do
   end do
 
 end if
 
 !------------------------------
+
+if (allocated(geolon)) then
+
+  ibuf%lon = geolon
+  ibuf%lat = geolat
+
+else
+
 !read in the lon and lat arrays
 
-!   ncstat = nf90_inq_varid(cfid,'lon',varid)
-!   if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
-!
-!   ncstat = nf90_get_var(cfid,varid,ibuf(:,1)%lon,start=[srtx],count=[cntx])
-!   if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
-!
-!   ncstat = nf90_inq_varid(cfid,'lat',varid)
-!   if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
-!
-!   ncstat = nf90_get_var(cfid,varid,ibuf(1,:)%lat,start=[srty],count=[cnty])
-!   if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
-!
-!   !copy across
-!   !would not be necessary with grids that have explicit x and y for the dimension variables (e.g., projected grids).
-!
-!   do j = 1,cnty
-!     ibuf(:,j)%lon = ibuf(:,1)%lon
-!   end do
-!
-!   do i = 1,cntx
-!     ibuf(i,:)%lat = ibuf(1,:)%lat
-!   end do
+  ncstat = nf90_inq_varid(cfid,'lon',varid)
+  if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+  ncstat = nf90_get_var(cfid,varid,ibuf(:,1)%lon,start=[srtx],count=[cntx])
+  if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+  ncstat = nf90_inq_varid(cfid,'lat',varid)
+  if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+  ncstat = nf90_get_var(cfid,varid,ibuf(1,:)%lat,start=[srty],count=[cnty])
+  if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+  !copy across
+  !would not be necessary with grids that have explicit x and y for the dimension variables (e.g., projected grids).
+
+  do j = 1,cnty
+    ibuf(:,j)%lon = ibuf(:,1)%lon
+  end do
+
+  do i = 1,cntx
+    ibuf(i,:)%lat = ibuf(1,:)%lat
+  end do
+
+end if
 
 !write(*,*) 'je bug 1'
 
-ibuf%lon = geolon
-ibuf%lat = geolat
 
 !-----
 !memory checks and input buffer setup

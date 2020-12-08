@@ -8,17 +8,17 @@ NC_INC=/soge-home/users/cenv0668/local/netcdf/include
 #---- should not need to change anything below this line ----
 
 CC = mpicc
-FC = mpif90
+FC = mpifort
 LDFLAGS  = -L$(NC_LIB) #-i_dynamic
 CPPFLAGS = -Difort -I$(NC_INC)
 
 #---optimized flags for ifort---
 CFLAGS   = -xHost #-fast
-FCFLAGS  = -xHost #-fast
+FCFLAGS  = -xHost -traceback -O3 #-fast
 
 #---debugging flags for ifort---
 
-# FCFLAGS = -debug -fpe0 -traceback -g -check -check noarg_temp_created #-warn all
+# FCFLAGS = -traceback -fpe0 #-debug -fpe0 -traceback -g -check -check noarg_temp_created #-warn all
 
 #---debugging flags for gfortran---
 

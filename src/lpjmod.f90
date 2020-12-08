@@ -14,13 +14,13 @@ subroutine lpjcore(in,osv)
 
 use parametersmod,    only : sp,dp,npft,ncvar,ndaymonth,midday,pftpar,pft, &
                              lm_sapl,sm_sapl,rm_sapl,hm_sapl,sla,          &
-                             allom1,allom2,allom3,latosa,wooddens,reinickerp,lutype,climbuf,nhclass
+                             allom1,allom2,allom3,latosa,wooddens,reinickerp,lutype,climbuf,nhclass,c2om
 use mpistatevarsmod,  only : inputdata,statevars
 use weathergenmod,    only : metvars_in,metvars_out,rmsmooth,weathergen_driver,daily
 use radiationmod,     only : elev_corr,calcPjj,radpet
 use alccmod,          only : harvest,alcc,tile_landuse
 use bioclimmod,       only : climate20,bioclim
-use spitfiremod,      only : spitfire,burnedbiomass,managedburn
+use spitfiremod,      only : spitfire,burnedbiomass,managedburn,cumhumig
 use snowmod,          only : snow
 use hetrespmod,       only : littersom2,hetresp
 use lightmod,         only : light
@@ -123,7 +123,7 @@ real(sp), dimension(7) :: soilpar
 !real, dimension(npft) :: gpp_temp
 !real, dimension(npft) :: npp_temp
 
-logical :: lucc
+logical :: dolanduse
 
 !annual gridcell state variables
 
@@ -137,7 +137,8 @@ real(sp) :: apet          !annual potential evapotranspiration (mm/year)
 !real(sp), dimension(npft) :: aresp  !annual maintenance + growth respiration (g m-2)
 
 real(sp) :: cropfrac
-real(sp) :: unusable
+real(sp) :: pastfrac
+real(sp) :: managedburnf
 
 !instantaneous gridcell state variables
 
@@ -159,6 +160,7 @@ real(sp), dimension(npft) :: turnover_ind  !total turnover of living biomass per
 real(sp), dimension(npft) :: pftCflux	   !total annual carbon flux from agricultural biomass burning, per PFT (g m-2 yr-1)
 
 real(sp), dimension(npft,ncvar) :: bm_inc  !annual biomass increment (gC/m2)
+! real(sp), dimension(npft,ncvar) :: agpp    !annual gridcell GPP (gC/m2)
 real(sp), dimension(npft,ncvar) :: alresp  !annual gridcell leaf respiration (gC/m2)
 
 !height class variables
@@ -212,8 +214,10 @@ real(sp), pointer :: mat20        !20-year average mean annual temperature (deg 
 real(sp), pointer :: snow0
 real(sp), pointer :: tilecarbon
 real(sp), pointer :: forager_pd  !forager population density (persons km-2)
+integer,  pointer :: humfires    !cumulative number of human-caused fires
 real(sp), pointer :: grasscover  !grass cover
 real(sp), pointer :: dgrassdt    !grass annual change
+real(sp), pointer :: agBB        !agricultural biomass burning (kg dry matter m-2 a-1)
 
 !ntiles
 
@@ -287,7 +291,13 @@ real(sp), pointer, dimension(:,:) :: mLAI
 
 !month
 real(sp), pointer, dimension(:) :: mburnedf	!monthly burned area fraction of gridcell
-integer, dimension(12) :: nosnowdays		!number of days in a month with temp > 0. without snowcover
+
+integer, dimension(12) :: nosnowdays		!number of days in a month with temp > 0. and without snowcover
+
+real(sp), dimension(12) :: nosnowdaysf		!fraction of days in a month with temp > 0. and without snowcover
+
+integer :: allnosnowdays                                  
+
 
 !additional local variables
 real(sp) :: avg_cont_area	! average size of a natural patch at a given landuse fraction of the gridcell, in m2
@@ -297,7 +307,6 @@ real(sp) :: avg_patch_number 	! average number of natural patches per gridcell a
 real(sp) :: median_distance	! auxiliary for median distance to the edge of a natural patch, in (m)
 real(sp) :: nbl			! normalized boundary length; for boundary between natural and used part; normalized to 
                                 ! the max. possible boundary length when having a chessboard-type distribution of kernels
-integer(sp) :: allnosnowdays                                  
 
 real(sp) :: clay_mean ! Moyenne du clay dans les differents tiles
 
@@ -338,9 +347,9 @@ co2 = in%co2
 !co2 = 324.
  
 if (ntiles > 1) then
-  lucc = .true.
+  dolanduse = .true.
 else
-  lucc = .false.
+  dolanduse = .false.
 end if
 
 !import handle incoming input and state variables
@@ -567,14 +576,15 @@ call climate20(temp,dtemps,gdd,mtemp_min_buf,gdd_buf,mtemp_min20,gdd20,mtemp_max
 call bioclim(mtemp_min20,gdd,mtemp_max,survive,estab_lim)
 
 !--------------------------------------------------------------------------------------
-if (lucc) then
+if (dolanduse) then
 
-  unusable = in%human%landuse(1)
-  cropfrac = in%human%landuse(2)
+  cropfrac     = in%human%landuse(1)
+  pastfrac     = in%human%landuse(2)
+  managedburnf = in%human%landuse(3)
   
-  call alcc(j,in,osv,cropfrac,unusable,coverfrac,recoverf)
+  call alcc(j,in,osv,cropfrac,pastfrac,coverfrac,recoverf)
   
-  !write(stdout,*)'alcc',unusable,cropfrac,coverfrac
+  ! write(stdout,'(a,5f6.2)')'alcc',cropfrac,pastfrac,coverfrac
 
 end if
 
@@ -636,11 +646,13 @@ do i = 1,3 !ntiles
   tilecarbon       => osv%tile(i)%tilecarbon
   w                => osv%tile(i)%w
   forager_pd       => osv%tile(i)%forager_pd
+  humfires         => osv%tile(i)%cumfires
   grasscover       => osv%tile(i)%grasscover
   dgrassdt         => osv%tile(i)%dgrassdt
   mLAI             => osv%tile(i)%mLAI
   mBBpft           => osv%tile(i)%mBBpft
-  mburnedf	   => osv%tile(i)%mburnedf
+  mburnedf         => osv%tile(i)%mburnedf
+  agBB    	       => osv%tile(i)%agBB
 
   !--------------------------------------------------------------------------------------
   !initializations (needed?)
@@ -716,8 +728,8 @@ else
   FRI20 = 100000.
 end if
 
-if (FRI20 < 50.) estab(1) = .false.
-if (FRI20 < 30.) estab(4) = .false.
+! if (FRI20 < 50.) estab(1) = .false.
+! if (FRI20 < 30.) estab(4) = .false.
 
 ! ===== end special conditions =====
   
@@ -763,20 +775,26 @@ if (FRI20 < 30.) estab(4) = .false.
 
   snow0 = snowpack(365)
   
-  nosnowdays = 0.
+  nosnowdays = 0
 
   a = 1
   do m = 1,12
 
     b = a + ndaymonth(m) - 1
-    
-    if(temp(m) > 0.) nosnowdays(m) = count(snowpack(a:b) <= 0.)
+        
+    if (temp(m) > 0.) nosnowdays(m) = count(snowpack(a:b) <= 0.)
 
     a = b + 1
 
   end do
   
   allnosnowdays = sum(nosnowdays)
+  
+  if (allnosnowdays == 0) then
+    nosnowdaysf = 0.
+  else
+    nosnowdaysf = real(nosnowdays) / real(allnosnowdays)
+  end if    
 
   !if (in%idx == 1) write(*,*)'outgoing',snow0,treefrac
   
@@ -968,11 +986,33 @@ if (FRI20 < 30.) estab(4) = .false.
   osv%carbon%crop_harvest = 0.
   
   !----------------------------------------------------------------------------
-  !landscape fractioning, based on assumption that subgrid-kernels will be randomely distributed; calculations based on a testgrid of 10000 sub-kernels
+  !landscape fractioning, based on assumption that subgrid-kernels will be randomly distributed; calculations based on a testgrid of 10000 sub-kernels
 
   call landscape_fractality(coverfrac, in%cellarea, avg_cont_area, totnat_area, avg_patch_number, median_distance, nbl) 
   
+  !----------------------------------------------------------------------------
+  !foragers
+
+  if (i /= 2 .and. ((spinup .and. year > 100) .or. .not. spinup) .and. in%human%hg_present) then 
+    
+    call simpleforagers(in%human%popd(1),pft%tree,anpp(:,1),fpc_grid,in%cellarea,forager_pd)  !this routine calculates forager PD dynamically
+    
+    osv%tile(i)%forager_pd_buf = eoshift(osv%tile(i)%forager_pd_buf,-1,forager_pd)
+          
+  else if(.not.in%human%hg_present) then
+    
+    forager_pd = 0. 
+    
+    osv%tile(i)%forager_pd_buf = 0.
+
+  else
+    
+    forager_pd = in%human%popd(1)  !initial density for foragers based on archaeological site density
+
+  end if
+
   !---------------------------------------------------------------------------- 
+  !FIRE --- this section needs to be cleaned up ---
   
 !  goto 20
   
@@ -984,17 +1024,21 @@ if (FRI20 < 30.) estab(4) = .false.
     
 !    write(stdout,'(a,i3,9f14.4)') 'after harvest',i, litter_ag_fast(:,1)
         
-    call managedburn(i,j,acflux_fire(1),afire_frac,litter_ag_fast(:,1),pftCflux)
+    call managedburn(i,j,acflux_fire(1),afire_frac,litter_ag_fast(:,1),pftCflux,managedburnf)
     
-!    write(stdout,'(a,13i5,f14.7)') 'after managedburn', nosnowdays, allnosnowdays, afire_frac
+!     write(stdout,'(a,13i5,f14.7)') 'after managedburn', nosnowdays, allnosnowdays, afire_frac
     
     do m = 1, 12
     
-         mBBpft(:,m) = pftCflux(:) * real(nosnowdays(m))/real(allnosnowdays)  * 0.001 * 1./0.45	!distribute the pftCflux equally on all days with a monthly temperature > 0. degrees Celsius
-      									!convert from g C to kg dry matter, hence the multiplication factors
-         mburnedf(m) = afire_frac * real(nosnowdays(m))/real(allnosnowdays)       
-                    
-    end do     
+     	  ! distribute the pftCflux equally on all days with a monthly temperature > 0. degrees Celsius
+      	! convert from g C to kg dry matter, hence the multiplication factors
+    
+         mBBpft(:,m) = pftCflux(:) * nosnowdaysf(m) * c2om * 0.001
+         mburnedf(m) = afire_frac  * nosnowdaysf(m)
+
+    end do
+    
+    agBB = sum(mBBpft)  !total annual agricultural biomass burning
       
 !    write(stdout,'(9f14.7)')  mpftCflux
 !    write(stdout,'(12f14.7)')  temp
@@ -1005,7 +1049,7 @@ if (FRI20 < 30.) estab(4) = .false.
     
 !    goto 20
 
-    if (dospitfire .and. ((spinup .and. year > 0) .or. .not. spinup)) then
+    if (dospitfire .and. ((spinup .and. year > 10) .or. .not. spinup)) then
       
       burnedf20 = sum(osv%tile(i)%burnedf_buf) / real(climbuf)
       
@@ -1024,7 +1068,7 @@ if (FRI20 < 30.) estab(4) = .false.
 !          osv%annburntarget(1) = max(osv%annburntarget(1) - 0.05,0.)
 !       end if
 !        osv%annburntarget(1)= max(min(1.*(1-grasscover)*max(-dgrassdt,0.)/0.01,1.),0.)
-        osv%annburntarget(1)= max(min(1.*(1-grasscover)*max(-dgrassdt,0.)/0.05,1.),0.) 
+        osv%annburntarget(1) = max(min(1.*(1-grasscover)*max(-dgrassdt,0.)/0.05,1.),0.) 
       end if
 
 !      write(stdout,*)osv%annburntarget(1),grasscover,dgrassdt
@@ -1041,7 +1085,7 @@ if (FRI20 < 30.) estab(4) = .false.
         
         do dm = 1,ndaymonth(m)
         
-          call spitfire(year,i,j,d,in,met_out(d),dw1(d),snowpack(d),dphen(d,:),wscal_v(d,:),osv,spinup,avg_cont_area,burnedf20,forager_pd20,FDI,omega_o0,omega0,BBpft,Ab,hclass)
+          call spitfire(year,i,j,d,in,met_out(d),dw1(d),snowpack(d),dphen(d,:),wscal_v(d,:),osv,spinup,avg_cont_area,burnedf20,forager_pd,FDI,omega_o0,omega0,BBpft,Ab,hclass)
 
           mBBpft(:,m) = mBBpft(:,m) + BBpft  !accumulate biomass burned totals
           
@@ -1050,6 +1094,9 @@ if (FRI20 < 30.) estab(4) = .false.
           d = d + 1
 
         end do
+        
+!         write(0,*)m,mBBpft(:,m)
+        
       end do
       
       !add the agricultural burned biomass to the total burned biomass, by PFT
@@ -1070,9 +1117,11 @@ if (FRI20 < 30.) estab(4) = .false.
     end if
   end if
   
-!  write(stdout,*) 'tile', i
-!  write(stdout,'(12f12.7)') mburnedf
-!  write(stdout,*)
+  humfires = cumhumig
+  
+!  write(0,*) 'tile', i
+!  write(0,'(12f12.7)') mburnedf
+!  write(0,*)
   
   20 continue
 
@@ -1107,7 +1156,7 @@ if (FRI20 < 30.) estab(4) = .false.
 
   if (any(fpc_grid < 0.)) then
     write(stdout,*)'light1',in%lon,in%lat,fpc_grid
-    stop
+    fpc_grid = max(fpc_grid,0.)
   end if
 
   call light(present,pft%tree,lm_ind,sm_ind,hm_ind,rm_ind,crownarea,fpc_grid,fpc_inc,nind,litter_ag_fast,litter_ag_slow,litter_bg,sla,fpc_tree_max)
@@ -1116,7 +1165,7 @@ if (FRI20 < 30.) estab(4) = .false.
   
   if (any(fpc_grid < 0.)) then
     write(stdout,*)'light2',in%lon,in%lat,fpc_grid  !'(a,2f10.2,9f14.7)'
-    stop
+    fpc_grid = max(fpc_grid,0.)
   end if
   
 !  write(stdout,'(a,i4,10f8.3)')'after light',year,fpc_grid,sum(fpc_grid)
@@ -1160,40 +1209,6 @@ if (FRI20 < 30.) estab(4) = .false.
 
   tilecarbon = livebiomass + litterC_fast + litterC_slow + litterC_bg + cpool_surf(1) + cpool_fast(1) + cpool_slow(1)
   
-!  write(stdout,*) 'before forager routines'
-
-!  goto 40
-
-  if (i /= 2 .and. ((spinup .and. year > startyr_foragers) .or. .not. spinup) .and. in%human%foragerPD > 0.) then 
-    
-!    call foragers(apet,aaet,in%elev,in%lat,grid_npp(1),livebiomass,soilpar(3),temp,prec,mw1,forager_ppd)
-    
-!    write(stdout,*) 'after call to foragers: ', forager_ppd
-    
-!    call popgrowth(forager_ppd,forager_pd,forager_fin,forager_fout)
-    
-!    write(stdout,*) 'after call to popgrowth:', forager_pd
-
-    !write(stdout,*)'before call to simpleforagers',year,forager_pd
-
-    call simpleforagers(in%human%foragerPD,pft%tree,anpp(:,1),fpc_grid,forager_pd)
-
-    !write(*,*)year,forager_pd
-
-    !forager_pd = 0.025
-    
-    osv%tile(i)%forager_pd_buf = eoshift(osv%tile(i)%forager_pd_buf,-1,forager_pd)
-      
-  else if(in%human%foragerPD == 0.) then
-    
-    forager_pd = 0. 
-    
-    osv%tile(i)%forager_pd_buf = 0.   
-
-  end if
-  
-!  40 continue
-
   a = 1
   do m = 1,12
 

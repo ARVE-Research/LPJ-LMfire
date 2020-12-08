@@ -1,6 +1,6 @@
 module getyrdatamod
 
-use parametersmod, only : stdout,stderr
+use parametersmod, only : stdout,stderr,i2,sp
 
 !get all data that changes on a yearly basis
 
@@ -9,8 +9,11 @@ implicit none
 public  :: getco2
 public  :: getdata
 private :: getclimate
-private :: getlucc
+private :: gethumans
 private :: gettopo
+
+integer(i2), parameter :: missing  = -32768
+real(sp),    parameter :: rmissing =  -9999.
 
 contains
 
@@ -75,6 +78,8 @@ allocate(co2vect(transientyears))
 
 ncstat = nf90_inq_varid(ncid,'co2',varid)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+write(stdout,*)'getco2',srt,transientyears
   
 ncstat = nf90_get_var(ncid,varid,co2vect,start=[srt],count=[transientyears])
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
@@ -91,7 +96,7 @@ end subroutine getco2
 subroutine getdata(ncells,year,cal_year,firstyear,time0,in_master)
 
 use mpistatevarsmod,only : inputdata
-use iovariablesmod, only : ibuf,soil,lucc,climateyears,co2vect,calcforagers,startyr_foragers
+use iovariablesmod, only : ibuf,soil,calchumans,climateyears,co2vect,startyr_foragers
 use orbitmod,       only : calcorbitpars,orbitpars
 use parametersmod,  only : sp
 
@@ -131,13 +136,9 @@ call calcorbitpars(cal_year,orbit)
 if (year == 1 .or..not.in_master(1)%spinup) then  !we need to get annual topo data
   call gettopo(year,cal_year)
 
-  if (calcforagers) then
-    call getforg(cal_year)
-    
-    in_master%startyr_foragers = startyr_foragers
+  if (calchumans) then
 
-  else if (lucc) then
-    call getlucc(cal_year)
+    call gethumans(cal_year)
 
   else  !run without people
 
@@ -203,24 +204,18 @@ do i = 1,ncells
   in_master(i)%orbit%pre    = orbit%pre
   in_master(i)%orbit%perh   = orbit%perh
   in_master(i)%orbit%xob    = orbit%xob
-
-  if (calcforagers) then
-    in_master(i)%human%foragerPD = ibuf(x,y)%popd(1)
-  else
-    in_master(i)%human%foragerPD = 0.
-  end if
   
-  if (lucc) then
-    in_master(i)%human%lu_turnover   = ibuf(x,y)%lu_turnover
-    in_master(i)%human%popd          = ibuf(x,y)%popd          !NB this is an array
-    in_master(i)%human%landuse(1:2)  = ibuf(x,y)%cropfrac(1:2)
-    in_master(i)%human%landuse(3:)   =-1.                      !all other types, set to missing for now
+  if (calchumans) then
+  
+    in_master(i)%human%hg_present   = ibuf(x,y)%hg_present
+    in_master(i)%human%landuse(1:3) = ibuf(x,y)%landuse(1:3)
+    in_master(i)%human%landuse(4:)  =-1.                      !set all other types to missing, for now
     
-    !write(stdout,*)'input landuse',in_master(i)%human%landuse(1:2)
   else
-    in_master(i)%human%popd        =  0          !NB this is an array
-    in_master(i)%human%landuse(1)  =  1  !only natural landuse without lucc file
-    in_master(i)%human%landuse(2:) = -1 
+
+    in_master(i)%human%hg_present   = .false.
+    in_master(i)%human%landuse(1:2) = 0.
+    in_master(i)%human%landuse(3:)  =-1.
     
   end if
 
@@ -251,9 +246,6 @@ integer :: t1
 
 integer :: remainmon
 integer :: tlen
-
-integer(i2), parameter :: missing  = -32768
-real(sp),    parameter :: rmissing =  -9999.
 
 !-------------------------------------
 !check if we need to read in data from the climate data file
@@ -319,15 +311,18 @@ end subroutine getclimate
 
 !------------------------------------------------------------------------------------------------------------
 
-subroutine getlucc(cal_year)
+subroutine gethumans(cal_year)
 
 !this subroutine now modified to work only with integer(2) input files
 
+! 2018.05: this subroutine now reads three quantities: crop and pasture land use fraction, and hunter-gatherer presence
+! I believe that is all that is necessary for calculating managed fire and h-g dynamics
+
 use netcdf
 use typesizes
-use parametersmod,  only : i2
+use parametersmod,  only : sp,i1,i2
 use errormod,       only : netcdf_err,ncstat
-use iovariablesmod, only : ibuf,srtx,cntx,srty,cnty,lucctime,popfid,popdtime,nolanduse
+use iovariablesmod, only : ibuf,srtx,cntx,srty,cnty,humanfid,popdtime,nolanduse,lu_sf,lu_ao
 
 implicit none
 
@@ -335,8 +330,9 @@ integer, intent(in) :: cal_year   !should be calendar year in yr BP (1950)
 
 integer :: x,y
 
-real,                     dimension(cntx,cnty) :: rvals
-integer(i2), allocatable, dimension(:,:) :: svals
+integer(i1), dimension(cntx,cnty) :: bvals
+integer(i2), dimension(cntx,cnty) :: svals
+real(sp),    dimension(cntx,cnty) :: rvals
 
 real :: scale_factor
 real :: add_offset
@@ -352,93 +348,88 @@ real :: lu_turnover
 integer :: xtype
 
 !-------------------------------------------------------------------------------------
-!this part removed because now we use a consolidate population and land use file
-
-!tloc = minloc(abs(lucctime - cal_year))
-
-!srtt = tloc(1)
-
-! if (nolanduse) then
-!
-!   do y = 1,cnty
-!     do x = 1,cntx
-!       ibuf(x,y)%cropfrac = 0.
-!     end do
-!   end do
-!
-! else
-!
-! !-----------------
-! !unusable fraction
-!
-! ncstat = nf90_inq_varid(luccfid,'unusable',varid)
-! if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
-!
-! ncstat = nf90_get_var(luccfid,varid,svals,start=[srtx,srty,srtt],count=[cntx,cnty,1])
-! if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
-!
-! ncstat = nf90_get_att(luccfid,varid,'scale_factor',scale_factor)
-! if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
-!
-! do y = 1,cnty
-!   do x = 1,cntx
-!     ibuf(x,y)%cropfrac(1) = scale_factor * real(svals(x,y))
-!   end do
-! end do
-!end if
-!-------------------------------------------------------------------------------------
 
 tloc = minloc(abs(popdtime - cal_year))
 
 srtt = tloc(1)
 
 !-----------------
-!intensive land use
+! crop land use fraction
 
-ncstat = nf90_inq_varid(popfid,'land_use',varid)
+ncstat = nf90_inq_varid(humanfid,'lu_crop',varid)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
-ncstat = nf90_inquire_variable(popfid,varid,xtype=xtype)
+ncstat = nf90_get_var(humanfid,varid,svals,start=[srtx,srty,srtt],count=[cntx,cnty,1])
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
-
-if (xtype == nf90_short) then
-  
-  ncstat = nf90_get_att(popfid,varid,'scale_factor',scale_factor)
-  if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
-
-  ncstat = nf90_get_att(popfid,varid,'add_offset',add_offset)
-  if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
-
-  allocate(svals(cntx,cnty))
-  
-  ncstat = nf90_get_var(popfid,varid,svals,start=[srtx,srty,srtt],count=[cntx,cnty,1])
-  if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
-    
-  rvals = real(svals) * scale_factor + add_offset
-  
-  deallocate(svals)
-  
-else if (xtype == nf90_float) then
-  
-  ncstat = nf90_get_var(popfid,varid,rvals,start=[srtx,srty,srtt],count=[cntx,cnty,1])
-  if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
-
-else  !
-
-  write(stdout,*)'error, the landuse variable is in an invalid type! ',xtype
-  stop
-
-end if
 
 do y = 1,cnty
   do x = 1,cntx
-    ibuf(x,y)%cropfrac(1) = 0.          !unusable fraction set to zero for now
-    ibuf(x,y)%cropfrac(2) = rvals(x,y)  !intensive land use
+    if (svals(x,y) /= missing) then
+      ibuf(x,y)%landuse(1) = real(svals(x,y)) * lu_sf + lu_ao  ! cropland land use
+    else
+      ibuf(x,y)%landuse(1) = 0.
+    end if
   end do
 end do
 
-!write(stdout,'(a,2i5,5f10.4)')'getlucc',cal_year,srtt,ibuf(1,1)%cropfrac,ibuf(1,1)%popd
-!write(stdout,*)'getlucc',cal_year,srtt
+!-----------------
+! pasture land use fraction
+
+ncstat = nf90_inq_varid(humanfid,'lu_past',varid)
+if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+ncstat = nf90_get_var(humanfid,varid,svals,start=[srtx,srty,srtt],count=[cntx,cnty,1])
+if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+do y = 1,cnty
+  do x = 1,cntx
+    if (svals(x,y) /= missing) then
+      ibuf(x,y)%landuse(2) = real(svals(x,y)) * lu_sf + lu_ao  ! pasture land use
+    else
+      ibuf(x,y)%landuse(2) = 0.
+    end if
+  end do
+end do
+
+!-----------------
+! hunter-gatherer presence
+
+ncstat = nf90_inq_varid(humanfid,'hg_presence',varid)
+if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+ncstat = nf90_get_var(humanfid,varid,bvals,start=[srtx,srty,srtt],count=[cntx,cnty,1])
+if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+    
+do y = 1,cnty
+  do x = 1,cntx
+  
+    if (bvals(x,y) > 0) then
+      ibuf(x,y)%hg_present = .true.
+    else
+      ibuf(x,y)%hg_present = .false.
+    end if
+
+  end do
+end do
+
+!-----------------
+! burned fraction on managed land
+
+ncstat = nf90_inq_varid(humanfid,'ag_burn',varid)
+if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+ncstat = nf90_get_var(humanfid,varid,svals,start=[srtx,srty,srtt],count=[cntx,cnty,1])
+if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+do y = 1,cnty
+  do x = 1,cntx
+    if (svals(x,y) /= missing) then
+      ibuf(x,y)%landuse(3) = real(svals(x,y)) * lu_sf + lu_ao  ! burned fraction on managed land
+    else
+      ibuf(x,y)%landuse(3) = 0.
+    end if
+  end do
+end do
 
 !-----------------
 !land use turnover
@@ -457,99 +448,7 @@ do y = 1,cnty
   end do
 end do
 
-!-----------------
-!population density
-
-ncstat = nf90_inq_varid(popfid,'hunter_gatherers',varid)
-
-if (ncstat == -49) then  !no population data in the input dataset, ignore the rest of this routine
-
-  return
-
-else if (ncstat /= nf90_noerr) then 
-
-  call netcdf_err(ncstat)  !write the error message and abort
-
-end if
-
-!otherwise, retrieve the data
-
-ncstat = nf90_get_var(popfid,varid,rvals,start=[srtx,srty,srtt],count=[cntx,cnty,1])
-if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
-
-do y = 1,cnty
-  do x = 1,cntx
-    ibuf(x,y)%popd(1) = rvals(x,y)
-  end do
-end do
-
-ncstat = nf90_inq_varid(popfid,'farmers',varid)
-if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
-
-ncstat = nf90_get_var(popfid,varid,rvals,start=[srtx,srty,srtt],count=[cntx,cnty,1])
-if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
-
-do y = 1,cnty
-  do x = 1,cntx
-    ibuf(x,y)%popd(2) = rvals(x,y)
-  end do
-end do
-
-ncstat = nf90_inq_varid(popfid,'pastoralists',varid)
-if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
-
-ncstat = nf90_get_var(popfid,varid,rvals,start=[srtx,srty,srtt],count=[cntx,cnty,1])
-if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
-  
-do y = 1,cnty
-  do x = 1,cntx
-    ibuf(x,y)%popd(3) = rvals(x,y)
-  end do
-end do
-
-
-
-
-
-end subroutine getlucc
-
-!------------------------------------------------------------------------------------------------------------
-
-subroutine getforg(cal_year)
-
-use netcdf
-use typesizes
-use parametersmod,  only : sp
-use errormod,       only : netcdf_err,ncstat
-use iovariablesmod, only : ibuf,srtx,cntx,srty,cnty,popfid,popdtime
-
-implicit none
-
-integer, intent(in) :: cal_year   !should be calendar year in yr BP (1950)
-
-integer :: varid
-
-integer :: srtt
-integer, dimension(1) :: tloc
-
-real(sp), dimension(cntx,cnty) :: rvar
-
-!-------------------------------------------------------------------------------------
-!potential density of hunter-gatherers (based on archaeological site density)
-
-tloc = minloc(abs(popdtime - cal_year))
-
-srtt = tloc(1)
-!write (*,*) "getforg(), srtt: ", srtt
-ncstat = nf90_inq_varid(popfid,'foragerPD',varid)
-if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
-
-ncstat = nf90_get_var(popfid,varid,rvar,start=[srtx,srty,srtt],count=[cntx,cnty,1])
-if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
-
-ibuf%popd(1) = rvar
-!write (*,*) "getforg() minmaxpopd1: ", minval(ibuf%popd(1)), maxval(ibuf%popd(1))
-end subroutine getforg
+end subroutine gethumans
 
 !------------------------------------------------------------------------------------------------------------
 

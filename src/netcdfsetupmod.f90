@@ -34,7 +34,7 @@ use netcdf
 use errormod, only : ncstat,netcdf_err
 
 use parametersmod,  only : npft,lutype
-use iovariablesmod, only : ofid,lonvect,latvect,srtx,cntx,endx,srty,cnty,endy,outputfile,outputvar,cellindex,cellmask,calcforagers
+use iovariablesmod, only : ofid,lonvect,latvect,srtx,cntx,endx,srty,cnty,endy,outputfile,outputvar,cellindex,cellmask,calchumans,cal_year
 
 implicit none
 
@@ -57,6 +57,8 @@ real :: xres
 real :: yres
 
 integer, allocatable, dimension(:) :: pftnum
+
+character(40) :: yearstring
 
 character(40), dimension(2), parameter :: varlabel = ['landf' ,'foragerPD']  !names of variables that will be automatically output
 
@@ -209,15 +211,22 @@ if (ncstat/=nf90_noerr) call netcdf_err(ncstat)
 ncstat = nf90_put_att(ofid,varid,'long_name','time')
 if (ncstat/=nf90_noerr) call netcdf_err(ncstat)
 
-ncstat = nf90_put_att(ofid,varid,'units','years since 1950-00-00 00:00')
+write(yearstring,'(a,i4,a)')'years since ',1950-cal_year,'-01-01'
+
+ncstat = nf90_put_att(ofid,varid,'units',trim(yearstring))
+if (ncstat/=nf90_noerr) call netcdf_err(ncstat)
+
+ncstat = nf90_put_att(ofid,varid,'calendar','standard')
 if (ncstat/=nf90_noerr) call netcdf_err(ncstat)
 
 !---------------------------------------------------------------------------
 !regular variables
 
+write(stdout,*)'done declaring dimension variables'
+
 outputvar = eoshift(outputvar,-1,varlabel(1))
   
-if (calcforagers) then
+if (calchumans) then
   outputvar = eoshift(outputvar,-1,varlabel(2))
 end if
 

@@ -44,7 +44,7 @@ end type soildata  !26 elements
 !---
 
 type humandata
-  real(sp)               :: foragerPD    !potential density of hunter-gatherers
+  logical                :: hg_present   !potential presence of hunter-gatherers
   real(sp), dimension(3) :: popd         !human population density (persons km-2) (three different types)
   real(sp), dimension(8) :: landuse      !land use fractions (up to 8 different types of land use)
   real(sp)               :: lu_turnover  !fallow period before re-cultivation (yrs)
@@ -106,6 +106,7 @@ type subgrid
   integer  :: cumfires      !cumulative number of burning fires
   real(sp) :: grasscover    !decadal running mean grass cover fraction
   real(sp) :: dgrassdt      !rate of change of decadal running mean grass cover fraction
+  real(sp) :: agBB          !agricultural biomass burning (kg dry matter m-2 a-1)
 
   !soil layer: 2 elements
 

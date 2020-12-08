@@ -22,7 +22,7 @@ use typesizes
 use netcdf
 use errormod, only : ncstat,netcdf_err
 
-use iovariablesmod,  only : cntx,cnty,ofid,cellmask,calcforagers
+use iovariablesmod,  only : cntx,cnty,ofid,cellmask,calchumans
 use parametersmod,   only : npft
 use mpistatevarsmod, only : statevars,inputdata
 
@@ -41,6 +41,8 @@ integer :: varid
 
 integer :: i,j,x,y
 integer :: ntiles
+integer :: pft
+integer :: m
 
 real(sp), allocatable, dimension(:) :: rvar1d
 
@@ -79,7 +81,7 @@ call putvar2d(ofid,tpos,'landf',rvar1d)
 
 !---
 
-if (calcforagers) then
+if (calchumans) then
 
   !forager population density
 
@@ -450,22 +452,16 @@ deallocate(rvar4d)
 
 allocate(rvar4d(cntx,cnty,npft,12))
 
-rvar4d = 0.
+rvar4d = rmissing
 
 do i = 1,ncells
   
   x = in_master(i)%xpos
   y = in_master(i)%ypos
-
+  
   if (.not.cellmask(x,y)) cycle
 
-  do j = 1, ntiles
-
-    rvar4d(x,y,:,:) = rvar4d(x,y,:,:) + sv(i)%tile(j)%mBBpft * sv(i)%tile(j)%coverfrac
-   
-  end do  
-
-!  rvar4d(x,y,:,:) = sv(i)%tile(1)%mBBpft  !unpack into a 4D array
+  rvar4d(x,y,:,:) = sv(i)%tile(1)%mBBpft * sv(i)%tile(1)%coverfrac + sv(i)%tile(2)%mBBpft * sv(i)%tile(2)%coverfrac + sv(i)%tile(3)%mBBpft * sv(i)%tile(3)%coverfrac
 
 end do
 
