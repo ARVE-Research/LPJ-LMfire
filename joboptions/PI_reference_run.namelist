@@ -4,11 +4,11 @@
  dotransient      = .false.
  spinupyears      = 15 !1020 !36 30-year cycles
  transientyears   = 140  
- cfile_spinup     = '/Volumes/arve/shared/datasets/climate/dgvm_input/timeslice/spinup1871.nc'
- soilfile         = '/Volumes/arve/shared/datasets/soils/soilgrids1km/soil000ka/soil30m.nc'
- co2file          = '/Volumes/arve/shared/datasets/GHG/ghg2.nc'
- topofile         = '/Volumes/arve/shared/datasets/topo/dgvm_input/topofile_integrated_000ka.nc'
- pftparsfile      = '/Users/jkaplan/Documents/science_projects/lpjmpi/github/LPJ-LMfire/pftpars_global.csv'
+ cfile_spinup     = '/home/terraces/datasets/dgvm_input/climate/spinup1871.nc'
+ soilfile         = '/home/terraces/datasets/dgvm_input/soils/soil30m.nc'
+ co2file          = '/home/terraces/datasets/dgvm_input/ghg/ghg2.nc'
+ topofile         = '/home/terraces/datasets/dgvm_input/topography/topofile_integrated_000ka.nc'
+ pftparsfile      = '/home/akoch/LPJ/LPJ-LMfire/pftpars_global.csv'
  nspinyrsout      = 1020
  maxmem           = 12288.
  lu_turn_yrs      = 0.
@@ -20,3 +20,4 @@
 
 ! typical LPJ-LMfire usage for a global model run (domain set by the minlon/maxlon/minlat/maxlat string)
 ! mpirun --prefix <path to your mpi installation> -hostfile <hostfile if your system uses that> -np 84 src/lpj <path/name of joboptions namelist file (thisfile) -180/180/-90/90 <output file name>
+! mpirun --mca pml ob1 --mca btl ^openib -np 20 src/lpj joboptions/PI_reference_run.namelist 50/51/50/51 /home/akoch/test.nc

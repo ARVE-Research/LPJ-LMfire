@@ -141,6 +141,7 @@ do m = 1,12
   !-----
 
   met_in%prec = prec(m)
+  
   met_in%wetd = wetd(m)
   met_in%wetf = wetd(m) / ndaymonth(m)            !++TODO: this doesn't take into account leap years
 
@@ -171,7 +172,8 @@ do m = 1,12
 
     mprec_sim = sum(met_out(a:b)%prec)
 
-    if (prec(m) == 0. .or. abs((prec(m) - mprec_sim) / prec(m)) < 0.05) exit
+    if (prec(m) == 0.) exit
+    if (abs((prec(m) - mprec_sim) / prec(m)) < 0.05) exit
 
     i = i + 1
     
@@ -631,7 +633,7 @@ real(sp) function esat(temp)
   esat = a(0)
   
   do i = 1,8
-    esat = esat + a(i) * T**i
+  	esat = esat + a(i) * T**i
   end do
   
   esat = 100. * esat

@@ -15,18 +15,18 @@ FC = mpifort
 # OR
 # debugging flags for ifort
 
-FCFLAGS = -debug -fpe0 -traceback -g -check -check noarg_temp_created # -warn all
+# FCFLAGS = -debug -fpe0 -traceback -g -check -check noarg_temp_created # -warn all
 
 # OR
 # debugging flags for gfortran
 
-# FCFLAGS  = -ffree-line-length-none -finit-local-zero -fcheck=all -ffpe-trap=invalid,zero,overflow,underflow -g -fbacktrace -Wall -pedantic
+FCFLAGS  = -ffree-line-length-none -march='native' -funroll-loops -O3#-finit-local-zero -fcheck=all -ffpe-trap=invalid,zero,overflow,underflow -g -fbacktrace -Wall -pedantic 
 
 #---------------------------------------------
 # specify the location of your netcdf install
 
 # netcdf=/alcc/gpfs2/home/geo/georwa/local
-netcdf=/usr/local
+netcdf=/home/public/easybuild/software/netCDF-Fortran/4.5.2-gompi-2020a
 
 #---- should not need to change anything below this line ----
 
