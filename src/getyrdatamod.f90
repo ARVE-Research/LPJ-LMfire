@@ -169,16 +169,20 @@ if (year == 1) then
     in_master(i)%elev      = soil(x,y)%elv
     in_master(i)%slope     = soil(x,y)%slopeangle  !FLAG: added by MP, 13.12.2011
     in_master(i)%landf     = soil(x,y)%landf       !FLAG: added by MP, 09.08.2012
-    in_master(i)%soil%sand = soil(x,y)%sand
-    in_master(i)%soil%clay = soil(x,y)%clay
-    in_master(i)%soil%orgm = soil(x,y)%orgm
-    in_master(i)%soil%zpos = soil(x,y)%zpos
+    in_master(i)%soil%sand = soil(x,y)%sand(1:2)	!ONLY FIRST 2 OF 6 ARE USED
+    in_master(i)%soil%clay = soil(x,y)%clay(1:2)	!ONLY FIRST 2 OF 6 ARE USED
+    in_master(i)%soil%orgm = soil(x,y)%orgm(1:2)	!ONLY FIRST 2 OF 6 ARE USED
+    in_master(i)%soil%zpos = soil(x,y)%zpos(1:2)	!ONLY FIRST 2 OF 6 ARE USED
     
-!     write(stdout,*)'SETTING OUTPUT SOIL' 
+    
+!         write(stdout,*)'SETTING OUTPUT SOIL' 
 !     write(stdout,*)in_master(i)%soil%sand
-! 				write(stdout,*)in_master(i)%soil%clay
+! 				c
 ! 				write(stdout,*)in_master(i)%soil%orgm
 ! 				write(stdout,*)in_master(i)%soil%zpos
+
+    
+
 
     !FLAGFLAGFLAG
     
@@ -447,7 +451,7 @@ do y = 1,cnty
     ibuf(x,y)%lu_turnover = lu_turnover
   end do
 end do
-
+write(stdout,*)'lu_turnover',lu_turnover
 end subroutine gethumans
 
 !------------------------------------------------------------------------------------------------------------

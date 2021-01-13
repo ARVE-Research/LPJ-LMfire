@@ -1052,7 +1052,7 @@ end if
     if (dospitfire .and. ((spinup .and. year > 10) .or. .not. spinup)) then
       
       burnedf20 = sum(osv%tile(i)%burnedf_buf) / real(climbuf)
-      
+
       forager_pd20 = sum(osv%tile(i)%forager_pd_buf) / real(climbuf) 
     
 !      write(stdout,*) 'Forager density: ', year, forager_pd20
@@ -1084,9 +1084,9 @@ end if
 !         if (lght(m) > 0.) write(*,*)'METVARS MONTH',year,m,temp(m),prec(m),wetd(m),lght(m)
         
         do dm = 1,ndaymonth(m)
-        
+          
           call spitfire(year,i,j,d,in,met_out(d),dw1(d),snowpack(d),dphen(d,:),wscal_v(d,:),osv,spinup,avg_cont_area,burnedf20,forager_pd,FDI,omega_o0,omega0,BBpft,Ab,hclass)
-
+	      
           mBBpft(:,m) = mBBpft(:,m) + BBpft  !accumulate biomass burned totals
           
           mburnedf(m) = mburnedf(m) + Ab/(in%cellarea * 1e-4) !convert cell area to ha, as Ab is in ha
@@ -1095,7 +1095,7 @@ end if
 
         end do
         
-!         write(0,*)m,mBBpft(:,m)
+!         write(0,*)m,mBBpft(:,m) 
         
       end do
       

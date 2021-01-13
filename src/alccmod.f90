@@ -12,7 +12,7 @@ contains
 
 subroutine alcc(j,input,osv,cropfrac,pastfrac,coverfrac,recoverf)
 
-use parametersmod,   only : sp,npft
+use parametersmod,   only : sp,npft,stdout
 use mpistatevarsmod, only : inputdata,statevars
 
 implicit none
@@ -82,7 +82,9 @@ lndturn = tf * landuse
 !write(stdout,*)'flag 2'
 
 !if the deforestation + turnover is greater than the usable amount, limit clearance to the usable fraction
-
+!write(stdout,*)'landuse',landuse
+!write(stdout,*)'coverfrac',coverfrac(2)
+!write(stdout,*)'lndturn',lndturn
 convf = min(landuse - coverfrac(2) + lndturn,1.)
 
 coverfrac(2) = landuse

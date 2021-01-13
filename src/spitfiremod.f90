@@ -1582,7 +1582,6 @@ Gammaprime = Gammaprimemax * (pratio)**A * exp(A * (1. - pratio))
 
 !---
 !moisture dampening coefficient
-
 nu_M = 1. - 2.59 * relmoist + 5.11 * relmoist**2 - 3.52 * relmoist**3
 
 !---

@@ -168,7 +168,7 @@ wret = sum(soilm * whc)
 
 !calculation of EXPREY (kg/km2)
 
-exprey = 10.**(elef * 5.3081e-5 + llat * -0.300235 + lnpp * 1.200771 + lwatd * -0.11661 + lwatrgrc * 0.216493 + anpp * -4.26495e-4 + rrcorr2 * -0.028577 + wret * -0.008066) !+(wstorage * 0.005171))
+exprey = 10.**(elef * 5.3081e-5 + llat * -0.300235 + lnpp * 1.200771 + lwatd * -0.11661 + lwatrgrc * 0.216493 + anpp * -4.26495e-4 + rrcorr2 * -0.028577 + wret * (-0.008066)) !+(wstorage * 0.005171))
 
 expreya = 100 * (exprey + 0.01)
 

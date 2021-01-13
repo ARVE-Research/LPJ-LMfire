@@ -25,7 +25,7 @@ implicit none
 
 real(dp), parameter :: bmb  = 1048576.d0 !bytes in one Mb
 
-character(4), dimension(nclimv), parameter :: varname = [ 'tmp', 'pre', 'cld', 'wet', 'dtr', 'wnd', 'lght' ]
+character(4), dimension(nclimv) :: varname 
 
 !arguments
 
@@ -82,6 +82,15 @@ write(stdout,'(a,i6,a)')'climate input data contains',climateyears,' years of da
 
 !-------------------------
 !retrieve variable IDs, scale factor and add offset
+varname(1) = 'tmp'
+varname(2) = 'pre'
+varname(3) = 'cld'
+varname(4) = 'wet'
+varname(5) = 'dtr'
+varname(6) = 'wnd'
+varname(7) = 'lght'
+
+
 
 do i = 1,nclimv
 
@@ -93,6 +102,7 @@ do i = 1,nclimv
 
   ncstat = nf90_get_att(cfid,varinfo(i)%varid,'add_offset',varinfo(i)%add_offset)
   if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+  write(stdout,*)trim(varname(i)),varinfo(i)%scale_factor,varinfo(i)%add_offset
 
   write(stdout,'(a5,2f10.4)')trim(varname(i)),varinfo(i)%scale_factor,varinfo(i)%add_offset
 

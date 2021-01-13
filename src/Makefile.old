@@ -1,50 +1,35 @@
-# makefile for LPJ-LMfire
+#makefile
 
-#---------------------------------------------
-# specify the fortran and C compilers here. normally this needs to be the MPI version of the compiler
+#libraries OUCE servers
 
-CC = mpicc
-FC = mpifort
-
-# specify the compiler options. choose either optimized or debugging flags, or neither
-
-# optimized flags for ifort
-
-# FCFLAGS  = -xHost
-
-# OR
-# debugging flags for ifort
-
-# FCFLAGS = -debug -fpe0 -traceback -g -check -check noarg_temp_created # -warn all
-
-# OR
-# debugging flags for gfortran
-
-#FCFLAGS  = -ffree-line-length-none -march='native' -funroll-loops -O3#-finit-local-zero -fcheck=all -ffpe-trap=invalid,zero,overflow,underflow -g -fbacktrace -Wall -pedantic 
-FCFLAGS  = -ffree-line-length-none -finit-local-zero -fcheck=all -ffpe-trap=invalid,zero -g -fbacktrace -Wall -pedantic	-fbounds-check
-#---------------------------------------------
-# specify the location of your netcdf install
-
-# netcdf=/alcc/gpfs2/home/geo/georwa/local
-netcdf=/home/public/easybuild/software/netCDF-Fortran/4.5.2-gompi-2020a
+NC_LIB=/home/public/easybuild/software/netCDF-Fortran/4.5.2-gompi-2020a/lib
+NC_INC=/home/public/easybuild/software/netCDF-Fortran/4.5.2-gompi-2020a/include
 
 #---- should not need to change anything below this line ----
 
-# pointers to netcdf directories
-
-NC_LIB=$(netcdf)/lib
-NC_INC=$(netcdf)/include
-
-# preprocessor and linker flags
-
+CC = mpicc
+FC = mpifort
+LDFLAGS  = -L$(NC_LIB) #-i_dynamic
 CPPFLAGS = -Difort -I$(NC_INC)
-LDFLAGS  = -L$(NC_LIB)
 
-# --- required libraries --- may not always need libcurl, depends on the HDF install
+#---optimized flags for ifort---
+#CFLAGS   = -xHost #-fast
+#FCFLAGS  = -xHost -traceback -O3 #-fast
 
-LIBS     = -lnetcdff -lnetcdf -lhdf5 -lhdf5_hl -lcurl
+#---debugging flags for ifort---
+
+# FCFLAGS = -traceback -fpe0 #-debug -fpe0 -traceback -g -check -check noarg_temp_created #-warn all
+
+#---debugging flags for gfortran---
+
+FCFLAGS  = -FCFLAGS  = -ffree-line-length-none -march='native' -funroll-loops -O3
+
+LIBS     = -lnetcdff -lnetcdf
 
 #note: files without the 'mod' suffix are f77 source that eventually need to be converted
+
+#       lpjstatevarsmod.o       \
+#       statevarsmod.o          \
 
 COREOBJS = overprint.o       \
        parametersmod.o   \
