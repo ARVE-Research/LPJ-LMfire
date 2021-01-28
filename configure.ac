@@ -57,23 +57,6 @@ fi
 
 LDFLAGS="$NETCDF_LIBS $LDFLAGS"
 
-# ----
-# test if we have MPI
-
-# AC_ARG_WITH(mpi, [AS_HELP_STRING([--with-mpi],
-#     [compile with MPI (parallelization) support. If none is found,
-#     MPI is not used. Default: auto])
-# ],,[with_mpi=auto])
-# 
-# AX_PROG_FC_MPI([test x"$with_mpi" != xno],[use_mpi=yes],[
-#   use_mpi=no
-#   if test x"$with_mpi" = xyes; then
-#     AC_MSG_FAILURE([MPI compiler requested, but couldn't use MPI.])
-#   else
-#     AC_MSG_WARN([No MPI compiler found, won't use MPI.])
-#   fi
-# ])
-
 #-----------------------------------------------------------------------
 # set a debugging mode - apparently this is not good usage of autotools
 # but this is not production/distribution software and so being able to

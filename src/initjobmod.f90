@@ -224,6 +224,7 @@ else
 end if
 
 ncstat = nf90_inq_varid(topofid,'elv',elvid)
+if (ncstat == nf90_enotvar) ncstat = nf90_inq_varid(topofid,'elev',elvid)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
 ncstat = nf90_inq_varid(topofid,'slope',slopeid)

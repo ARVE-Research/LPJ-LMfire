@@ -194,12 +194,13 @@ end if
 write(stdout,*)'reading soil data'
 
 ncstat = nf90_inq_dimid(soilfid,'layer',dimid)
+if (ncstat == nf90_ebaddim) ncstat = nf90_inq_dimid(soilfid,'zpos',dimid)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
 ncstat = nf90_inquire_dimension(soilfid,dimid,len=layers)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)  
 
-write(stdout,*)'soil layers input',layers
+write(stdout,'(a,i5)')'soil layers input: ',layers
   
 allocate(depth(layers))
 

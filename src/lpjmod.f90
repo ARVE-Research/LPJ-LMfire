@@ -348,7 +348,7 @@ tmax = in%climate%temp + 0.5 * in%climate%trng
 cldf = in%climate%cldp * 0.01
 lght = in%climate%lght
 wind = in%climate%wind
-wetd = in%climate%wetd
+wetd = in%climate%wetd * ndaymonth
 prec = in%climate%prec
 
 startyr_foragers = in%startyr_foragers

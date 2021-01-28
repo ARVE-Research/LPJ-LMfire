@@ -4,11 +4,11 @@
  dotransient      = .false.
  spinupyears      = 15 !1020 !36 30-year cycles
  transientyears   = 140  
- cfile_spinup     = '/home/terraces/datasets/dgvm_input/climate/spinup1871.nc'
- soilfile         = '/home/terraces/datasets/dgvm_input/soils/soil30m.nc'
+ cfile_spinup     = '/home/terraces/projects/Patagonia/climate/makeclimate/climate-spinup_patagonia.nc'
+ soilfile         = '/home/terraces/projects/Patagonia/soils/soil30c.nc'
  co2file          = '/home/terraces/datasets/dgvm_input/ghg/ghg2.nc'
- topofile         = '/home/terraces/datasets/dgvm_input/topography/topofile_integrated_000ka.nc'
- pftparsfile      = '/home/akoch/LPJ/LPJ-LMfire/pftpars_global.csv'
+ topofile         = '/home/terraces/projects/Patagonia/topo/lpjtopo.nc'
+ pftparsfile      = '/home/terraces/projects/Patagonia/LPJ-LMfire/pftpars_global.csv'
  nspinyrsout      = 1020
  maxmem           = 12288.
  lu_turn_yrs      = 0.
