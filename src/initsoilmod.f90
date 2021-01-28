@@ -17,7 +17,7 @@ use typesizes
 
 use errormod,       only : netcdf_err,ncstat
 use iovariablesmod, only : srtx,cntx,srty,cnty,inputlonlen,inputlatlen,lonvect,latvect,bounds, &
-                           soilfile,soilfid,soil,topofile,projgrid,geolon,geolat
+                           soilfile,soilfid,soil,topofile,projgrid,geolon,geolat,gridres
 use parametersmod,  only : sp,i1
 
 implicit none
@@ -116,6 +116,11 @@ if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
 !-------------------------
 !calculate the starting indices and and number of  pixels to be calculated
+
+gridres(1) = lonvect(2) - lonvect(1)
+gridres(2) = latvect(2) - latvect(1)
+
+write(stdout,*)'input grid resolution: ',gridres
 
 pos = minloc(abs(lonvect - bounds(1)))
 xpos(1) = pos(1)

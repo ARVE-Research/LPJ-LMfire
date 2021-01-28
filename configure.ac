@@ -100,6 +100,27 @@ if test "x$enable_debug" = xyes; then
 
     FCFLAGS="$FCFLAGS -g -O0"
   fi
+
+else 
+  
+  # we are not debugging so use optimized flags
+  
+  if test "x$FC_REALNAME" = xifort; then
+    
+    CPPFLAGS="$CPPFLAGS -Difort"
+    FCFLAGS="$FCFLAGS -xHost"
+
+  elif test "x$FC_REALNAME" = xgfortran; then
+  
+    CPPFLAGS="$CPPFLAGS -Dgfortran"
+    FCFLAGS="$FCFLAGS -march='native' -funroll-loops"
+
+  else 
+
+    dnl  generic debug flags
+
+    FCFLAGS="$FCFLAGS -g -O0"
+  fi
   
 fi
 

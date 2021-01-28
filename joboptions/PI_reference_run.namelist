@@ -2,7 +2,7 @@
  cal_year         = 79   !1871: must be in units cal yr BP (1950)
  dospinup         = .true.
  dotransient      = .false.
- spinupyears      = 15 !1020 !36 30-year cycles
+ spinupyears      = 1020 !36 30-year cycles
  transientyears   = 140  
  cfile_spinup     = '/home/terraces/projects/Patagonia/climate/makeclimate/climate-spinup_patagonia.nc'
  soilfile         = '/home/terraces/projects/Patagonia/soils/soil30c.nc'

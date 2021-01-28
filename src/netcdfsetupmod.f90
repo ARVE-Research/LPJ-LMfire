@@ -33,8 +33,9 @@ use typesizes
 use netcdf
 use errormod, only : ncstat,netcdf_err
 
-use parametersmod,  only : npft,lutype
-use iovariablesmod, only : ofid,lonvect,latvect,srtx,cntx,endx,srty,cnty,endy,outputfile,outputvar,cellindex,cellmask,calcforagers
+use parametersmod,  only : npft,lutype,dp
+use iovariablesmod, only : ofid,lonvect,latvect,srtx,cntx,endx,srty,cnty,endy,outputfile,outputvar,cellindex,cellmask,  &
+                           calcforagers,gridres
 
 implicit none
 
@@ -50,11 +51,11 @@ integer :: reqoutvars
 character(8)  :: today
 character(10) :: now
 
-real, dimension(2) :: xrange
-real, dimension(2) :: yrange
+real(dp), dimension(2) :: xrange
+real(dp), dimension(2) :: yrange
 
-real :: xres
-real :: yres
+real(dp) :: xres
+real(dp) :: yres
 
 integer, allocatable, dimension(:) :: pftnum
 
@@ -66,13 +67,8 @@ character(40), dimension(2) :: varlabel !names of variables that will be automat
 
 call getvarinfo()
 
-!if (size(lonvect) > 1 .and. size(latvect) > 1) then
-!  xres = (lonvect(endx) - lonvect(srtx)) / (size(lonvect) - 1)
-!  yres = (latvect(endy) - latvect(srty)) / (size(latvect) - 1)
-!else
-  xres = 0.5
-  yres = 0.5
-!end if
+xres = gridres(1)
+yres = gridres(2)
 
 write(stdout,*)'input grid resolution',xres,yres,' degrees'
 

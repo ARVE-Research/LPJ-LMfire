@@ -15,10 +15,12 @@ subroutine parsecoords(coordstring,val)
 
 !subroutine to parse a coordinate string
 
+use parametersmod, only : dp
+
 implicit none
 
 character(45),      intent(in)  :: coordstring
-real, dimension(4), intent(out) :: val
+real(dp), dimension(4), intent(out) :: val
 
 character(10), dimension(4) :: cval = '0'
 

@@ -89,14 +89,14 @@ real(sp) :: maxmem      !maximum amount of memory to use for input buffer (Mb),
 
 integer, parameter :: maxibufsize = 300000
 
-real(sp), dimension(4) :: bounds
+real(dp), dimension(4) :: bounds
 
-real(sp), dimension(2) :: gridres
+real(dp), dimension(2) :: gridres
 
-real(sp) :: minlon
-real(sp) :: maxlon
-real(sp) :: minlat
-real(sp) :: maxlat
+real(dp) :: minlon
+real(dp) :: maxlon
+real(dp) :: minlat
+real(dp) :: maxlat
 
 integer :: xlen
 integer :: ylen
