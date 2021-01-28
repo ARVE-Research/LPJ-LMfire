@@ -14,12 +14,13 @@ contains
 subroutine initjob(ncells,ntiles,nlayers,spinupyears,transientyears)
 
 use parametersmod,   only : sp,dp,i8,area
-use iovariablesmod,  only : cfile_spinup,cfile_transient,soilfile,                            &
-                            dospinup,dotransient,co2file,topofile,topofid,elvid,slopeid,landfid,topotime,          &
-                            fixedco2,ocean_uptake,cal_year,nspinyrsout,outputvar,    &
-                            lu_turn_yrs,popdfile,poppfile,maxmem,bounds,                     &
-                            outputfile,srtx,srty,cntx,cnty,endx,endy,inputlonlen,inputlatlen, &
-                            lucc,cellindex,lonvect,latvect,co2vect,nolanduse,nclimv,calcforagers,projgrid,geolon,geolat,startyr_foragers,pftparsfile
+use iovariablesmod,  only : cfile_spinup,cfile_transient,soilfile,                                                        &
+                            dospinup,dotransient,co2file,topofile,topofid,elvid,slopeid,landfid,topotime,                 &
+                            fixedco2,ocean_uptake,cal_year,nspinyrsout,outputvar,                                         &
+                            lu_turn_yrs,popdfile,poppfile,maxmem,bounds,                                                  &
+                            outputfile,srtx,srty,cntx,cnty,endx,endy,inputlonlen,inputlatlen,                             &
+                            lucc,cellindex,lonvect,latvect,co2vect,nolanduse,nclimv,calcforagers,projgrid,geolon,geolat,  &
+                            startyr_foragers,pftparsfile
 use coordsmod,       only : parsecoords
 use initsoilmod,     only : initsoil
 use initclimatemod,  only : initclimate

@@ -252,7 +252,7 @@ do i = 1,nprocs-1  !always subtract the master process that has ID 0 anyway
   
   proc = mpistat(MPI_SOURCE)
 
-  call mpi_send(0,1,MPI_INTEGER,proc,tflag,MPI_COMM_WORLD,ierr)
+  call mpi_send(iobuf,1,MPI_INTEGER,proc,tflag,MPI_COMM_WORLD,ierr)
   
 end do
 

@@ -112,7 +112,8 @@ end subroutine managedburn
 
 !-----------------------------------------------------------------------------------------------------------------------------------------------------
 
-subroutine spitfire(year,i,j,d,input,met,soilwater,snowpack,dphen,wscal,osv,spinup,avg_cont_area,burnedf20,forager_pd20,FDI,omega_o0,omega0,BBpft,Ab,ind)
+subroutine spitfire(year,i,j,d,input,met,soilwater,snowpack,dphen,wscal,osv,spinup,avg_cont_area,burnedf20,forager_pd20,  &
+                    FDI,omega_o0,omega0,BBpft,Ab,ind)
 
 use parametersmod,   only : pir,npft,pi,pft,pftpar
 use weathergenmod,   only : metvars_out
@@ -259,9 +260,9 @@ real(sp) :: treecover
 real(sp) :: grascover
 real(sp) :: totvcover
 
-real(sp) :: Z_ratio                         !ratio between cloud-cloud and cloud-ground lightning, depending on latitude (Prentice and Mackerras, 1977)
-real(sp) :: cg_light                         !number of cloud-ground lightning strikes
-real(sp) :: lat                                 !latitude in radians
+real(sp) :: Z_ratio      !ratio between cloud-cloud and cloud-ground lightning, depending on latitude (Prentice and Mackerras, 1977)
+real(sp) :: cg_light     !number of cloud-ground lightning strikes
+real(sp) :: lat          !latitude in radians
 
 real(sp), dimension(4)      :: woi       !1-, 10-, 100- and 1000-h dead fuel mass summed across all PFTs (g m-2)
 real(sp), dimension(3)      :: woi_g     !dead fuel mass of grass PFTs (g m-2), 1-, 10- and 100-h class
@@ -576,7 +577,7 @@ netfuel = (1. - ST) * sum(woi(1:3))  !net organic part of the fuel (g m-2)
 totfuel = sum(deadfuel) + sum(livefuel) + cpool_surf(1)
 
 if (totfuel < 1000. .or. totvcover < 0.5) then
-  if(bavard)  write(*,'(a16,4i6,13f14.4)')'no_fuel',year,i,d, cumfires, Ab, abarf, afire_frac, light*area_ha, 0., PD, met%prec, NI, PD
+  if(bavard)  write(*,'(a16,4i6,13f14.4)')'no_fuel',year,i,d,cumfires,Ab,abarf,afire_frac,light*area_ha,0.,PD,met%prec,NI,PD
   cumfires = 0  
   return  !no fuel
 end if
@@ -1180,7 +1181,8 @@ end if
 !Ab = Abfrac * area_ha        !eqn. 2
 
 if (Ab == 0.) then 
-  if(bavard) write(*,'(a16,4i6,16f14.4)') 'Area_burned_zero ', year, i,d,cumfires,Ab,abarf,afire_frac,light*area_ha,nlig,FDI, met%prec, NI, grascover, omega_o, me_avg, omega_nl, me_nl, PD
+  if(bavard) write(*,'(a16,4i6,16f14.4)')'Area_burned_zero ', year, i,d,cumfires,Ab,abarf,afire_frac,light*area_ha,nlig,FDI, &
+                                            met%prec, NI, grascover, omega_o, me_avg, omega_nl, me_nl, PD
 !  write(*,'(a16,4i6,29f14.4)') 'Area_burned_zero', year,i,d,cumfires,Ab,abarf,afire_frac,light*area_ha, nlig*area_ha,PD, area_ha, treecover, grascover, DT/1000., tfire/60., ROSfsurface*60./1000., ROSbsurface*60./1000., Uforward*60./1000.,  &
 !                                LB,LBtree,LBgrass,woi,omega_o,omega_o/me_avg,FDI,Isurface,slopefact, input%slope   
   return
@@ -1273,7 +1275,8 @@ Isurface = h * sum(FC(1:3)) * ROSfsurface * min2sec  !eqn. 15
 !write(stdout,*)'Isurf',isurface
 
 if (Isurface < 50.) then  !ignitions are extinguished and there is no fire on this day
-  if(bavard)  write(*,'(a16,4i6,19f14.4)')'Isurface_low',year,i,d,cumfires,Ab,abarf,afire_frac,light*area_ha,nlig,FDI,Isurface, met%prec, NI, grascover, omega_o, me_avg, omega_nl, me_nl, PD
+  if(bavard)  write(*,'(a16,4i6,19f14.4)')'Isurface_low',year,i,d,cumfires,Ab,abarf,afire_frac,light*area_ha,nlig,FDI,Isurface, &
+                                            met%prec, NI, grascover, omega_o, me_avg, omega_nl, me_nl, PD
 ! write(*,'(a16,4i6,29f14.4)') 'Isurface_low', year,i,d,cumfires,Ab,abarf,afire_frac,light*area_ha, nlig*area_ha,PD, area_ha, treecover, grascover, DT/1000., tfire/60., ROSfsurface*60./1000., ROSbsurface*60./1000., Uforward*60./1000.,  &
 !                               LB,LBtree,LBgrass,woi,omega_o,omega_o/me_avg,FDI,Isurface,slopefact, input%slope
   Ab     = 0.
@@ -1288,7 +1291,8 @@ afire_frac = afire_frac + Abfrac
 
 !write(*,'(a16,4i6,29f14.4)') 'BURNDAY', year,i,d,cumfires,Ab,abarf,afire_frac,light*area_ha, nlig*area_ha,PD, area_ha, treecover, grascover, DT/1000., tfire/60., ROSfsurface*60./1000., ROSbsurface*60./1000., Uforward*60./1000.,  &
 !                                LB,LBtree,LBgrass,woi,omega_o,omega_o/me_avg,FDI,Isurface,slopefact,input%slope
-if(bavard) write(*,'(a16,4i10,23f14.3)') 'BURNDAY', year,i,d,cumfires,AB,abarf,afire_frac,light*area_ha,nlig,FDI,woi,omega_o,omega_o/me_avg,Isurface, met%prec, NI, grascover, omega_o, me_avg, omega_nl, me_nl, PD
+if(bavard) write(*,'(a16,4i10,23f14.3)')'BURNDAY', year,i,d,cumfires,AB,abarf,afire_frac,light*area_ha,nlig,FDI,woi,  &
+                                        omega_o,omega_o/me_avg,Isurface,met%prec,NI,grascover,omega_o,me_avg,omega_nl,me_nl,PD
 
 !-------------------------------------------
 !update litter pools to remove burned litter

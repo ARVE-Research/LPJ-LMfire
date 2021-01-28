@@ -260,7 +260,8 @@ use netcdf
 use typesizes
 use errormod,       only : netcdf_err,ncstat
 use parametersmod,  only : sp,i2
-use iovariablesmod, only : cfid,ibuf,timebuflen,climatemonths,inputclimlen,srtx,cntx,srty,cnty,varinfo,soil,cellmask,input_sp,input_i2,nclimv
+use iovariablesmod, only : cfid,ibuf,timebuflen,climatemonths,inputclimlen,srtx,cntx,srty,cnty,varinfo,soil, &
+                           cellmask,input_sp,input_i2,nclimv
 
 implicit none
 

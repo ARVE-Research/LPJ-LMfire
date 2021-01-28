@@ -673,8 +673,10 @@ do i = 1,3 !ntiles
   call tile_landuse(lutype(i),recoverf,estab_lim,estab,nind,fpc_grid)
     
   do a = 1, npft
-   if ((nind(a) <= 0.) .and. ((lm_ind(a,1) .ne. 0.) .or. (sm_ind(a,1) .ne. 0.) .or. (hm_ind(a,1) .ne. 0.) .or. (rm_ind(a,1) .ne. 0.))) then
-     write(stdout,'(a,i4,7f14.7)') 'contradiction nind - C-pools, lu: ',a, in%lon, in%lat, nind(a), lm_ind(a,1), sm_ind(a,1), hm_ind(a,1), rm_ind(a,1)
+   if ((nind(a) <= 0.) .and. ((lm_ind(a,1) .ne. 0.) .or. (sm_ind(a,1) .ne. 0.) .or. (hm_ind(a,1) .ne. 0.) .or.  &
+      (rm_ind(a,1) .ne. 0.))) then
+     write(stdout,'(a,i4,7f14.7)') 'contradiction nind - C-pools, lu: ',a, in%lon, in%lat, nind(a), lm_ind(a,1),  &
+     sm_ind(a,1), hm_ind(a,1), rm_ind(a,1)
    end if
   end do
 
@@ -717,15 +719,18 @@ do i = 1,3 !ntiles
 
 ! ===== end special conditions for Canada version ONLY =====
   
-  call establishment(pftpar,present,survive,estab,nind,lm_ind,sm_ind,rm_ind,hm_ind,lm_sapl,sm_sapl,rm_sapl,hm_sapl,pft%tree, &
-                     crownarea,fpc_grid,lai_ind,height,sla,wooddens,latosa,prec,reinickerp,litter_ag_fast,litter_ag_slow,litter_bg,  &
-                     allom1,allom2,allom3,acflux_estab,leafondays,leafoffdays,leafon,estab_pft,afire_frac,osv%tile(i)%soil%clay, osv%tile(i)%soil%sand)
+  call establishment(pftpar,present,survive,estab,nind,lm_ind,sm_ind,rm_ind,hm_ind,lm_sapl,sm_sapl,rm_sapl,hm_sapl,pft%tree,       &
+                     crownarea,fpc_grid,lai_ind,height,sla,wooddens,latosa,prec,reinickerp,litter_ag_fast,litter_ag_slow,litter_bg,&
+                     allom1,allom2,allom3,acflux_estab,leafondays,leafoffdays,leafon,estab_pft,afire_frac,osv%tile(i)%soil%clay,   &
+                     osv%tile(i)%soil%sand)
                      
 !  if(i==2) write(stdout,'(a,i3,9f14.4)') 'after establishment',i, litter_ag_fast(:,1)               
                      
   do a = 1, npft
-   if ((nind(a) <= 0.) .and. ((lm_ind(a,1) .ne. 0.) .or. (sm_ind(a,1) .ne. 0.) .or. (hm_ind(a,1) .ne. 0.) .or. (rm_ind(a,1) .ne. 0.))) then
-     write(stdout,'(a,i4,7f14.7)') 'contradiction nind - C-pools, estab: ', a, in%lon, in%lat, nind(a), lm_ind(a,1), sm_ind(a,1), hm_ind(a,1), rm_ind(a,1)
+   if ((nind(a) <= 0.) .and. ((lm_ind(a,1) .ne. 0.) .or. (sm_ind(a,1) .ne. 0.) .or. (hm_ind(a,1) .ne. 0.) .or.  &
+      (rm_ind(a,1) .ne. 0.))) then
+     write(stdout,'(a,i4,7f14.7)') 'contradiction nind - C-pools, estab: ', a, in%lon, in%lat, nind(a), lm_ind(a,1), sm_ind(a,1),  &
+      hm_ind(a,1), rm_ind(a,1)
    end if
   end do                     
                      
@@ -743,7 +748,8 @@ do i = 1,3 !ntiles
 
   !light competition among trees and between trees and grasses
 
-  call light(present,pft%tree,lm_ind,sm_ind,hm_ind,rm_ind,crownarea,fpc_grid,fpc_inc,nind,litter_ag_fast,litter_ag_slow,litter_bg,sla,fpc_tree_max) 
+  call light(present,pft%tree,lm_ind,sm_ind,hm_ind,rm_ind,crownarea,fpc_grid,fpc_inc,nind,  &
+             litter_ag_fast,litter_ag_slow,litter_bg,sla,fpc_tree_max) 
   
 !  if(i==2)   write(stdout,'(a,i3,9f14.4)') 'after light1',i, litter_ag_fast(:,1) 
 
@@ -819,7 +825,8 @@ do i = 1,3 !ntiles
   
 !  write(stdout,*)'flag D2a',lm_ind(4,1) !dtemp(1),dtemp_soil(1)
 
-  call calcnpp(dtemp,dtemp_soil,dphen,present,nind,lm_ind(:,1),sm_ind(:,1),hm_ind(:,1),rm_ind(:,1),cstore(:,1),mgpp(:,:,1),mnpp(:,:,1),anpp(:,1))
+  call calcnpp(dtemp,dtemp_soil,dphen,present,nind,lm_ind(:,1),sm_ind(:,1),hm_ind(:,1),rm_ind(:,1),cstore(:,1),  &
+               mgpp(:,:,1),mnpp(:,:,1),anpp(:,1))
     
   bm_inc = anpp
   anpp = max(0.,anpp)
@@ -927,12 +934,14 @@ do i = 1,3 !ntiles
 !    write(stdout,*)'flag D3a',in%lon,in%lat,lm_ind(:,1)
   !end if
   
-  call mortality(pftpar,present,pft%tree,pft%boreal,bm_inc,turnover_ind,sla,lm_ind,sm_ind,hm_ind,rm_ind,nind,year,litter_ag_fast,litter_ag_slow, &
-                 litter_bg,dtemp,anpp,mtemp_max) 
-                 
+  call mortality(pftpar,present,pft%tree,pft%boreal,bm_inc,turnover_ind,sla,lm_ind,sm_ind,hm_ind,rm_ind,nind,year,  &
+                 litter_ag_fast,litter_ag_slow,litter_bg,dtemp,anpp,mtemp_max) 
+
   do a = 1, npft
-   if ((nind(a) <= 0.) .and. ((lm_ind(a,1) .ne. 0.) .or. (sm_ind(a,1) .ne. 0.) .or. (hm_ind(a,1) .ne. 0.) .or. (rm_ind(a,1) .ne. 0.))) then
-     write(stdout,'(a,i4,7f14.7)') 'contradiction nind - C-pools, mortality: ',a, in%lon, in%lat, nind(a), lm_ind(a,1), sm_ind(a,1), hm_ind(a,1), rm_ind(a,1)
+   if ((nind(a) <= 0.) .and. ((lm_ind(a,1) .ne. 0.) .or. (sm_ind(a,1) .ne. 0.) .or. (hm_ind(a,1) .ne. 0.) .or. &
+      (rm_ind(a,1) .ne. 0.))) then
+     write(stdout,'(a,i4,7f14.7)') 'contradiction nind - C-pools, mortality: ',a,in%lon,in%lat,nind(a),  &
+                                   lm_ind(a,1),sm_ind(a,1),hm_ind(a,1),rm_ind(a,1)
    end if  
   end do                 
                  
@@ -941,7 +950,8 @@ do i = 1,3 !ntiles
 
   !light competition between trees and grasses
 
-  call light(present,pft%tree,lm_ind,sm_ind,hm_ind,rm_ind,crownarea,fpc_grid,fpc_inc,nind,litter_ag_fast,litter_ag_slow,litter_bg,sla,fpc_tree_max)
+  call light(present,pft%tree,lm_ind,sm_ind,hm_ind,rm_ind,crownarea,fpc_grid,fpc_inc,nind,  &
+             litter_ag_fast,litter_ag_slow,litter_bg,sla,fpc_tree_max)
   
 !  if(i==2)   write(stdout,'(a,i3,9f14.4)') 'after light2',i, litter_ag_fast(:,1) 
 
@@ -1041,7 +1051,8 @@ do i = 1,3 !ntiles
         
         do dm = 1,ndaymonth(m)
         
-          call spitfire(year,i,j,d,in,met_out(d),dw1(d),snowpack(d),dphen(d,:),wscal_v(d,:),osv,spinup,avg_cont_area,burnedf20,forager_pd20,FDI,omega_o0,omega0,BBpft,Ab,hclass)
+          call spitfire(year,i,j,d,in,met_out(d),dw1(d),snowpack(d),dphen(d,:),wscal_v(d,:),osv,spinup,avg_cont_area,  &
+                        burnedf20,forager_pd20,FDI,omega_o0,omega0,BBpft,Ab,hclass)
 
           mBBpft(:,m) = mBBpft(:,m) + BBpft  !accumulate biomass burned totals
           
@@ -1065,7 +1076,8 @@ do i = 1,3 !ntiles
 
     else         !option to use old LPJ fire routine
 
-      call fire(pftpar,dtemp,litter_ag_fast,litter_ag_slow,acflux_fire,afire_frac,lm_ind,rm_ind,sm_ind,hm_ind,nind,dw1,present,pft%tree,year)
+      call fire(pftpar,dtemp,litter_ag_fast,litter_ag_slow,acflux_fire,afire_frac,lm_ind,rm_ind,sm_ind,hm_ind,nind,dw1,  & 
+                present,pft%tree,year)
 
     end if
   end if
@@ -1080,8 +1092,10 @@ do i = 1,3 !ntiles
 !  write(*,*)
 
   do a = 1, npft
-   if ((nind(a) <= 0.) .and. ((lm_ind(a,1) .ne. 0.) .or. (sm_ind(a,1) .ne. 0.) .or. (hm_ind(a,1) .ne. 0.) .or. (rm_ind(a,1) .ne. 0.))) then
-     write(stdout,'(a,i4,7f14.7)') 'contradiction nind - C-pools, fire: ',a, in%lon, in%lat, nind(a), lm_ind(a,1), sm_ind(a,1), hm_ind(a,1), rm_ind(a,1)
+   if ((nind(a) <= 0.) .and. ((lm_ind(a,1) .ne. 0.) .or. (sm_ind(a,1) .ne. 0.) .or. (hm_ind(a,1) .ne. 0.) .or.  &
+     (rm_ind(a,1) .ne. 0.))) then
+     write(stdout,'(a,i4,7f14.7)')'contradiction nind - C-pools, fire: ',a,in%lon,in%lat,nind(a),  &
+                                   lm_ind(a,1),sm_ind(a,1),hm_ind(a,1), rm_ind(a,1)
    end if
   end do
 
@@ -1110,7 +1124,8 @@ do i = 1,3 !ntiles
     stop
   end if
 
-  call light(present,pft%tree,lm_ind,sm_ind,hm_ind,rm_ind,crownarea,fpc_grid,fpc_inc,nind,litter_ag_fast,litter_ag_slow,litter_bg,sla,fpc_tree_max)
+  call light(present,pft%tree,lm_ind,sm_ind,hm_ind,rm_ind,crownarea,fpc_grid,fpc_inc,nind,  &
+             litter_ag_fast,litter_ag_slow,litter_bg,sla,fpc_tree_max)
   
 !  if(i==2)   write(stdout,'(a,i3,9f14.4)') 'after light3',i, litter_ag_fast(:,1) 
   

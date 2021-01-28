@@ -34,11 +34,23 @@ real(sp), intent(out)               :: pd              !potential population den
 
 !parameters
 
-!constants needed for the calculation of EXWGT, the weight of hunter-gatherers
+! constants for the calculation of EXWGT, the weight of hunter-gatherers
 
 real(sp), parameter :: a = 39.154974
 real(sp), parameter :: b = 16.276180
 real(sp), parameter :: c =  0.146003
+
+! constants for the calculation of EXPREY (kg/km2)
+
+real(sp), parameter :: c1 =  5.3081e-5
+real(sp), parameter :: c2 = -0.300235
+real(sp), parameter :: c3 =  1.200771
+real(sp), parameter :: c4 = -0.11661
+real(sp), parameter :: c5 =  0.216493
+real(sp), parameter :: c6 = -4.26495e-4 
+real(sp), parameter :: c7 = -0.028577
+real(sp), parameter :: c8 = -0.008066
+real(sp), parameter :: c9 =  0.005171
 
 !local variables
 
@@ -168,7 +180,8 @@ wret = sum(soilm * whc)
 
 !calculation of EXPREY (kg/km2)
 
-exprey = 10.**(elef * 5.3081e-5 + llat * -0.300235 + lnpp * 1.200771 + lwatd * -0.11661 + lwatrgrc * 0.216493 + anpp * -4.26495e-4 + rrcorr2 * -0.028577 + wret * -0.008066) !+(wstorage * 0.005171))
+exprey = 10.**(elef * c1 + llat * c2 + lnpp * c3 + lwatd * c4 + lwatrgrc * c5 + & 
+            anpp * c6 + rrcorr2 * c7 + wret * c8) !+(wstorage * c9))
 
 expreya = 100 * (exprey + 0.01)
 

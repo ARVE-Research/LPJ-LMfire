@@ -304,13 +304,14 @@ else
 
   !------
 
-  !Eqn. 2.5 -- commented out because of floating point invalid in rare cases, plus we already have the day length calculated elsewhere (JOK 06.2016)
+  ! Eqn. 2.5 -- commented out because of floating point invalid in rare cases, 
+  ! plus we already have the day length calculated elsewhere (JOK 06.2016)
   
-!   if (abs(lat - delta) < 90. .and. abs(lat + delta) >= 90.) then
-!    t1 = 12.
-!   else
-!    t1 = (12. / pi) * acos(-tan(rlat) * tan(rdelta))
-!   end if
+  ! if (abs(lat - delta) < 90. .and. abs(lat + delta) >= 90.) then
+  !  t1 = 12.
+  ! else
+  !  t1 = (12. / pi) * acos(-tan(rlat) * tan(rdelta))
+  ! end if
   
   if (dayl > mindayl) then
     t1 = 0.5 * dayl
@@ -520,7 +521,8 @@ fm = 0.01452 * (mbar + ml) * exp(1.403 * tau) - 0.1528 * mo + mc + 0.48700 * (mc
 direct = sunf * tau**kp * r0 * tau**fm   !Eqn. 2.4
 
 !Yin Eqn. 4.2
-zeta0 = 0.503 * exp(-1.20 * Ratm * exp(-0.633 / (prec + 1.) - 0.226 * pet)) * kag**albedo * kan**(1. - sunf) * (1. - kn * (1. - sunf))
+zeta0 = 0.503 * exp(-1.20 * Ratm * exp(-0.633 / (prec + 1.) - 0.226 * pet)) * kag**albedo * kan**(1. - sunf) * & 
+        (1. - kn * (1. - sunf))
 
 diffuse = zeta0 * kag**albedo * kan**(1. - sunf) * (1 - kn * (1. - sunf)) * (tau**kp * r0 - direct)   !Eqn. 2.5
 

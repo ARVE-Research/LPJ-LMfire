@@ -9,12 +9,12 @@
  
 #include <stdio.h>
 
-#ifdef ifort
-void overprint_(char *text)
-#else 
-void overprint(char *text)
+#if defined(NAGf95) || defined(ifort) || defined(gfortran)
+  void overprint_(char *text)
+#else
+  void overprint(char *text)
 #endif
 {
-	fprintf(stderr,"%s\r",text);
+	fprintf(stderr,"%60s\r",text);
 	fflush(stderr);
 }

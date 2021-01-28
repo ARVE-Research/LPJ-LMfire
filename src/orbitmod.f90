@@ -31,7 +31,7 @@ integer, parameter :: nef = 19
 integer, parameter :: nob = 47
 integer, parameter :: nop = 78
 
-real(dp), parameter :: pirr = pir / 3600.d0
+real(dp), parameter :: pirr = pir / 3600._dp
 
 !   1.earth orbital elements : eccentricity           ecc   table 1
 !***************************   precessional parameter pre
@@ -176,7 +176,7 @@ type(orbitpars), intent(out) :: orbit
 
 !parameters
 
-real(dp), parameter :: step = 360.d0 / 365.25d0
+real(dp), parameter :: step = 360._dp / 365.25d0
 
 real(dp), parameter :: xod = 23.320556d0
 real(dp), parameter :: xop =  3.392506d0
@@ -215,8 +215,8 @@ real(dp) :: xob   !obliquity (tilt) (degrees)
 !   t is negative for the past
 
 t   = real(-cal_year)
-xes = 0.d0
-xec = 0.d0
+xes = 0._dp
+xec = 0._dp
 
 do i = 1,nef
   arg = be(i) * t + ce(i)
@@ -231,15 +231,15 @@ if (tra > 1.d-8) then
 
   rp = atan(xes / xec)
 
-  if(xec > 0.d0) then !line 12
+  if(xec > 0._dp) then !line 12
 
-    if (xes > 0.d0) then !line 13
+    if (xes > 0._dp) then !line 13
 
       perh = rp * piri
 
-    else if (xes < 0.d0) then !line 14
+    else if (xes < 0._dp) then !line 14
 
-      rp   = rp + 2.d0 * pi
+      rp   = rp + 2._dp * pi
       perh = rp * piri
 
     else !line 13
@@ -248,26 +248,26 @@ if (tra > 1.d-8) then
 
     end if
 
-  else if (xec < 0.d0) then !line 11
+  else if (xec < 0._dp) then !line 11
 
     rp   = rp + pi
     perh = rp * piri
 
   else !line 10
 
-    if (xes > 0.d0) then !line 17
+    if (xes > 0._dp) then !line 17
 
-      rp   = pi / 2.d0
+      rp   = pi / 2._dp
       perh = rp * piri
 
-    else if (xes < 0.d0) then !line 15
+    else if (xes < 0._dp) then !line 15
 
       rp   = 1.5d0 * pi
       perh = rp * piri
 
     else !line 16
 
-      rp   = 0.d0
+      rp   = 0._dp
       perh = rp * piri
 
     end if
@@ -275,19 +275,19 @@ if (tra > 1.d-8) then
 
 else
 
-  if (xes > 0.d0) then !line 17
+  if (xes > 0._dp) then !line 17
 
-    rp   = pi / 2.d0
+    rp   = pi / 2._dp
     perh = rp * piri
 
-  else if (xes < 0.d0) then !line 15
+  else if (xes < 0._dp) then !line 15
 
     rp   = 1.5d0 * pi
     perh = rp * piri
 
   else !line 16
 
-    rp   = 0.d0
+    rp   = 0._dp
     perh = rp * piri
 
   end if
@@ -302,15 +302,15 @@ do i=1,nop
 
 end do
 
-prg = prg / 3600.d0 + xop
+prg = prg / 3600._dp + xop
 perh = perh + prg
 
-if (perh > 0.d0) then !line 53
-  if (perh > 360.d0) then
-    perh = perh - 360.d0
+if (perh > 0._dp) then !line 53
+  if (perh > 360._dp) then
+    perh = perh - 360._dp
   end if
-else if (perh < 0.d0) then
-  perh = perh + 360.d0
+else if (perh < 0._dp) then
+  perh = perh + 360._dp
 end if
 
 pre = ecc * sin(perh * pir)
@@ -319,7 +319,7 @@ xob = xod
 
 do i = 1,nob
   arg = bob(i) * t + cob(i)
-  xob = xob + aob(i) / 3600.d0 * cos(arg)
+  xob = xob + aob(i) / 3600._dp * cos(arg)
 end do
 
 orbit%ecc  = ecc
@@ -355,7 +355,7 @@ real(sp),        intent(out) :: delta  !solar declination (degrees)
 real(dp), parameter :: ss   = 1366.5d0    !solar constant (W m-2), updated with grab from NASA web site
 real(dp), parameter :: tau  =   86.4d0
 real(dp), parameter :: test =    1.e-8
-real(dp), parameter :: step =  360.d0/365.25d0
+real(dp), parameter :: step =  360._dp/365.25d0
 
 !variables
 
@@ -402,7 +402,7 @@ real(dp) :: rdayl
 
 !----------------------------------------------------------------------
 
-if (phi < -90.d0 .or. phi > 90.d0) then
+if (phi < -90._dp .or. phi > 90._dp) then
   
   write(*,*)'invalid latitude',phi
   stop
@@ -424,22 +424,23 @@ xob  = orbit%xob
 
 sf  = tau * ss / pi
 so  = sin(xob * pir)
-xl  = perh + 180.d0
+xl  = perh + 180._dp
 
 xllp = xl * pir
 xee  = ecc * ecc
-xse  = sqrt(1.d0 - xee)
-xlam = (ecc / 2.d0 + ecc * xee / 8.d0) * (1.d0 + xse) * sin(xllp) - xee / 4.d0 * (0.5d0 + xse) * &
-        sin(2.d0 * xllp) + ecc * xee / 8.d0 * (1.d0 / 3.d0 + xse) * sin(3.d0 * xllp)
+xse  = sqrt(1._dp - xee)
+xlam = (ecc / 2._dp + ecc * xee / 8._dp) * (1._dp + xse) * sin(xllp) - xee / 4._dp * (0.5d0 + xse) * &
+        sin(2._dp * xllp) + ecc * xee / 8._dp * (1._dp / 3._dp + xse) * sin(3._dp * xllp)
 
-xlam  = 2.d0 * xlam / pir
+xlam  = 2._dp * xlam / pir
 dlamm = xlam + (nd - 80) * step
 anm   = dlamm - xl
 
 ranm = anm * pir
 xec  = xee * ecc
 
-ranv = ranm + (2.d0 * ecc - xec / 4.d0) * sin(ranm) + 5.d0 / 4.d0 * ecc**2 * sin(2.d0 * ranm) + 13.d0 / 12.d0 * xec * sin(3.d0 * ranm)
+ranv = ranm + (2._dp * ecc - xec / 4._dp) * sin(ranm) + 5._dp / 4._dp * ecc**2 * sin(2._dp * ranm) + &
+       13._dp / 12._dp * xec * sin(3._dp * ranm)
 
 anv  = ranv / pir
 tls  = anv + xl
@@ -448,12 +449,12 @@ dlam = tls
 
 rphi    =  phi * pir
 ranv    =  (dlam - xl) * pir
-rau     =  (1.d0 - ecc * ecc) / (1.d0 + ecc * cos(ranv))
+rau     =  (1._dp - ecc * ecc) / (1._dp + ecc * cos(ranv))
 
 s       =  sf / rau / rau
 rlam    =  dlam * pir
 sd      =  so * sin(rlam)
-cd      =  sqrt(1.d0 - sd * sd)
+cd      =  sqrt(1._dp - sd * sd)
 
 rdelta  =  atan(sd / cd)
 delta   =  rdelta / pir
@@ -466,7 +467,7 @@ adelta  =  abs(delta)
 !singularity for aphi = 90 and delta = 0
 !particular cases for lat = 0 or delta = 0
 
-tt = abs(aphi - 90.d0)
+tt = abs(aphi - 90._dp)
 
 if (tt <= test .and. adelta <= test) then
 
@@ -475,33 +476,33 @@ if (tt <= test .and. adelta <= test) then
 
 else if (adelta <= test) then
 
-  dayl = 12.d0
+  dayl = 12._dp
   ww = s * cos(rphi)
 
 else if (aphi <= test) then
 
-  dayl = 12.d0
+  dayl = 12._dp
   ww = s * cos(rdelta)
 
 else
 
-  at = 90.d0 - adelta
+  at = 90._dp - adelta
   spd = phi * delta
 
   if (aphi < at) then
 
     tp = -spa / cp
-    stp = sqrt(1.d0 - tp * tp)
+    stp = sqrt(1._dp - tp * tp)
     rdayl = acos(tp)
-    dayl = 24.d0 * rdayl / pi
+    dayl = 24._dp * rdayl / pi
     ww = s * (rdayl * spa + cp * stp)
 
-  else if (spd > 0.d0) then
+  else if (spd > 0._dp) then
 
-    dayl = 24.d0
+    dayl = 24._dp
     ww = s * spa * pi
 
-  else if (spd < 0.d0) then
+  else if (spd < 0._dp) then
 
     dayl = 0.00d0
     ww = 0.00d0
@@ -509,9 +510,9 @@ else
   else
 
     tp =  - spa / cp
-    stp = sqrt(1.d0 - tp * tp)
+    stp = sqrt(1._dp - tp * tp)
     rdayl = acos(tp)
-    dayl = 24.d0 * rdayl / pi
+    dayl = 24._dp * rdayl / pi
     ww = s * (rdayl * spa + cp * stp)
 
   end if
