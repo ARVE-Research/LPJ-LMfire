@@ -36,6 +36,7 @@ integer,        intent(in) :: ncells
 
 integer :: i,j
 integer :: varid
+integer :: dimid
 
 integer :: xsize
 integer :: ysize
@@ -67,13 +68,22 @@ if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 !-------------------------
 !retrieve dimensions
 
-ncstat = nf90_inquire_dimension(cfid,1,len=xsize)
+ncstat = nf90_inq_dimid(cfid,'lon',dimid)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
-ncstat = nf90_inquire_dimension(cfid,2,len=ysize)
+ncstat = nf90_inquire_dimension(cfid,dimid,len=xsize)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
-ncstat = nf90_inquire_dimension(cfid,3,len=climatemonths)
+ncstat = nf90_inq_dimid(cfid,'lat',dimid)
+if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+ncstat = nf90_inquire_dimension(cfid,dimid,len=ysize)
+if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+ncstat = nf90_inq_dimid(cfid,'time',dimid)
+if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+ncstat = nf90_inquire_dimension(cfid,dimid,len=climatemonths)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
 climateyears = climatemonths / 12
@@ -89,8 +99,6 @@ varname(4) = 'wet'
 varname(5) = 'dtr'
 varname(6) = 'wnd'
 varname(7) = 'lght'
-
-
 
 do i = 1,nclimv
 
