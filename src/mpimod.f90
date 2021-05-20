@@ -39,6 +39,8 @@ contains
 
 subroutine initmpi(ncells,ntiles,nlayers)
 
+use iovariablesmod, only : jobinfo,pftparsfile
+
 implicit none
 
 !arguments
@@ -55,11 +57,15 @@ integer, intent(in) :: nlayers
 
 integer :: minbufsize
 
-integer, dimension(3) :: jobinfo
+! integer, dimension(3) :: jobinfo
+
+integer(i1), allocatable, dimension(:) :: bbuf
 
 integer :: nelem1
 integer :: nelem2
 integer :: nelem
+
+integer :: bs
 
 !-------------------------------
 
@@ -82,13 +88,22 @@ bufsize = min(ncells,minbufsize)
 
 write(stdout,*)'MPI buffer size: ',bufsize,' gridcells'
 
-jobinfo(1) = ntiles
-jobinfo(2) = bufsize
-jobinfo(3) = bufsize
+jobinfo%bufsize     = bufsize
+jobinfo%ntiles      = ntiles
+jobinfo%nlayers     = nlayers
+jobinfo%pftparsfile = pftparsfile
+
+bs = sizeof(jobinfo)
+
+allocate(bbuf(bs))
+
+bbuf = transfer(jobinfo,bbuf)
 
 !broadcast it to all the nodes
 
-call mpi_bcast(jobinfo,3,MPI_INTEGER,mproc,MPI_COMM_WORLD,ierr)
+write(stdout,*)'broadcasting pftparsfile: ',pftparsfile
+
+call mpi_bcast(bbuf,bs,MPI_INTEGER1,mproc,MPI_COMM_WORLD,ierr)
 
 !allocate the input and state variable structures on the master process
 
@@ -268,11 +283,13 @@ use parametersmod,   only : sp,bytes_dp,lm_sapl,sm_sapl,rm_sapl,hm_sapl,pftpar,p
 !uses pftparameters.f
 !uses the common module variables: iobuf, mproc
 
+use pftparametersmod, only : pftparameters
 use mpistatevarsmod, only : initstatevars
+use iovariablesmod,  only : jobinfo,pftparsfile
 
 implicit none
 
-integer, dimension(3) :: jobinfo
+! integer, dimension(3) :: jobinfo
 
 integer :: ntiles
 integer :: nlayers
@@ -286,14 +303,32 @@ integer :: i
 
 logical :: ismaster = .false.
 
+integer(i1), allocatable, dimension(:) :: bbuf
+
+integer :: rank
+integer :: bs
+
 !---
 !get the size of the transfer buffer and allocate
 
-call mpi_bcast(jobinfo,3,MPI_INTEGER,mproc,MPI_COMM_WORLD,ierr)
+bs = sizeof(jobinfo)
 
-ntiles  = jobinfo(1)
-bufsize = jobinfo(2)
-nlayers = jobinfo(3)
+allocate(bbuf(bs))
+
+call mpi_comm_rank(MPI_COMM_WORLD,rank,ierr)
+
+! write(stderr,*)'init worker',rank,'waiting for broadcast'
+
+call mpi_bcast(bbuf,bs,MPI_INTEGER1,mproc,MPI_COMM_WORLD,ierr)
+
+jobinfo = transfer(bbuf,jobinfo)
+
+bufsize     = jobinfo%bufsize
+ntiles      = jobinfo%ntiles
+nlayers     = jobinfo%nlayers
+pftparsfile = jobinfo%pftparsfile
+
+! write(stderr,*)'worker pftparsfile',pftparsfile
 
 allocate(in(bufsize))
 allocate(sv(bufsize))
@@ -314,7 +349,6 @@ allocate(iobuf(nelem,bufsize))
 
 tsize = size(iobuf)  !the total number of elements in the array that is passed as a message
 
-! write(stdout,*)'initworker',ntiles,bufsize,nelem,tsize
 ! write(stdout,'(a,f6.1,a)')'worker MPI message size',real(tsize)/1024.,' kB'
 
 in%idx = 0
@@ -327,7 +361,7 @@ call initairmass()
 !--------------------------
 !initialize the pft parameters
 
-call pftparameters(pftpar,sla,                                                 &
+call pftparameters(pftparsfile,pftpar,sla,                                     &
                    pft%tree,pft%evergreen,pft%summergreen,                     &
                    pft%raingreen,pft%needle,pft%boreal,                        &
                    lm_sapl,sm_sapl,hm_sapl,rm_sapl,                            &

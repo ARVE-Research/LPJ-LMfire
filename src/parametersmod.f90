@@ -36,14 +36,14 @@ integer, parameter :: climbuf  = 20
 integer, parameter :: nspec    =  6   !trace gas species from biomass burning
 integer, parameter :: nhclass  =  7   !number of height classes for discretization
 
-real, parameter :: allom1 = 100
-real, parameter :: allom2 =  40
-real, parameter :: allom3 =   0.5
-real, parameter :: allom4 =   0.3
+real(sp), parameter :: allom1 = 100
+real(sp), parameter :: allom2 =  40
+real(sp), parameter :: allom3 =   0.5
+real(sp), parameter :: allom4 =   0.3
 
-real, parameter :: reinickerp = 1.6
-real, parameter :: latosa     = 8.e3
-real, parameter :: wooddens   = 2.e5  !(g C m-2)  NB this value would actually be typical for total dry mass in some hardwoods, should probably PFT specific
+real(sp), parameter :: reinickerp = 1.6
+real(sp), parameter :: latosa     = 8.e3
+real(sp), parameter :: wooddens   = 2.e5  !(g C m-2)  NB this value would actually be typical for total dry mass in some hardwoods, should probably PFT specific
 
 integer, parameter :: maxoutvars = 100   !maximum number of variables for output
 
@@ -66,7 +66,7 @@ end type pftflag
 
 type(pftflag), dimension(npft) :: pft
 
-real, dimension(npft) :: sla          !PFT specific leaf area (m2/gC)
+real(sp), dimension(npft) :: sla          !PFT specific leaf area (m2/gC)
 
 !type sapling_pars
   real(sp), dimension(npft,ncvar) :: lm_sapl  !initial (sapling) leaf mass (gC/m2)
@@ -90,11 +90,11 @@ integer, parameter :: nl     = 11         !number of soil layers
 integer, parameter :: snomax = 5          !maximum number of snow layers
 integer, parameter :: ns     = 1 - snomax !index of top snow layer
 
-real(dp), parameter :: dt    = 86400.d0  !number of seconds in 24hrs
+real(sp), parameter :: dt    = 86400.d0  !number of seconds in 24hrs
 
 !fixed CLM parameters
 
-real(dp), parameter :: pi    = 3.14159265358979323846d0 !26433 83279 50288 41971 69399 37510 (unitless)
+real(sp), parameter :: pi    = 3.14159265358979323846d0 !26433 83279 50288 41971 69399 37510 (unitless)
 real(dp), parameter :: grav  = 9.80616d0     !Gravitational acceleration  (m s-2)
 real(dp), parameter :: Pstd  = 101325.d0     !Standard pressure           (Pa)
 real(dp), parameter :: sigsb = 5.67e-8       !Stefan-Boltzmann constant   (W m-2 K-4)

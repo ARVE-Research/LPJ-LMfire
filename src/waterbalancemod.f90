@@ -241,8 +241,10 @@ qsurf = dt * (melt + prec)   !mm hr-1
 aet   = dt * aettotal
 
 do t = 1,ts  !hourly loop
+
+  where (swf < 1.e-5) swf = 0.
   
-  kmmh = ksat * swf**4 - a*swf**4 + a  !unsaturated conductivity (mm hr-1)
+  kmmh = ksat * swf**4 - a * swf**4 + a  !unsaturated conductivity (mm hr-1)
   
   swater = swf * whcmm  !total water mass (mm)
   

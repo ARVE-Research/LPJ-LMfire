@@ -1,6 +1,6 @@
 module iovariablesmod
 
-use parametersmod, only : sp,dp,i2
+use parametersmod, only : sp,dp,i2,i4
 
 implicit none
 
@@ -107,6 +107,17 @@ real(sp), allocatable, dimension(:,:) :: icefrac
 real(sp) :: fixedco2
 
 logical, allocatable, dimension(:,:)  :: cellmask
+
+!----------------
+
+type jobinfovars
+  integer(i4) :: bufsize
+  integer(i4) :: ntiles
+  integer(i4) :: nlayers
+  character(220) :: pftparsfile
+end type jobinfovars
+
+type(jobinfovars) :: jobinfo
 
 !----------------
 

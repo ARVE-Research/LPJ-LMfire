@@ -103,7 +103,7 @@ do i = 1,nclimv
   ncstat = nf90_get_att(cfid,varinfo(i)%varid,'add_offset',varinfo(i)%add_offset)
   if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
-  write(stdout,'(a5,2f10.4)')trim(varname(i)),varinfo(i)%scale_factor,varinfo(i)%add_offset
+  write(stdout,'(a5,2f11.5)')trim(varname(i)),varinfo(i)%scale_factor,varinfo(i)%add_offset
 
 end do
 
@@ -136,7 +136,7 @@ end if
 !------------------------------
 !read in the lon and lat arrays
 
-if (projgrid.EQV..FALSE.) then
+if (.not.projgrid) then
 
   ncstat = nf90_inq_varid(cfid,'lon',varid)
   if (ncstat /= nf90_noerr) call netcdf_err(ncstat)

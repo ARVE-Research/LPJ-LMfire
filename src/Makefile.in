@@ -118,7 +118,7 @@ am_lpj_OBJECTS = overprint.$(OBJEXT) parametersmod.$(OBJEXT) \
 	mortalitymod.$(OBJEXT) allocationmod.$(OBJEXT) \
 	turnovermod.$(OBJEXT) killplantmod.$(OBJEXT) \
 	individualmod.$(OBJEXT) spitfiremod.$(OBJEXT) \
-	soiltemperaturemod.$(OBJEXT) pftparameters.$(OBJEXT) \
+	soiltemperaturemod.$(OBJEXT) pftparametersmod.$(OBJEXT) \
 	summerphenology.$(OBJEXT) reproduction.$(OBJEXT) \
 	isotope.$(OBJEXT) fire.$(OBJEXT) netcdfoutputmod.$(OBJEXT) \
 	landscape_geometrymod.$(OBJEXT) foragersmod.$(OBJEXT) \
@@ -389,7 +389,7 @@ lpj_SOURCES = \
   individualmod.f90         \
   spitfiremod.f90           \
   soiltemperaturemod.f90    \
-  pftparameters.f90         \
+  pftparametersmod.f90      \
   summerphenology.f         \
   reproduction.f            \
   isotope.f                 \

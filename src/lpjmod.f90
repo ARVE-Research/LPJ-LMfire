@@ -921,18 +921,18 @@ do i = 1,3 !ntiles
     end if
   end do
   
-  !Implement light competition and background mortality among tree PFTs 
-  !(including heat damage and due to lower limit of npp for boreal trees) 
+  ! Implement light competition and background mortality among tree PFTs 
+  ! (including heat damage and due to lower limit of npp for boreal trees) 
 
-  !write(stdout,*)'after alloc'
-  !do a = 1,npft
-  !  write(stdout,*)a,fpc_grid(a),lai_ind(a)
-  !end do
-  !write(stdout,*)
+  ! write(stdout,*)'after alloc'
+  ! do a = 1,npft
+  !   write(stdout,*)a,fpc_grid(a),lai_ind(a)
+  ! end do
+  ! write(stdout,*)
   
-  !if (any(lm_ind(:,1) < 0.)) then
-!    write(stdout,*)'flag D3a',in%lon,in%lat,lm_ind(:,1)
-  !end if
+  ! if (any(lm_ind(:,1) < 0.)) then
+  !   write(stdout,*)'flag D3a',in%lon,in%lat,lm_ind(:,1)
+  ! end if
   
   call mortality(pftpar,present,pft%tree,pft%boreal,bm_inc,turnover_ind,sla,lm_ind,sm_ind,hm_ind,rm_ind,nind,year,  &
                  litter_ag_fast,litter_ag_slow,litter_bg,dtemp,anpp,mtemp_max) 

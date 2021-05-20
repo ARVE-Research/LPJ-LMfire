@@ -112,7 +112,7 @@ read(10,nml=joboptions)
 
 close(10)
 
-! write(0,*)'PFTPARS FILE',pftparsfile
+write(0,*)' using pftpars file:',pftparsfile
 
 if (spinupyears <= 0) then
   write(stdout,*)'no years indicated for spinup!'

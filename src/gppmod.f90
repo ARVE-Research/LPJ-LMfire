@@ -157,14 +157,14 @@ do pft=1,npft
 
   lambdam(pft) = pftpar(pft,26)
       
-  longevity(pft)=pftpar(pft,7)
+  longevity(pft) = pftpar(pft,7)
 
   !define pft inhibition function parameters
 
-  inhibx1(pft)=pftpar(pft,22)
-  inhibx2(pft)=pftpar(pft,23)
-  inhibx3(pft)=pftpar(pft,24)
-  inhibx4(pft)=pftpar(pft,25)
+  inhibx1(pft) = pftpar(pft,22)
+  inhibx2(pft) = pftpar(pft,23)
+  inhibx3(pft) = pftpar(pft,24)
+  inhibx4(pft) = pftpar(pft,25)
 
   if (present(pft)) then
 

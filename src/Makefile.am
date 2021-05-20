@@ -35,7 +35,7 @@ lpj_SOURCES =               \
   individualmod.f90         \
   spitfiremod.f90           \
   soiltemperaturemod.f90    \
-  pftparameters.f90         \
+  pftparametersmod.f90      \
   summerphenology.f         \
   reproduction.f            \
   isotope.f                 \

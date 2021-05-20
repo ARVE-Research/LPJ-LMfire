@@ -35,7 +35,7 @@ use errormod, only : ncstat,netcdf_err
 
 use parametersmod,  only : npft,lutype,dp
 use iovariablesmod, only : ofid,lonvect,latvect,srtx,cntx,endx,srty,cnty,endy,outputfile,outputvar,cellindex,cellmask,  &
-                           calcforagers,gridres
+                           calcforagers,gridres,projgrid
 
 implicit none
 
@@ -63,6 +63,10 @@ character(40), dimension(2) :: varlabel !names of variables that will be automat
 
 !character(40), dimension(2), parameter :: varlabel = ['    landf' ,'foragerPD']  !names of variables that will be automatically output
 
+character(3), dimension(2) :: dimname
+
+character(12) :: coordunits
+
 !----------
 
 call getvarinfo()
@@ -70,7 +74,22 @@ call getvarinfo()
 xres = gridres(1)
 yres = gridres(2)
 
-write(stdout,*)'input grid resolution',xres,yres,' degrees'
+if (projgrid) then
+
+  dimname = ['x','y']
+  coordunits = 'meters'
+
+  write(stdout,*)'input grid resolution',xres,yres,' meters'
+  
+  
+else
+  
+  dimname = ['lon','lat']
+  coordunits = 'degrees'
+
+  write(stdout,*)'input grid resolution',xres,yres,' degrees'
+
+end if
 
 xrange(1) = minval(lonvect(srtx:endx)) - 0.5 * xres
 xrange(2) = maxval(lonvect(srtx:endx)) + 0.5 * xres
@@ -108,16 +127,16 @@ write(stdout,*)'added global atts'
 
 !----
 
-ncstat = nf90_def_dim(ofid,'lon',cntx,dimid)
+ncstat = nf90_def_dim(ofid,dimname(1),cntx,dimid)
 if (ncstat/=nf90_noerr) call netcdf_err(ncstat)
 
-ncstat = nf90_def_var(ofid,'lon',nf90_float,dimid,varid)
+ncstat = nf90_def_var(ofid,dimname(1),nf90_float,dimid,varid)
 if (ncstat/=nf90_noerr) call netcdf_err(ncstat)
 
 ncstat = nf90_put_att(ofid,varid,'long_name','longitude')
 if (ncstat/=nf90_noerr) call netcdf_err(ncstat)
 
-ncstat = nf90_put_att(ofid,varid,'units','degrees_east')
+ncstat = nf90_put_att(ofid,varid,'units',coordunits)
 if (ncstat/=nf90_noerr) call netcdf_err(ncstat)
 
 ncstat = nf90_put_att(ofid,varid,'actual_range',xrange)
@@ -125,16 +144,16 @@ if (ncstat/=nf90_noerr) call netcdf_err(ncstat)
 
 !----
 
-ncstat = nf90_def_dim(ofid,'lat',cnty,dimid)
+ncstat = nf90_def_dim(ofid,dimname(2),cnty,dimid)
 if (ncstat/=nf90_noerr) call netcdf_err(ncstat)
 
-ncstat = nf90_def_var(ofid,'lat',nf90_float,dimid,varid)
+ncstat = nf90_def_var(ofid,dimname(2),nf90_float,dimid,varid)
 if (ncstat/=nf90_noerr) call netcdf_err(ncstat)
 
 ncstat = nf90_put_att(ofid,varid,'long_name','latitude')
 if (ncstat/=nf90_noerr) call netcdf_err(ncstat)
 
-ncstat = nf90_put_att(ofid,varid,'units','degrees_north')
+ncstat = nf90_put_att(ofid,varid,'units',coordunits)
 if (ncstat/=nf90_noerr) call netcdf_err(ncstat)
 
 ncstat = nf90_put_att(ofid,varid,'actual_range',yrange)
@@ -252,13 +271,27 @@ forall (i=1:npft)
   pftnum(i) = i
 end forall
 
-ncstat = nf90_inq_varid(ofid,'lon',varid)
-ncstat = nf90_put_var(ofid,varid,lonvect(srtx:endx))
-if (ncstat/=nf90_noerr) call netcdf_err(ncstat)
+if (projgrid) then
 
-ncstat = nf90_inq_varid(ofid,'lat',varid)
-ncstat = nf90_put_var(ofid,varid,latvect(srty:endy))
-if (ncstat/=nf90_noerr) call netcdf_err(ncstat)
+  ncstat = nf90_inq_varid(ofid,'x',varid)
+  ncstat = nf90_put_var(ofid,varid,lonvect(srtx:endx))
+  if (ncstat/=nf90_noerr) call netcdf_err(ncstat)
+
+  ncstat = nf90_inq_varid(ofid,'y',varid)
+  ncstat = nf90_put_var(ofid,varid,latvect(srty:endy))
+  if (ncstat/=nf90_noerr) call netcdf_err(ncstat)
+
+else
+
+  ncstat = nf90_inq_varid(ofid,'lon',varid)
+  ncstat = nf90_put_var(ofid,varid,lonvect(srtx:endx))
+  if (ncstat/=nf90_noerr) call netcdf_err(ncstat)
+
+  ncstat = nf90_inq_varid(ofid,'lat',varid)
+  ncstat = nf90_put_var(ofid,varid,latvect(srty:endy))
+  if (ncstat/=nf90_noerr) call netcdf_err(ncstat)
+
+end if
 
 ncstat = nf90_inq_varid(ofid,'layer',varid)
 ncstat = nf90_put_var(ofid,varid,[1,2])
@@ -302,7 +335,7 @@ end subroutine getvarinfo
 
 subroutine declvar(fid,varname)
 
-use typesizes
+use iovariablesmod, only : projgrid
 use netcdf
 use errormod, only : ncstat,netcdf_err
 
@@ -359,9 +392,12 @@ allocate(chunks(ndims))
 
 do i = 1,ndims
   
+  if (projgrid .and. dimnames(i) == 'lon') dimnames(i) = 'x'
+  if (projgrid .and. dimnames(i) == 'lat') dimnames(i) = 'y'
+  
   ncstat = nf90_inq_dimid(fid,dimnames(i),dimids(i))
   if (ncstat/=nf90_noerr) call netcdf_err(ncstat)
-    
+      
   ncstat = nf90_inquire_dimension(fid,dimids(i),len=dimlen)
   if (ncstat/=nf90_noerr) call netcdf_err(ncstat)
 

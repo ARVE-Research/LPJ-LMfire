@@ -35,7 +35,7 @@ integer :: varid
 integer :: dimid
 integer :: tlen
 integer :: srt
-
+integer :: ndims
 
 integer, dimension(1) :: pos
 integer, dimension(2) :: xpos,ypos
@@ -64,28 +64,39 @@ write(stdout,'(a,a)')'using soil file: ',trim(soilfile)
 ncstat = nf90_open(soilfile,nf90_nowrite,soilfid)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
-!--------------------------
-!check if the grid is a projected grid. If yes, set dimension names 
+! --------------------------
+! check the dimension names and figure out if input is a projected or lon-lat grid
+
+ncstat = nf90_inquire(soilfid,nDimensions=ndims)
+if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+do i = 1,2
+
+  ncstat = nf90_inquire_dimension(soilfid,i,name=dimname(i))
+  if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+end do
 
 ncstat = nf90_get_att(soilfid,nf90_global,'ProjectedGrid',projectedgrid)
 
-if (ncstat == nf90_enotatt .or. trim(projectedgrid) /= 'true') then
-
-  projgrid = .false.
-  
-  dimname = ['lon','lat']
-  
-else
+if (trim(dimname(1)) == 'x') then
 
   projgrid = .true.
-  
-  dimname = ['x','y']
-  
+    
   write(stdout,*)'NB: input data is in a projected grid!'
+
+else if (trim(dimname(1)) == 'lon') then
+
+  projgrid = .false.
+
+else
+
+  write(0,*)'error the dimension names',dimname,'are in an unrecognized format'
+  stop
 
 end if
 
-!---
+! ---
 
 ncstat = nf90_inq_dimid(soilfid,dimname(1),dimid)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
@@ -161,22 +172,17 @@ end if
 
 !call calcpixels(bounds,srtx,srty,cntx,cnty,gridres,lboundlon,uboundlat)
 
-!--------------------------
-!check if the grid is a projected grid. If yes, read geodetic longitude and latitude into arrays and fix the cell area
+! --------------------------
+! if the grid is projected grid, read geodetic longitude and latitude into arrays and fix the cell area
 
-ncstat = nf90_get_att(soilfid,nf90_global,'projected_grid',flag)
-
-if (ncstat == nf90_enotatt .or. flag == 0) then
-  projgrid = .false.
-else
-  projgrid = .true.
+if (projgrid) then
   
   write(0,*)'NB: input data is in a projected grid!'
   
   allocate(geolon(cntx,cnty))
   allocate(geolat(cntx,cnty))
 
-  ncstat = nf90_inq_varid(soilfid,'geolong',varid)
+  ncstat = nf90_inq_varid(soilfid,'lon',varid)
   if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
   ncstat = nf90_get_var(soilfid,varid,geolon,start=[srtx,srty],count=[cntx,cnty])

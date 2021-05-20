@@ -56,19 +56,19 @@ type inputdata
 
   !values input to LPJ
   
-  integer(i8)        :: idx      !gridcell index
-  integer(i4)        :: xpos     !gridcell position in x
-  integer(i4)        :: ypos     !gridcell position in y
-  real(dp)           :: lon      !longitude of gridcell center
-  real(dp)           :: lat      !latitude of gridcell center
-  real(sp)           :: elev     !elevation of gridcell center (m.a.s.l.)
-  real(sp)           :: slope    !mean gridcell slope (degrees)
-  real(sp)           :: cellarea !area of the gridcell (m2)
-  real(sp)           :: landf    !fraction of grid cell that is land
-  logical            :: spinup   !are we in the model spinup
-  real(sp)           :: co2      !co2 concentration
-  integer            :: year     !simulation year (not calendar year), starts at 1
-  integer            :: startyr_foragers  !first year to start calculating forager activity (ignored if not desired)
+  integer(i8)        :: idx              ! gridcell index
+  integer(i4)        :: xpos             ! gridcell position in x
+  integer(i4)        :: ypos             ! gridcell position in y
+  real(dp)           :: lon              ! longitude of gridcell center
+  real(dp)           :: lat              ! latitude of gridcell center
+  real(sp)           :: elev             ! elevation of gridcell center (m.a.s.l.)
+  real(sp)           :: slope            ! mean gridcell slope (degrees)
+  real(sp)           :: cellarea         ! area of the gridcell (m2)
+  real(sp)           :: landf            ! fraction of grid cell that is land
+  logical            :: spinup           ! are we in the model spinup
+  real(sp)           :: co2              ! co2 concentration
+  integer            :: year             ! simulation year (not calendar year), starts at 1
+  integer            :: startyr_foragers ! first year to start calculating forager activity (ignored if not desired)
   type(orbitpars)    :: orbit
   type(climatedata)  :: climate
   type(soildata)     :: soil

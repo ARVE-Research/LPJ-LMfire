@@ -227,8 +227,8 @@ type(metvars_out), intent(inout) :: met_out
   
 !parameters
 
-real(sp), parameter :: pmin = 2.16d0 / 0.83d0 !minimum value for pbar when using Geng linear relationship,
-                                              !below this value we use a 1:1 line, see below
+real(sp), parameter :: pmin = 2.16 / 0.83   !minimum value for pbar when using Geng linear relationship,
+                                            !below this value we use a 1:1 line, see below
 real(sp), parameter :: small = 5.e-5
 
 real(sp), dimension(9), parameter :: corva = [ 0.567, 0.086,-0.002, &   !lag day-1 correlation coefficients 
@@ -404,7 +404,7 @@ tmax = tmax_mn * (resid(1) * tmax_cv + 1.)      !WGEN tech report eqn. 13
 cldf = cldf_mn * (resid(3) * cldf_cv + 1.)
 
 if (tmin > tmax) then             !set the values equal to the mean between the two  FLAG - this happens too frequently - check with improved parameters
-  tdiff = 0.5* (tmin - tmax)
+  tdiff = 0.5 * (tmin - tmax)
   tmin = tmin - tdiff
   tmax = tmax + tdiff
 end if
@@ -420,7 +420,7 @@ cldf = min(max(cldf,0.),1.)
 !see, e.g., Glassy & Running, Ecological Applications, 1994
 
 if (tmin < 0.) then
-  write(stdout,*) 'tmin weathergenmod ', tmn,tmin_mn,tmin
+  write(stdout,*) 'tmin weathergenmod ', tmn,tmin_mn,tmin,tmin_cv,resid(2)
   stop
 end if
 
@@ -566,6 +566,9 @@ else   !dry day
 
 end if
 
+! if (tmin_mn > 20.) write(0,*)'FLAG',tmnc(1),tmnc(2), tmnc(3), tmn
+
+
 dmetvars%tmax_mn = tmax_mn
 dmetvars%tmin_mn = tmin_mn
 dmetvars%cldf_mn = cldf_mn
@@ -586,7 +589,7 @@ real(sp) function esat(temp)
   !Function to calculate saturation vapor pressure (Pa) in water and ice
   !From CLM formulation, table 5.2, after Flatau et al. 1992
   
-  use parametersmod, only : tfreeze
+  use parametersmod, only : dp,tfreeze
 
   implicit none
   
@@ -594,14 +597,16 @@ real(sp) function esat(temp)
 
   real(sp) :: T        !temperature (degC)
   
-  real(sp), dimension(9)   :: al !coefficients for liquid water
-  real(sp), dimension(9)   :: ai !coefficients for ice
-  real(sp), dimension(0:8) :: a  !coefficients
+  real(dp), dimension(9)   :: al !coefficients for liquid water
+  real(dp), dimension(9)   :: ai !coefficients for ice
+  real(dp), dimension(0:8) :: a  !coefficients
+  
+  real(dp) :: esatdp
   
   integer :: i
   
   !--------------
-  
+  ! coefficients for liquid water
   al(1) = 6.11213476
   al(2) = 4.44007856e-1
   al(3) = 1.43064234e-2
@@ -630,13 +635,13 @@ real(sp) function esat(temp)
   
   T = temp - tfreeze
   
-  esat = a(0)
+  esatdp = a(0)
   
   do i = 1,8
-  	esat = esat + a(i) * T**i
+    esatdp = esatdp + a(i) * T**i
   end do
   
-  esat = 100. * esat
+  esat = real(100._dp * esatdp)
    
 end function esat
 
