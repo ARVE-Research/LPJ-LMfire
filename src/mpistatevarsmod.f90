@@ -69,6 +69,7 @@ type inputdata
   real(sp)           :: co2              ! co2 concentration
   integer            :: year             ! simulation year (not calendar year), starts at 1
   integer            :: startyr_foragers ! first year to start calculating forager activity (ignored if not desired)
+  logical 			 :: dosoilco2
   type(orbitpars)    :: orbit
   type(climatedata)  :: climate
   type(soildata)     :: soil
@@ -181,6 +182,11 @@ type subgrid
   !historical burned fraction (20 years) = 20 elements
   real(sp), dimension(climbuf) :: burnedf_buf
   real(sp), dimension(climbuf) :: forager_pd_buf
+  
+  !soil CO2 concentrations state variables
+  
+  real(sp), dimension(12) :: soilco2conc   ! monthly CO2 concentration, whole soil column mean (ppm)
+  real(sp), dimension(61) :: soilcconc_dec ! December soil CO2 concentrations (2 soil layers + surface, from surface down) (mg CO2 m-3)
 
 end type subgrid !14 + 2 + 216 + 27 + 243 + 6 + 25 + 20 + 20 = 573
 

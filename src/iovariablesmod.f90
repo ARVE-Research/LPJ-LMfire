@@ -108,6 +108,8 @@ real(sp) :: fixedco2
 
 logical, allocatable, dimension(:,:)  :: cellmask
 
+logical :: dosoilco2
+
 !----------------
 
 type jobinfovars

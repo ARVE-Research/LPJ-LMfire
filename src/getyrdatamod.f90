@@ -91,7 +91,7 @@ end subroutine getco2
 subroutine getdata(ncells,year,cal_year,firstyear,time0,in_master)
 
 use mpistatevarsmod,only : inputdata
-use iovariablesmod, only : ibuf,soil,lucc,climateyears,co2vect,calcforagers,startyr_foragers
+use iovariablesmod, only : ibuf,soil,lucc,climateyears,co2vect,calcforagers,startyr_foragers,dosoilco2
 use orbitmod,       only : calcorbitpars,orbitpars
 use parametersmod,  only : sp
 
@@ -159,6 +159,8 @@ end if
 call getclimate(itime,time0)
 
 !fill the values of in_master here
+
+in_master%dosoilco2 = dosoilco2 !FLAG: added by AK
 
 if (year == 1) then
   do i = 1,ncells
@@ -298,7 +300,7 @@ if (t0 == 1 .and. itime /= time0 .and. time0+11 /= climatemonths) then
   !read data from file
   
   do i = 1,nclimv
-
+    
     ncstat = nf90_get_var(cfid,varinfo(i)%varid,input_i2,start=[srtx,srty,itime],count=[cntx,cnty,tlen])
     if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 

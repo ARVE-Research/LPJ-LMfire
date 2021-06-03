@@ -122,8 +122,8 @@ am_lpj_OBJECTS = overprint.$(OBJEXT) parametersmod.$(OBJEXT) \
 	summerphenology.$(OBJEXT) reproduction.$(OBJEXT) \
 	isotope.$(OBJEXT) fire.$(OBJEXT) netcdfoutputmod.$(OBJEXT) \
 	landscape_geometrymod.$(OBJEXT) foragersmod.$(OBJEXT) \
-	lpjmod.$(OBJEXT) mpimod.$(OBJEXT) drivermod.$(OBJEXT) \
-	main.$(OBJEXT)
+	soilco2mod.$(OBJEXT) lpjmod.$(OBJEXT) mpimod.$(OBJEXT) \
+	drivermod.$(OBJEXT) main.$(OBJEXT)
 lpj_OBJECTS = $(am_lpj_OBJECTS)
 lpj_LDADD = $(LDADD)
 AM_V_lt = $(am__v_lt_@AM_V@)
@@ -397,6 +397,7 @@ lpj_SOURCES = \
   netcdfoutputmod.f90       \
   landscape_geometrymod.f90 \
   foragersmod.f90           \
+  soilco2mod.f90            \
   lpjmod.f90                \
   mpimod.f90                \
   drivermod.f90             \

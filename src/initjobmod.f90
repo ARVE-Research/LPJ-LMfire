@@ -20,7 +20,7 @@ use iovariablesmod,  only : cfile_spinup,cfile_transient,soilfile,              
                             lu_turn_yrs,popdfile,poppfile,maxmem,bounds,                                                  &
                             outputfile,srtx,srty,cntx,cnty,endx,endy,inputlonlen,inputlatlen,                             &
                             lucc,cellindex,lonvect,latvect,co2vect,nolanduse,nclimv,calcforagers,projgrid,geolon,geolat,  &
-                            startyr_foragers,pftparsfile
+                            startyr_foragers,pftparsfile,dosoilco2
 use coordsmod,       only : parsecoords
 use initsoilmod,     only : initsoil
 use initclimatemod,  only : initclimate
@@ -99,6 +99,7 @@ transientyears = 1
 nspinyrsout    = -9999
 nolanduse      = .false.
 startyr_foragers = 1000
+dosoilco2 = .false.
 
 write(stdout,*)'==== Welcome to LPJ, the versatile DGVM ===='
 

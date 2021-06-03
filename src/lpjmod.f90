@@ -35,7 +35,7 @@ use killplantmod,     only : killplant
 use soiltemperaturemod, only : soiltemp
 use foragersmod,      only : foragers,popgrowth,simpleforagers
 use individualmod,    only : sizeind,allomind
-
+use soilco2mod,       only : soilco2
 use landscape_geometrymod, only : landscape_fractality
 
 !use lpjstatevarsmod,  only : gsv,sv,ov  !TEMPORARY
@@ -120,6 +120,7 @@ real(sp) :: treefrac
 
 real(sp), dimension(7) :: soilpar
 
+real(sp), dimension(2,2) :: soilprop    ! porosity and field capacity for each soil layer (m3 m-3)
 !real, dimension(npft) :: gpp_temp
 !real, dimension(npft) :: npp_temp
 
@@ -182,6 +183,7 @@ real(sp), dimension(12) :: mtemp_soil  !monthly soil temperature (deg C)
 real(sp), dimension(12) :: mw1         !monthly soil layer 1 water content (fraction of available water holding capacity)
 
 real(sp), dimension(12,ncvar) :: mrh   !monthly heterotrophic respiration (gC/m2)
+real(sp), dimension(12,4) :: hetresp_mon   !monthly pool-specific heterotrophic respiration (gC/m2)
 
 !monthly pft state variables
 
@@ -315,6 +317,10 @@ real(sp), allocatable, dimension(:,:) :: help_me
 
 integer :: startyr_foragers
 
+real(sp), pointer, dimension(:) :: soilco2conc    ! monthly CO2 concentration, whole soil column mean (ppm)
+real(sp), pointer, dimension(:) :: soilcconc_dec  ! December soil CO2 concentrations (2 soil layers + surface, from surface down) (mg CO2 m-3)
+
+logical :: dosoilco2
 !declarations end here
 !---------------------------------------------------------------
 
@@ -352,6 +358,8 @@ wetd = in%climate%wetd * ndaymonth
 prec = in%climate%prec
 
 startyr_foragers = in%startyr_foragers
+
+dosoilco2 = in%dosoilco2
 
 !write(0,*)'startyr_foragers',startyr_foragers
 
@@ -637,7 +645,8 @@ do i = 1,3 !ntiles
   mLAI             => osv%tile(i)%mLAI
   mBBpft           => osv%tile(i)%mBBpft
   mburnedf	   => osv%tile(i)%mburnedf
-
+  soilco2conc      => osv%tile(i)%soilco2conc
+  soilcconc_dec    => osv%tile(i)%soilcconc_dec
   !--------------------------------------------------------------------------------------
   !initializations (needed?)
     
@@ -648,7 +657,7 @@ do i = 1,3 !ntiles
   
   !set up soil parameters
   
-  call simplesoil(osv%tile(i)%soil,soilpar)
+  call simplesoil(osv%tile(i)%soil,soilpar,soilprop)
   
   !write(stdout,*) 'after simplesoil'
   
@@ -1085,7 +1094,7 @@ do i = 1,3 !ntiles
 !  write(stdout,*) 'tile', i
 !  write(stdout,'(12f12.7)') mburnedf
 !  write(stdout,*)
-  
+
   20 continue
 
 !  if (i==1) write(*,'(a,2i4,6f14.7)') 'ANNUAL BURNEDF: ', year, i, afire_frac, in%human%popd
@@ -1098,6 +1107,7 @@ do i = 1,3 !ntiles
                                    lm_ind(a,1),sm_ind(a,1),hm_ind(a,1), rm_ind(a,1)
    end if
   end do
+           
 
 !  if(i==2)   write(stdout,'(a,i3,9f14.4)') 'after fire',i, litter_ag_fast(:,1)   
 !  write(stdout,'(a,i4,10f8.3)') 'after fire: ', year, fpc_grid,sum(fpc_grid)
@@ -1108,8 +1118,23 @@ do i = 1,3 !ntiles
   !This is done after fire, so that fire probability is calculated on litter remaining
   !before year's decomposition. Include here agricultural litter etc.
 
-  call hetresp(litter_ag_fast,litter_ag_slow,litter_bg,mw1,mtemp_soil,cpool_surf,cpool_fast,cpool_slow,arh,mrh,year, & 
-                  k_fast_ave,k_slow_ave,litter_decom_ave,osv%tile(i)%soil%clay,osv%tile(i)%soil%bulk,spinup,in%idx)
+  call hetresp(litter_ag_fast,litter_ag_slow,litter_bg,mw1,mtemp_soil,cpool_surf,cpool_fast,cpool_slow,arh,mrh,year, &
+                  k_fast_ave,k_slow_ave,litter_decom_ave,osv%tile(i)%soil%clay,osv%tile(i)%soil%bulk,spinup,in%idx, &
+                  hetresp_mon)
+                  
+ if (dosoilco2) then
+ ! Initial conditions for January soilco2 are surface co2 (mg CO2 m^-3)
+  
+  if (year .eq. 1) then
+  soilcconc_dec = 0.
+      do a = 1, 3, 1
+          soilcconc_dec(a) = (co2 * 44.01) * 101325. / (8.3143 * (273.15 + temp(1)))
+      end do
+  end if
+
+  call soilco2(co2,osv%tile(i)%soil,soilprop,temp,mtemp_soil,mw1,hetresp_mon,soilcconc_dec,soilco2conc)
+  
+  end if    
                   
 !  if(i==2)   write(stdout,'(a,i3,9f14.4)') 'after hetresp',i, litter_ag_fast(:,1)                   
 

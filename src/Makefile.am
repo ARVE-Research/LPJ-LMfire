@@ -43,6 +43,7 @@ lpj_SOURCES =               \
   netcdfoutputmod.f90       \
   landscape_geometrymod.f90 \
   foragersmod.f90           \
+  soilco2mod.f90            \
   lpjmod.f90                \
   mpimod.f90                \
   drivermod.f90             \

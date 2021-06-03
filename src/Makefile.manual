@@ -20,13 +20,13 @@ FC = mpifort
 # OR
 # debugging flags for gfortran
 
-FCFLAGS  = -ffree-line-length-none -march='native' -funroll-loops -O3#-finit-local-zero -fcheck=all -ffpe-trap=invalid,zero,overflow,underflow -g -fbacktrace -Wall -pedantic 
+FCFLAGS  = -finit-local-zero -fcheck=all -ffpe-trap=invalid,zero,overflow,underflow -g -fbacktrace -Wall -pedantic -fbounds-check  # -ffree-line-length-none -march='native' -funroll-loops -O3 # 
 
 #---------------------------------------------
 # specify the location of your netcdf install
 
 # netcdf=/alcc/gpfs2/home/geo/georwa/local
-netcdf=/home/public/easybuild/software/netCDF-Fortran/4.5.2-gompi-2020a
+netcdf=/home/public/easybuild/software/netCDF-Fortran/4.5.3-gmpich-2021.01
 
 #---- should not need to change anything below this line ----
 
@@ -84,11 +84,12 @@ COREOBJS = overprint.o       \
        summerphenology.o      \
        reproduction.o         \
        isotope.o              \
-       pftparameters.o        \
+       pftparametersmod.o        \
        fire.o                 \
        netcdfoutputmod.o \
        landscape_geometrymod.o \
        foragersmod.o \
+       soilco2mod.o \
        lpjmod.o
 
 DRIVER_PARALLEL = mpimod.o     \

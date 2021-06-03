@@ -102,13 +102,13 @@ if (dospinup) then
     if (.not. dotransient .and. year == spinupyears) lastyear = .true.
 
     call getdata(ncells,year,cal_year,firstyear,time0,in_master)                   !returns gs filled with model input for this year
-
+    
     call master(lastyear,ncells,in_master,sv_master)      !sends out and returns filled with model output
     
     if(year > firstyrout) then
 
        call netcdf_output(ncells,tpos,year-spinupyears,sv_master,in_master)
-       
+
     end if   
 
   end do

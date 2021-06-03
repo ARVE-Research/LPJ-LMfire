@@ -37,6 +37,7 @@ integer,        intent(in) :: ncells
 
 integer :: i,j
 integer :: varid
+integer :: dimid
 
 integer :: xsize
 integer :: ysize
@@ -68,13 +69,40 @@ if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 !-------------------------
 !retrieve dimensions
 
-ncstat = nf90_inquire_dimension(cfid,1,len=xsize)
+if (projgrid) then
+
+ncstat = nf90_inq_dimid(cfid,'x',dimid)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
-ncstat = nf90_inquire_dimension(cfid,2,len=ysize)
+ncstat = nf90_inquire_dimension(cfid,dimid,len=xsize)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
-ncstat = nf90_inquire_dimension(cfid,3,len=climatemonths)
+ncstat = nf90_inq_dimid(cfid,'y',dimid)
+if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+ncstat = nf90_inquire_dimension(cfid,dimid,len=ysize)
+if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+else 
+
+ncstat = nf90_inq_dimid(cfid,'lon',dimid)
+if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+ncstat = nf90_inquire_dimension(cfid,dimid,len=xsize)
+if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+ncstat = nf90_inq_dimid(cfid,'lat',dimid)
+if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+ncstat = nf90_inquire_dimension(cfid,dimid,len=ysize)
+if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+end if
+
+ncstat = nf90_inq_dimid(cfid,'time',dimid)
+if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+ncstat = nf90_inquire_dimension(cfid,dimid,len=climatemonths)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
 climateyears = climatemonths / 12

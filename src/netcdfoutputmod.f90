@@ -22,7 +22,7 @@ use typesizes
 use netcdf
 use errormod, only : ncstat,netcdf_err
 
-use iovariablesmod,  only : cntx,cnty,ofid,cellmask,calcforagers
+use iovariablesmod,  only : cntx,cnty,ofid,cellmask,calcforagers,dosoilco2
 use parametersmod,   only : npft
 use mpistatevarsmod, only : statevars,inputdata
 
@@ -418,6 +418,25 @@ call putvar3d(ofid,tpos,'mburnedf',rvar2d)
 
 deallocate(rvar2d)
 
+!-----
+if (dosoilco2) then 
+! soil CO2 concentrations
+
+y = size(sv(1)%tile(1)%soilco2conc)
+ 
+allocate(rvar2d(ncells,y))
+ 
+do i = 1,ncells
+  do j = 1,12
+    rvar2d(i,j) = sv(i)%tile(1)%soilco2conc(j)
+  end do
+end do
+
+call putvar3d(ofid,tpos,'soilco2',rvar2d)
+
+deallocate(rvar2d)
+
+end if
 !-----
 
 !monthly mean LAI, per PFT

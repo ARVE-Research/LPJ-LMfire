@@ -52,4 +52,5 @@ varinfo(36) = 'mLAI',        'PFT Monthly LAI',                       'm2 m-2', 
 varinfo(37) = 'mBBpft',      'PFT Monthly biomass burned',            'kg dry matter m-2', 5, 'lon', 'lat', 'pft', 'month', 'time'
 varinfo(39) = 'mburnedf'     'monthly burned fraction of the gridcell','fraction',         4, 'lon', 'lat', 'month', 'time'
 varinfo(40) = 'height'	     'tree height per pft', 'm', 4, 'lon', 'lat', 'pft', 'time'
+varinfo(43) = 'soilco2',     'soil CO2 concentrations',           'ppm',        4, 'lon', 'lat', 'month', 'time'
 /
