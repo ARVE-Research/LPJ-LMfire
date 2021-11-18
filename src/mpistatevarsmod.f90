@@ -143,6 +143,7 @@ type subgrid
   real(sp), dimension(npft) :: above_carbon
   real(sp), dimension(npft,12) :: mlai	     !monthly mean LAI, per pft, per tile
   real(sp), dimension(npft,12) :: mBBpft     !biomass burned (kg dry matter, per pft, per month)
+  !real(sp), dimension(12) :: mnpp
 
   !ncvar 9*ncvar = 27 elements (3 NCVARS)
   
@@ -175,6 +176,7 @@ type subgrid
   
   !monthly burned fraction of gridcell area
   real(sp), dimension(12) :: mburnedf
+  real(sp), dimension(12) :: mnpp_out
   
   !state of the soil, 
   type(soildata) :: soil

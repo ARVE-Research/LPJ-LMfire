@@ -209,9 +209,9 @@ call putvar2d(ofid,tpos,'acflux_fire',rvar1d)
 do i = 1,ncells
   NBP = sv(i)%tile%arh(1) + sv(i)%tile%acflux_fire(1) + sv(i)%tile%acflux_conv(1)   &
                           - sv(i)%tile%grid_npp(1)    - sv(i)%tile%acflux_estab(1)
-  !rvar1d(i) = sum(NBP * sv(i)%tile%coverfrac) + sum(sv(i)%carbon%crop_harvest) * sv(i)%tile(2)%coverfrac + sum(sv(i)%carbon%prod_flux)
+  rvar1d(i) = sum(NBP * sv(i)%tile%coverfrac) !+ sum(sv(i)%carbon%crop_harvest) + sum(sv(i)%carbon%prod_flux) * sv(i)%tile(2)%coverfrac 
   !rvar1d(i) = NBP(2) + sv(i)%carbon%crop_harvest ! + sum(sv(i)%carbon%prod_flux)
-  rvar1d(i) = sv(i)%tile(1)%grasscover
+  !rvar1d(i) = sv(i)%tile(1)%grasscover
 end do
 
 call putvar2d(ofid,tpos,'NBP',rvar1d)
@@ -412,9 +412,13 @@ allocate(rvar2d(ncells,y))
 
 do i = 1,ncells
   do j = 1,12
-    rvar2d(i,j) = sv(i)%tile(1)%mburnedf(j)
+    rvar2d(i,j) = sv(i)%tile(1)%mnpp_out(j)
+    !rvar2d(i,j) = sv(i)%tile(1)%mburnedf(j)  !FLAG change back for burned fs
   end do
 end do
+
+
+
 
 call putvar3d(ofid,tpos,'mburnedf',rvar2d)
 

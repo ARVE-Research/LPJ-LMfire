@@ -291,6 +291,7 @@ real(sp), pointer, dimension(:,:) :: mLAI
 
 !month
 real(sp), pointer, dimension(:) :: mburnedf	!monthly burned area fraction of gridcell
+real(sp), pointer, dimension(:) :: mnpp_out
 
 integer, dimension(12) :: nosnowdays		!number of days in a month with temp > 0. and without snowcover
 
@@ -363,7 +364,7 @@ lght = in%climate%lght
 wind = in%climate%wind
 wetd = in%climate%wetd
 prec = in%climate%prec
-
+!write(stdout,*) 'Temperature ',in%climate%temp(1)
 startyr_foragers = in%startyr_foragers
 
 !write(0,*)'startyr_foragers',startyr_foragers
@@ -653,6 +654,7 @@ do i = 1,3 !ntiles
   mBBpft           => osv%tile(i)%mBBpft
   mburnedf         => osv%tile(i)%mburnedf
   agBB    	       => osv%tile(i)%agBB
+  mnpp_out         => osv%tile(i)%mnpp_out
 
   !--------------------------------------------------------------------------------------
   !initializations (needed?)
@@ -661,6 +663,8 @@ do i = 1,3 !ntiles
   mpftCflux = 0.
   mBBpft = 0. 
   mburnedf = 0.
+  
+  
   
   !set up soil parameters
   
@@ -845,7 +849,7 @@ end if
     
   bm_inc = anpp
   anpp = max(0.,anpp)
-  
+  !monnpp = max(0.,mnpp)
 !  write(stdout,*)'flag D2b',lm_ind(7:8,1)
 
   !call npp(pftpar,dtemp,dtemp_soil,pft%tree,dphen,nind,year,lm_ind,sm_ind,rm_ind,mgpp,anpp,mnpp,bm_inc,present,agpp,co2,aresp)
@@ -1207,6 +1211,7 @@ end if
   grid_npp(1)  = sum(anpp(:,1))
   grid_gpp(1)  = sum(agpp(:,1)) ! E.C. avril 2016
 
+
   tilecarbon = livebiomass + litterC_fast + litterC_slow + litterC_bg + cpool_surf(1) + cpool_fast(1) + cpool_slow(1)
   
   a = 1
@@ -1215,6 +1220,8 @@ end if
     b = a + ndaymonth(m) - 1
     
     mLAI(:,m) = lai_ind * sum(dphen(a:b,:),dim=1) / ndaymonth(m)
+    
+    mnpp_out(m)     = sum(mnpp(m,:,1))
 
     a = b + 1
 
