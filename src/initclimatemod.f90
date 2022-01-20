@@ -25,8 +25,9 @@ implicit none
 
 real(dp), parameter :: bmb  = 1048576.d0 !bytes in one Mb
 
-character(4), dimension(nclimv), parameter :: varname = [ 'tmp', 'pre', 'cld', 'wet', 'dtr', 'wnd', 'lght' ]
+character(4), dimension(nclimv) :: varname
 
+!character(4), dimension(nclimv), parameter :: varname
 !arguments
 
 character(120), intent(in) :: climatefile
@@ -36,6 +37,7 @@ integer,        intent(in) :: ncells
 
 integer :: i,j
 integer :: varid
+integer :: dimid
 
 integer :: xsize
 integer :: ysize
@@ -67,13 +69,22 @@ if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 !-------------------------
 !retrieve dimensions
 
-ncstat = nf90_inquire_dimension(cfid,1,len=xsize)
+ncstat = nf90_inq_dimid(cfid,'lon',dimid)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
-ncstat = nf90_inquire_dimension(cfid,2,len=ysize)
+ncstat = nf90_inquire_dimension(cfid,dimid,len=xsize)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
-ncstat = nf90_inquire_dimension(cfid,3,len=climatemonths)
+ncstat = nf90_inq_dimid(cfid,'lat',dimid)
+if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+ncstat = nf90_inquire_dimension(cfid,dimid,len=ysize)
+if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+ncstat = nf90_inq_dimid(cfid,'time',dimid)
+if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+ncstat = nf90_inquire_dimension(cfid,dimid,len=climatemonths)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
 climateyears = climatemonths / 12
@@ -82,6 +93,14 @@ write(stdout,'(a,i6,a)')'climate input data contains',climateyears,' years of da
 
 !-------------------------
 !retrieve variable IDs, scale factor and add offset
+varname(1) = 'tmp'
+varname(2) = 'pre'
+varname(3) = 'cld'
+varname(4) = 'wet'
+varname(5) = 'dtr'
+varname(6) = 'wnd'
+varname(7) = 'lght'
+
 
 do i = 1,nclimv
 
@@ -127,7 +146,7 @@ end if
 !------------------------------
 !read in the lon and lat arrays
 
-if (not(projgrid)) then
+if (projgrid.EQV..FALSE.) then
 
   ncstat = nf90_inq_varid(cfid,'lon',varid)
   if (ncstat /= nf90_noerr) call netcdf_err(ncstat)

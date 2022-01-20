@@ -218,8 +218,8 @@ do pft=1,npft
  if (fpc_grid(pft) < 0. .or. fpc_grid(pft) > 1.) write(stdout,*)'resetting pft ',pft,fpc_grid(pft)
 end do
 
-! fpc_grid = max(fpc_grid,0.)
-! fpc_grid = min(fpc_grid,1.)
+fpc_grid = max(fpc_grid,0.) ! FLAG This has been commented out in the soilco2 version
+fpc_grid = min(fpc_grid,1.) ! FLAG This has been commented out in the soilco2 version
 
 end subroutine light
 

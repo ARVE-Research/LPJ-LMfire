@@ -290,7 +290,6 @@ end do
 !  write(*,*)melt,prec,runoff,drainage,aettotal
 !end if
 
-
 if (swf(2) <= 0.) then
 
   !write(stdout,'(5f10.4)')prec,melt,qsurf,infil,runoff

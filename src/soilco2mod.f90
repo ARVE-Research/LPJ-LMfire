@@ -9,7 +9,7 @@ public :: soilco2
 contains
 
 !-------------------------------------------------------------------------------------------------------------
-subroutine soilco2(co2,soil,soilprop,mtemp_air,mtemp_soil,mwet_soil,hetresp_mon,soilcconc_dec,soilco2conc)
+subroutine soilco2(co2,soil,soilprop,mtemp_air,mtemp_soil,mw1,hetresp_mon,soilcconc_dec,soilco2conc)
 
 use parametersmod,   only : sp,stdin,stdout !,npftpar,nsoilpar,ncvar,i8
 use mpistatevarsmod, only : soildata
@@ -20,10 +20,10 @@ implicit none
 
 real(sp),                       intent(in)  :: co2
 type(soildata), intent(in)                  :: soil          ! needed for soil layer depth to midpoint zpos
-real(sp),       dimension(:,:), intent(in)  :: soilprop      ! field capacity and total porosity for each layer (nl,value)
+real(sp),       dimension(:,:), intent(in)  :: soilprop      ! volumetric saturated water content and field capacity for each layer (nl,value)
 real(sp),       dimension(:),   intent(in)  :: mtemp_air     ! monthly air temperature (degC)
 real(sp),       dimension(:),   intent(in)  :: mtemp_soil    ! monthly soil temperature (degC)
-real(sp),       dimension(:),   intent(in)  :: mwet_soil     ! monthly soil moisture as a fraction of field capacity (unitless)
+real(sp),       dimension(:),   intent(in)  :: mw1     ! monthly soil moisture as a fraction of field capacity (unitless)
 real(sp),       dimension(:,:), intent(in)  :: hetresp_mon   ! monthly pool-specific heterotrophic respiration (gC/m2); cflux_litter_atmos; cflux_surf_atmos; cflux_fast_atmos; cflux_slow_atmos
 real(sp),       dimension(:),   intent(out) :: soilco2conc   ! monthly soil column CO2 concentration (ppm)
 real(sp),       dimension(:),   intent(inout) :: soilcconc_dec   ! December CO2 concentration (mgCO2 m^-3)
@@ -37,12 +37,13 @@ real(sp), parameter :: Dg0st = 0.0000139 ! Gas diffusivity standard temperature 
 real(sp), parameter :: T0 = 273.15
 real(sp), parameter :: dt = 24. ! time steps (hours)
 real(sp), parameter :: dz = 0.025 ! depth increment (m)
+real(sp), parameter, dimension(12) :: ndaymonth = [ 31.,28.,31., 30., 31., 30., 31., 31., 30., 31., 30., 31. ]  !number of days in each month
 
 ! local variables
 real(sp) :: surfco2   !  (g m-3)
 real(sp) :: Dg0_max
 
-integer :: nz  !number of soil layers
+integer :: nz  !number of LPJ soil layers
 integer :: nl  !number of discretized soil layers
 integer :: nl1  !number of discretized soil layers in top soil layer
 integer :: nl2  !number of discretized soil layers in bottom soil layer
@@ -53,8 +54,8 @@ integer :: tt
 real(sp) :: dt_i ! dt discretized to Ndt
 
 
-real(sp) :: Tsat
-real(sp), dimension(2) :: T33
+real(sp) :: Tsat !volumetric saturated water content (m3 m-3)
+real(sp), dimension(2) :: T33 !volumetric water content at field capacity (Psi = -33 kPa)   (m3 m-3)
 real(sp) :: logDg0 ! log of diffusivity at surface
 
 real(sp), allocatable, dimension(:) :: logDgs ! log of diffusivity
@@ -97,6 +98,7 @@ allocate(soilcconc_old(nl+1))
 Ndt = ceiling((dt * Dg0_max) / ((dz**2) * (0.5 - 0.05)))
 dt_i = dt / Ndt ! n hours discretized in nx timesteps
 
+
 ! monthly loop starts here
 do m = 1,12
   ! calculate CO2 concentration in mg CO2 m-3 from atmospheric concentration in ppm
@@ -104,20 +106,16 @@ do m = 1,12
 
   ! separate monthly respiration into top and bottom layer
   ! surface flux into top layer; fast and slow flux into bottom layer
-  ! convert monthly respiration (gC m^-2 month^-1) to volumetric respiration (mg CO2 m^-3 h^-1)
+  ! convert monthly respiration (gC m^-2 month^-1) to volumetric respiration (mg C m^-3 h^-1)
+
   hetresp_mon_layers(m,1) = 0.
   do l=2, nl, 1
       if (l .le. nl2) then
-          hetresp_mon_layers(m,l) = (((hetresp_mon(m,1) + hetresp_mon(m,2)) * 1000) / (30. * 24.)) / nl1
+          hetresp_mon_layers(m,l) = (((hetresp_mon(m,1) + hetresp_mon(m,2)) * 1000) / (ndaymonth(m) * 24.)) / nl1 
       else
-          hetresp_mon_layers(m,l) = (((hetresp_mon(m,1) + hetresp_mon(m,2)) * 1000) / (30. * 24.)) / nl2
+          hetresp_mon_layers(m,l) = (((hetresp_mon(m,3) + hetresp_mon(m,3)) * 1000) / (ndaymonth(m) * 24.)) / nl2 ! AK changed to fast and slow flux
       end if
   end do
-
-  ! Diffusion coefficient (m2 s-1) to (m2 hr-1)
-  ! Dgs(1) = Dg0st * ((T0 + mtemp_soil(m)) / T0)**1.75
-  logDg0 = log(Dg0st) + (1.75 * log((T0 + mtemp_soil(m)) / T0))
-  Dgs(1) = exp(logDg0) * 3600
 
   ! Porosity
   do l = 1, nz, 1
@@ -125,13 +123,21 @@ do m = 1,12
       Tsat = soilprop(l, 1)
       T33(l) = soilprop(l, 2)
 
-      porespace(l) = T33(l) * (1. - mwet_soil(m)) + (Tsat - T33(l))
+      porespace(l) = T33(l) * (1. - mw1(m)) + (Tsat - T33(l))
+      
   end do
 
-  ! Moldrup et al (2000) 
-  do l=2, nl+1, 1
+  ! Diffusion coefficient (m2 s-1) to (m2 hr-1)
+  ! Dgs(1) = Dg0st * ((T0 + mtemp_soil(m)) / T0)**1.75
+  logDg0 = log(Dg0st) + (1.75 * log((T0 + mtemp_soil(m)) / T0))
+  !Dgs(1) = exp(logDg0) * 3600.
+  
+  ! Moldrup et al (2004) 
+  do l=1, nl+1, 1
       if (l .le. nl2) then
           !Dgs(l) = Dgs(1) * B_SHAPE * porespace(1)**M_SHAPE
+          ! Dg0 = Diffusion coefficient at standard atmosphere of temperature 
+          ! T33 should be air filled porosity at soil water potential -100cm H2O ~10kPa 
           logDgs(l) = logDg0 + log((2. * T33(1)**3.) + (0.04 * T33(1))) + ((2. + (3. / B_SHAPE)) * log(porespace(1) / T33(1)))
       else
           ! Dgs(l) = Dgs(1) * B_SHAPE * porespace(2)**M_SHAPE
@@ -140,7 +146,7 @@ do m = 1,12
 	  Dgs(l) = exp(logDgs(l)) * 3600.
       ! Dgs(l) = 0.0137
   end do
-
+  
   ! Compute soil CO2 concentrations following Ryan et al 2015
   ! https://doi.org/10.5194/gmd-11-1909-2018
   ! Initial conditions of soilcconc at January year 0 need to be set in lpjmod.f90;
@@ -148,36 +154,35 @@ do m = 1,12
   soilcconc(1) = surfco2
 
   if (m .eq. 1) then
-      !soilcconc(2:(nl1 + 1)) = soilcconc_dec(2) * nl1
-      !soilcconc((nl1 + 2):nl) = soilcconc_dec(3) * nl2
       soilcconc = soilcconc_dec
   end if
 
   do tt = 1, Ndt, 1
+      
       soilcconc_old = soilcconc
+      
       do l = 2, nl, 1
+          
           if (l .eq. nl) then
               soilcconc(l) = soilcconc_old(l) + dt_i * ((Dgs(l) / dz**2) * (soilcconc_old(l-1) - soilcconc_old(l)) + hetresp_mon_layers(m, l))
-          else
+          else                   
               soilcconc(l) = soilcconc_old(l) + dt_i * ((Dgs(l) / dz**2) * (soilcconc_old(l+1) - 2 * soilcconc_old(l) + soilcconc_old(l-1)) + ((Dgs(l+1) - Dgs(l-1)) * (soilcconc_old(l+1) - soilcconc_old(l-1))) / (4 * dz**2) + hetresp_mon_layers(m, l))
+                            
           end if
       end do
   end do
 
-  ! aggregate soilcconc to soilcco2onc layers
-  !soilcconc_nz(1) = soilcconc(1)
-  !soilcconc_nz(2) = sum(soilcconc(2:(nl1 + 1))) / nl1
-  !soilcconc_nz(3) = sum(soilcconc((nl1 + 2):nl)) / nl2
-
-  ! convert mgCO2 m^-3 to ppm CO2
+  ! aggregate soilcconc to soilcco2onc layers and convert mgCO2 m^-3 to ppm CO2
   soilco2conc(m) = (sum(soilcconc(2:nl)) * 8.3143 * (T0 + mtemp_soil(m)) / (44.01 / 1000. * 101325.)) / nl
-end do
 
+ 
+end do
 ! December soilcconc for next year
 soilcconc_dec = soilcconc
-
-! write(stdout,*)soilco2conc
-
+!write(0,*)soilcconc
+!write(stdout,*)'######################################################'
+!write(stdout,*)soilco2conc
+!write(stdout,*)'######################################################'
 end subroutine soilco2
 !-------------------------------------------------------------------------------------------------------------
 

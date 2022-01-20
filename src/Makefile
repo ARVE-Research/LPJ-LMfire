@@ -3,8 +3,8 @@
 #---------------------------------------------
 # specify the fortran and C compilers here. normally this needs to be the MPI version of the compiler
 
-CC = mpiicc
-FC = mpiifort
+CC = mpicc
+FC = mpifort
 
 # specify the compiler options. choose either optimized or debugging flags, or neither
 
@@ -15,32 +15,31 @@ FC = mpiifort
 # OR
 # debugging flags for ifort
 
-FCFLAGS = -debug -fpe0 -traceback -g -check -check noarg_temp_created # -warn all
+# FCFLAGS = -debug -fpe0 -traceback -g -check -check noarg_temp_created # -warn all
 
 # OR
 # debugging flags for gfortran
 
-# FCFLAGS  = -ffree-line-length-none -finit-local-zero -fcheck=all -ffpe-trap=invalid,zero,overflow,underflow -g -fbacktrace -Wall -pedantic
+FCFLAGS  = -ffree-line-length-none -march='native' -funroll-loops -O3
+#FCFLAGS  = -ffree-line-length-none -ffpe-trap=invalid,zero,overflow,underflow #-finit-local-zero -fcheck=all -g -fbacktrace -Wall -pedantic
 
 #---------------------------------------------
 # specify the location of your netcdf install
 
 # netcdf=/alcc/gpfs2/home/geo/georwa/local
-netcdf=/share1/netcdf/4.7.1-impi
-hdf=/share1/hdf5/1.10.5-impi
+netcdf=/home/public/easybuild/software/netCDF-Fortran/4.5.3-gompi-2020a
 
 #---- should not need to change anything below this line ----
 
 # pointers to netcdf directories
 
-HDF_LIB=$(hdf)/lib
 NC_LIB=$(netcdf)/lib
 NC_INC=$(netcdf)/include
 
 # preprocessor and linker flags
 
 CPPFLAGS = -Difort -I$(NC_INC)
-LDFLAGS  = -L$(NC_LIB) -L$(HDF_LIB)
+LDFLAGS  = -L$(NC_LIB)
 
 # --- required libraries --- may not always need libcurl, depends on the HDF install
 

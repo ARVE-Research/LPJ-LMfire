@@ -171,7 +171,8 @@ do m = 1,12
 
     mprec_sim = sum(met_out(a:b)%prec)
 
-    if (prec(m) == 0. .or. abs((prec(m) - mprec_sim) / prec(m)) < 0.05) exit
+    if (prec(m) == 0.) exit 
+    if (abs((prec(m) - mprec_sim) / prec(m)) < 0.05) exit
 
     i = i + 1
     

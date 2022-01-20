@@ -445,7 +445,7 @@ call weathergen_driver(dtmn,dtmx,dcld,prec,wetd,lght,met_out)
 
 temp = in%climate%temp
 
-!write(stdout,*)'flag A1',temp
+!write(*,*)'flag A1',temp
 
 call calcPjj(temp,prec,Pjj)  !precipitation equitability index
 
@@ -808,6 +808,7 @@ do i = 1,3 !ntiles
 
 !  write(stdout,*)'after calcgpp ',present
 
+
   !write(stdout,'(13f10.1)')agpp(8,1),mgpp(:,8,1)
 
 !  write(stdout,*)'flag D2',lm_ind(7:8,1),present
@@ -1116,9 +1117,9 @@ do i = 1,3 !ntiles
       end do
   end if
 
-  write(stdout,*) 'soilcconc December: ', soilcconc_dec
+  !write(stdout,*) 'soilcconc December: ', soilcconc_dec
   call soilco2(co2,osv%tile(i)%soil,soilprop,temp,mtemp_soil,mw1,hetresp_mon,soilcconc_dec,soilco2conc)
-  write(stdout,*) 'soil CO2 (ppm): ', soilco2conc
+  !write(stdout,*) 'soil CO2 (ppm): ', soilco2conc
 
 !  if(i==2)   write(stdout,'(a,i3,9f14.4)') 'after hetresp',i, litter_ag_fast(:,1)
 

@@ -58,7 +58,9 @@ real :: yres
 
 integer, allocatable, dimension(:) :: pftnum
 
-character(40), dimension(2), parameter :: varlabel = ['landf' ,'foragerPD']  !names of variables that will be automatically output
+character(40), dimension(2) :: varlabel !names of variables that will be automatically output
+
+!character(40), dimension(2), parameter :: varlabel = ['    landf' ,'foragerPD']  !names of variables that will be automatically output
 
 !----------
 
@@ -215,6 +217,8 @@ if (ncstat/=nf90_noerr) call netcdf_err(ncstat)
 !---------------------------------------------------------------------------
 !regular variables
 
+varlabel(1) =  'landf'
+varlabel(2) =  'foragerPD' 
 outputvar = eoshift(outputvar,-1,varlabel(1))
   
 if (calcforagers) then
