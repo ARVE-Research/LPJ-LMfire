@@ -8,7 +8,7 @@ contains
 
 subroutine calcgpp(present,co2,soilpar,pftpar,lai_ind,fpc_grid,mdayl,mtemp,mpar_day,dphen_t,w,dpet,dprec,dmelt,sla,   &
                    agpp,alresp,arunoff_surf,arunoff_drain,arunoff,mrunoff,dwscal365,dphen_w,dphen,wscal,mgpp,mlresp,  &
-                   mw1,dw1,aaet,leafondays,leafoffdays,leafon,tree,raingreen,year,mat20,wscal_v,idx)
+                   mw1,dw1,mw2,dw2,aaet,leafondays,leafoffdays,leafon,tree,raingreen,year,mat20,wscal_v,idx)
 
 !Calculation of GPP, explicitly linking photosynthesis and water balance through canopy conductance feedback
 
@@ -54,8 +54,10 @@ real(sp), intent(out) :: arunoff_surf
 real(sp), intent(out) :: arunoff_drain
 
 real(sp), dimension(:), intent(out) :: mw1
+real(sp), dimension(:), intent(out) :: mw2
 real(sp), dimension(:), intent(out) :: mrunoff
 real(sp), dimension(:), intent(out) :: dw1
+real(sp), dimension(:), intent(out) :: dw2
 integer,  dimension(:), intent(out) :: leafondays
 integer,  dimension(:), intent(out) :: leafoffdays
 
@@ -322,6 +324,7 @@ do m = 1,12
     !Store today's water content in soil layer 1
 
     dw1(d) = w(1)
+    dw2(d) = w(2)
 
     !Increment monthly runoff totals
 
@@ -333,6 +336,7 @@ do m = 1,12
     !Increment monthly w(1) total
 
     mw1(m) = mw1(m) + w(1)
+    mw2(m) = mw2(m) + w(2)
 
     do pft = 1,npft
       if (present(pft)) then
@@ -466,6 +470,7 @@ do m = 1,12
   end do  !pft
         
   mw1(m) = mw1(m) / real(ndaymonth(m))
+  mw2(m) = mw2(m) / real(ndaymonth(m))
 
 end do  !month
        

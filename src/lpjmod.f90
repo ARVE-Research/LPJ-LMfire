@@ -182,6 +182,7 @@ real(sp), dimension(365,npft) :: wscal_v  !daily supply/demand ratio
 real(sp), dimension(12) :: mrunoff     !total monthly runoff (mm)
 real(sp), dimension(12) :: mtemp_soil  !monthly soil temperature (deg C)
 real(sp), dimension(12) :: mw1         !monthly soil layer 1 water content (fraction of available water holding capacity)
+real(sp), dimension(12) :: mw2         !monthly soil layer 2 water content (fraction of available water holding capacity)
 
 real(sp), dimension(12,ncvar) :: mrh   !monthly heterotrophic respiration (gC/m2)
 real(sp), dimension(12,4) :: hetresp_mon   !monthly pool-specific heterotrophic respiration (gC/m2)
@@ -228,7 +229,7 @@ real(sp), dimension(365) :: dmelt       !daily snowmelt (mm)
 real(sp), dimension(365) :: snowpack    !daily snow water equivalent (mm)
 real(sp), dimension(365) :: dtemp_soil  !daily soil temperature (deg C)
 real(sp), dimension(365) :: dw1         !daily soil layer 1 water content
-
+real(sp), dimension(365) :: dw2         !daily soil layer 2 water content
 !climbuf
 
 real(sp), pointer, dimension(:) :: mat_buf
@@ -804,7 +805,7 @@ do i = 1,3 !ntiles
 
   call calcgpp(present,[co2,-8.,0.],soilpar,pftpar,lai_ind,fpc_grid,mdayl,temp,mpar_day,dphen_t,w,dpet,dprec,dmelt,   &
                sla,agpp,alresp,arunoff_surf,arunoff_drain,arunoff,mrunoff,dwscal365,dphen_w,dphen,wscal,mgpp,mlresp,  &
-               mw1,dw1,aaet,leafondays,leafoffdays,leafon,pft%tree,pft%raingreen,year,mat20,wscal_v,in%idx)
+               mw1,dw1,mw2,dw2,aaet,leafondays,leafoffdays,leafon,pft%tree,pft%raingreen,year,mat20,wscal_v,in%idx)
 
 !  write(stdout,*)'after calcgpp ',present
 
@@ -1118,7 +1119,7 @@ do i = 1,3 !ntiles
   end if
 
   !write(stdout,*) 'soilcconc December: ', soilcconc_dec
-  call soilco2(co2,osv%tile(i)%soil,soilprop,temp,mtemp_soil,mw1,hetresp_mon,soilcconc_dec,soilco2conc)
+  call soilco2(co2,osv%tile(i)%soil,soilprop,temp,mtemp_soil,mw1,mw2,hetresp_mon,soilcconc_dec,soilco2conc)
   !write(stdout,*) 'soil CO2 (ppm): ', soilco2conc
 
 !  if(i==2)   write(stdout,'(a,i3,9f14.4)') 'after hetresp',i, litter_ag_fast(:,1)
