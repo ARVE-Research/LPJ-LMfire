@@ -113,9 +113,9 @@ do m = 1,12
   hetresp_mon_layers(m,1) = 0.
   do l=2, nl, 1
       if (l .le. nl2) then
-          hetresp_mon_layers(m,l) = (((hetresp_mon(m,1) + hetresp_mon(m,2)) * 1000.) / (ndaymonth(m) * 24.)) * dz 
+          hetresp_mon_layers(m,l) = (((hetresp_mon(m,1) + hetresp_mon(m,2)) * 1000.) / (ndaymonth(m) * 24.)) * z(2) 
       else
-          hetresp_mon_layers(m,l) = (((hetresp_mon(m,3) + hetresp_mon(m,3)) * 1000.) / (ndaymonth(m) * 24.)) * dz ! AK changed to fast and slow flux
+          hetresp_mon_layers(m,l) = (((hetresp_mon(m,3) + hetresp_mon(m,3)) * 1000.) / (ndaymonth(m) * 24.)) * z(3) ! AK changed to fast and slow flux
       end if
   end do
 write(0,*)hetresp_mon_layers(m,:)
