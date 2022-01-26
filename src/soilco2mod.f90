@@ -61,10 +61,13 @@ real(sp), dimension(2) :: T10 !volumetric water content at -100cm H2O (Psi = -10
 real(sp) :: logDg0 ! log of diffusivity at surface
 
 real(sp), allocatable, dimension(:) :: logDgs ! log of diffusivity
-real(sp), allocatable, dimension(:) :: Dgs ! Diffusivity
+real(sp), allocatable, dimension(:) :: Dgs ! Diffusivity (m2 hr-1)
 real(sp), allocatable, dimension(:) :: porespace ! porosity
 real(sp), allocatable, dimension(:) :: z ! layer thickness (m)
-real(sp), allocatable, dimension(:,:) :: hetresp_mon_layers ! hetresp_mon discretized into layers
+!real(sp), allocatable, dimension(:,:) :: hetresp_mon_layers ! hetresp_mon discretized into layers
+real(sp) :: tot_hetresp_co2_mon
+real(sp) :: hetresp_co2
+real(sp) :: nl_hetresp_co2
 real(sp), allocatable, dimension(:) :: soilcconc     ! CO2 concentration per layer (mg CO2 m^3)
 real(sp), allocatable, dimension(:) :: soilcconc_old ! soilcconc at previous timestep
 real(sp), allocatable, dimension(:) :: soilcconc_nz ! soilcconc aggregated to nz
@@ -90,7 +93,7 @@ nl1 = ceiling(z(2) / dz)
 nl2 = ceiling(z(3) / dz)
 nl = 1 + nl1 + nl2
 
-allocate(hetresp_mon_layers(12, nl+1))
+!allocate(hetresp_mon_layers(12, nl+1))
 allocate(logDgs(nl+1))
 allocate(Dgs(nl+1))
 allocate(soilcconc(nl+1))
@@ -100,7 +103,6 @@ allocate(soilcconc_old(nl+1))
 Ndt = ceiling((dt * Dg0_max) / ((dz**2) * (0.5 - 0.05)))
 dt_i = dt / Ndt ! n hours discretized in nx timesteps
 
-
 ! monthly loop starts here
 do m = 1,12
   ! calculate CO2 concentration in mg CO2 m-3 from atmospheric concentration in ppm
@@ -108,17 +110,25 @@ do m = 1,12
 
   ! separate monthly respiration into top and bottom layer
   ! surface flux into top layer; fast and slow flux into bottom layer
-  ! convert monthly respiration (gC m^-2 month^-1) to volumetric respiration (mg C m^-3 h^-1)
+  ! convert monthly respiration (gC m^-2 month^-1) to volumetric respiration in CO2 (mg CO2 m^-3 h^-1)
+  tot_hetresp_co2_mon = ((sum(hetresp_mon(m,:)) * 1000. * (44./12.)) / (ndaymonth(m) * 24.)) * (z(2) + z(3))
+  
+  ! assuming a linear decline in hetresp CO2 over nl steps
+  hetresp_co2 = (2 * (tot_hetresp_co2_mon / nl) / (nl + 1))
 
-  hetresp_mon_layers(m,1) = 0.
-  do l=2, nl, 1
-      if (l .le. nl2) then
-          hetresp_mon_layers(m,l) = (((hetresp_mon(m,1) + hetresp_mon(m,2)) * 1000.) / (ndaymonth(m) * 24.)) * z(2) 
-      else
-          hetresp_mon_layers(m,l) = (((hetresp_mon(m,3) + hetresp_mon(m,3)) * 1000.) / (ndaymonth(m) * 24.)) * z(3) ! AK changed to fast and slow flux
-      end if
-  end do
-write(0,*)hetresp_mon_layers(m,:)
+!  hetresp_mon_layers(m,1) = 0.
+!  do l=2, nl, 1
+
+!      if (l .le. nl2) then 
+!          hetresp_mon_layers(m,l) = (((hetresp_mon(m,1) + hetresp_mon(m,2)) * 1000.) / (ndaymonth(m) * 24.)) * z(2) 
+!      else
+!          hetresp_mon_layers(m,l) = (((hetresp_mon(m,3) + hetresp_mon(m,4)) * 1000.) / (ndaymonth(m) * 24.)) * z(3)
+!      end if
+!  end do
+  
+  soilm(1) = mw1(m)
+  soilm(2) = mw2(m)
+
   ! Porosity
   do l = 1, nz, 1
       ! calculate air-filled soil pore space as a function of texture and soil moisture (m3 m-3)
@@ -127,7 +137,7 @@ write(0,*)hetresp_mon_layers(m,:)
       ! interpolate between Tsat and T33 to T10
       T10(l) = Tsat(l) - ((Tsat(l) - T33(l)) / 34) * 11 ! 34 pressure steps to get from 0kPa to 33kPa; 11 steps from 0-10kaPa
       
-      porespace(l) = T33(l) * (1. - soilm(l)) + (Tsat(l) - T33(l)) 
+      porespace(l) = T10(l) * (1. - soilm(l)) + (Tsat(l) - T10(l)) 
       
   end do
   
@@ -163,14 +173,20 @@ write(0,*)hetresp_mon_layers(m,:)
   do tt = 1, Ndt, 1
       
       soilcconc_old = soilcconc
+      nl_hetresp_co2 = hetresp_co2 * nl
       
       do l = 2, nl, 1
           
           if (l .eq. nl) then
-              soilcconc(l) = soilcconc_old(l) + dt_i * ((Dgs(l) / dz**2) * (soilcconc_old(l-1) - soilcconc_old(l)) + hetresp_mon_layers(m, l))
-          else                   
-              soilcconc(l) = soilcconc_old(l) + dt_i * ((Dgs(l) / dz**2) * (soilcconc_old(l+1) - 2 * soilcconc_old(l) + soilcconc_old(l-1)) + ((Dgs(l+1) - Dgs(l-1)) * (soilcconc_old(l+1) - soilcconc_old(l-1))) / (4 * dz**2) + hetresp_mon_layers(m, l))
-                            
+!              soilcconc(l) = soilcconc_old(l) + dt_i * ((Dgs(l) / dz**2) * (soilcconc_old(l-1) - soilcconc_old(l)) + hetresp_mon_layers(m, l))
+              
+              soilcconc(l) = soilcconc_old(l) + dt_i * ((Dgs(l) / dz**2) * (soilcconc_old(l-1) - soilcconc_old(l)) + hetresp_co2)
+              
+          else
+!              soilcconc(l) = soilcconc_old(l) + dt_i * ((Dgs(l) / dz**2) * (soilcconc_old(l+1) - 2 * soilcconc_old(l) + soilcconc_old(l-1)) + ((Dgs(l+1) - Dgs(l-1)) * (soilcconc_old(l+1) - soilcconc_old(l-1))) / (4 * dz**2) + hetresp_mon_layers(m, l))
+              
+              soilcconc(l) = soilcconc_old(l) + dt_i * ((Dgs(l) / dz**2) * (soilcconc_old(l+1) - 2 * soilcconc_old(l) + soilcconc_old(l-1)) + ((Dgs(l+1) - Dgs(l-1)) * (soilcconc_old(l+1) - soilcconc_old(l-1))) / (4 * dz**2) + nl_hetresp_co2)
+              nl_hetresp_co2 = nl_hetresp_co2 - hetresp_co2
           end if
       end do
   end do
@@ -178,14 +194,14 @@ write(0,*)hetresp_mon_layers(m,:)
 !  write(0,*)soilcconc(2:nl) * 8.3143 * (T0 + mtemp_soil(m)) / (44.01 / 1000. * 101325.)
 !  write(0,*)'################################'
   ! aggregate soilcconc to soilcco2onc layers and convert mgCO2 m^-3 to ppm CO2
-  soilco2conc(m) = (sum(soilcconc(2:nl)) * 8.3143 * (T0 + mtemp_soil(m)) / (44.01 / 1000. * 101325.)) / nl
+  soilco2conc(m) = (sum(soilcconc(2:nl)) * 8.3143 * (T0 + mtemp_soil(m)) / (44.01 / 1000. * 101325.))
 
  
 end do
 ! December soilcconc for next year
 soilcconc_dec = soilcconc
 !write(0,*)soilcconc
-write(stdout,*)'######################################################'
+!write(stdout,*)'######################################################'
 !write(stdout,*)soilco2conc
 !write(stdout,*)'######################################################'
 end subroutine soilco2
