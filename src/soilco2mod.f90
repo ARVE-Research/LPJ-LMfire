@@ -116,16 +116,6 @@ do m = 1,12
   ! assuming a linear decline in hetresp CO2 over nl steps
   hetresp_co2 = (2 * (tot_hetresp_co2_mon / nl) / (nl + 1))
 
-!  hetresp_mon_layers(m,1) = 0.
-!  do l=2, nl, 1
-
-!      if (l .le. nl2) then 
-!          hetresp_mon_layers(m,l) = (((hetresp_mon(m,1) + hetresp_mon(m,2)) * 1000.) / (ndaymonth(m) * 24.)) * z(2) 
-!      else
-!          hetresp_mon_layers(m,l) = (((hetresp_mon(m,3) + hetresp_mon(m,4)) * 1000.) / (ndaymonth(m) * 24.)) * z(3)
-!      end if
-!  end do
-  
   soilm(1) = mw1(m)
   soilm(2) = mw2(m)
 
@@ -142,30 +132,26 @@ do m = 1,12
   end do
   
   ! Diffusion coefficient (m2 s-1) to (m2 hr-1)
-  ! Dgs(1) = Dg0st * ((T0 + mtemp_soil(m)) / T0)**1.75
   logDg0 = log(Dg0st) + (1.75 * log((T0 + mtemp_soil(m)) / T0))
-  !Dgs(1) = exp(logDg0) * 3600.
   
   ! Moldrup et al (2004) 
   do l=1, nl+1, 1
       if (l .le. nl2) then
-          !Dgs(l) = Dgs(1) * B_SHAPE * porespace(1)**M_SHAPE
-          ! Dg0 = Diffusion coefficient at standard atmosphere of temperature 
-          logDgs(l) = logDg0 + log((2. * T10(1)**3.) + (0.04 * T10(1))) + ((2. + (3. / B_SHAPE)) * log(porespace(1) / T10(1)))
+        logDgs(l) = logDg0 + log((2. * T10(1)**3.) + (0.04 * T10(1))) + ((2. + (3. / B_SHAPE)) * log(porespace(1) / T10(1)))
       else
-          ! Dgs(l) = Dgs(1) * B_SHAPE * porespace(2)**M_SHAPE
           logDgs(l) = logDg0 + log((2. * T10(2)**3.) + (0.04 * T10(2))) + ((2. + (3. / B_SHAPE)) * log(porespace(2) / T10(2)))
       end if
-	  Dgs(l) = exp(logDgs(l)) * 3600.
-      ! Dgs(l) = 0.0137
+      Dgs(l) = exp(logDgs(l)) * 3600.
   end do
+  
+  !write(0,*)soilcconc_old
   
   ! Compute soil CO2 concentrations following Ryan et al 2018
   ! https://doi.org/10.5194/gmd-11-1909-2018
   ! Initial conditions of soilcconc at January year 0 need to be set in lpjmod.f90;
   ! after that take December from previous year
   soilcconc(1) = surfco2
-
+  
   if (m .eq. 1) then
       soilcconc = soilcconc_dec
   end if
@@ -178,23 +164,22 @@ do m = 1,12
       do l = 2, nl, 1
           
           if (l .eq. nl) then
-!              soilcconc(l) = soilcconc_old(l) + dt_i * ((Dgs(l) / dz**2) * (soilcconc_old(l-1) - soilcconc_old(l)) + hetresp_mon_layers(m, l))
-              
               soilcconc(l) = soilcconc_old(l) + dt_i * ((Dgs(l) / dz**2) * (soilcconc_old(l-1) - soilcconc_old(l)) + hetresp_co2)
               
           else
-!              soilcconc(l) = soilcconc_old(l) + dt_i * ((Dgs(l) / dz**2) * (soilcconc_old(l+1) - 2 * soilcconc_old(l) + soilcconc_old(l-1)) + ((Dgs(l+1) - Dgs(l-1)) * (soilcconc_old(l+1) - soilcconc_old(l-1))) / (4 * dz**2) + hetresp_mon_layers(m, l))
-              
               soilcconc(l) = soilcconc_old(l) + dt_i * ((Dgs(l) / dz**2) * (soilcconc_old(l+1) - 2 * soilcconc_old(l) + soilcconc_old(l-1)) + ((Dgs(l+1) - Dgs(l-1)) * (soilcconc_old(l+1) - soilcconc_old(l-1))) / (4 * dz**2) + nl_hetresp_co2)
               nl_hetresp_co2 = nl_hetresp_co2 - hetresp_co2
+              ! In high latitudes soilcconc turns <0 probably bc of too high Dgs?
+              if (soilcconc(l) .le. 0.) then
+                soilcconc(l) = 0.
+              end if
           end if
       end do
   end do
-!  write(0,*)'################################'
-!  write(0,*)soilcconc(2:nl) * 8.3143 * (T0 + mtemp_soil(m)) / (44.01 / 1000. * 101325.)
+
 !  write(0,*)'################################'
   ! aggregate soilcconc to soilcco2onc layers and convert mgCO2 m^-3 to ppm CO2
-  soilco2conc(m) = (sum(soilcconc(2:nl)) * 8.3143 * (T0 + mtemp_soil(m)) / (44.01 / 1000. * 101325.))
+  soilco2conc(m) = (sum(soilcconc(2:nl)) * 8.3143 * (T0 + mtemp_soil(m)) / (44.01 / 1000. * 101325.)) / sum(z(:))
 
  
 end do

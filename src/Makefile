@@ -20,8 +20,8 @@ FC = mpifort
 # OR
 # debugging flags for gfortran
 
-FCFLAGS  = -ffree-line-length-none -march='native' -funroll-loops -O3
-#FCFLAGS  = -ffree-line-length-none -ffpe-trap=invalid,zero,overflow,underflow #-finit-local-zero -fcheck=all -g -fbacktrace -Wall -pedantic
+FCFLAGS  = -ffree-line-length-none -march='native' -funroll-loops #-O3
+#FCFLAGS  = -ffree-line-length-none -ffpe-trap=invalid,zero,overflow,underflow -fbacktrace -g -fbacktrace -Wall -pedantic -finit-local-zero -fcheck=all
 
 #---------------------------------------------
 # specify the location of your netcdf install

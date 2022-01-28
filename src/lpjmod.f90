@@ -1113,12 +1113,9 @@ do i = 1,3 !ntiles
 
   ! Initial conditions for January soilco2 are surface co2 (mg CO2 m^-3)
   if (year .eq. 1) then
-      do a = 1, 3, 1
-          soilcconc_dec(a) = (co2 * 44.01) * 101325. / (8.3143 * (273.15 + temp(1)))
-      end do
+      soilcconc_dec(:) = (co2 * (44.01/1000.)) * 101325. / (8.3143 * (273.15 + temp(1)))
   end if
 
-  !write(stdout,*) 'soilcconc December: ', soilcconc_dec
   call soilco2(co2,osv%tile(i)%soil,soilprop,temp,mtemp_soil,mw1,mw2,hetresp_mon,soilcconc_dec,soilco2conc)
   !write(stdout,*) 'soil CO2 (ppm): ', soilco2conc
 
