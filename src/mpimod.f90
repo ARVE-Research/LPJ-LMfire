@@ -3,7 +3,7 @@ module mpimod
 use mpi
 use errormod,        only : mpistat,ierr
 use parametersmod,   only : i1
-use parametersmod,   only : stdout,stderr
+use parametersmod,   only : stdout,stderr,numcell
 use mpistatevarsmod, only : inputdata,statevars
 
 implicit none

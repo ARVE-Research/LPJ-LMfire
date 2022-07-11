@@ -3,7 +3,6 @@ module drivermod
 use parametersmod, only : stdout,stderr
 
 implicit none
-
 contains
 
 !------------------------------------------------------------------------------------------------------------

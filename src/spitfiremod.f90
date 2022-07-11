@@ -1,6 +1,6 @@
 module spitfiremod
 
-use parametersmod,    only : sp,dp,npft,O2,PoI,MoE,HoC
+use parametersmod, only : sp,dp,npft,O2,PoI,MoE,HoC
 use parametersmod, only : stdout,stderr
 
 implicit none
@@ -37,7 +37,7 @@ real(sp) :: ieffox_w  !oxygen ignition efficiency parameter for trees
 real(sp), dimension(npft) :: m_ex    !moisture of extinction
 real(sp) :: me_ox                    !moisture of extinction for varying O2
 
-real(sp) :: h                        !heat content of fuel (kJ g-1)
+!real(sp) :: h                       !heat content of fuel (kJ g-1) changed to hofc
 real(sp), dimension(npft) :: h_par_a !parameter alpha for HoC eqn for each PFT
 real(sp), dimension(npft) :: h_par_b !parameter beta for HoC eqn for each PFT
 
@@ -196,7 +196,7 @@ end subroutine managedburn
 
 !-----------------------------------------------------------------------------------------------------------------------------------------------------
 
-subroutine spitfire(year,i,j,d,input,met,soilwater,snowpack,dphen,wscal,osv,spinup,avg_cont_area,burnedf20,forager_pd20,FDI,omega_o0,omega0,BBpft,Ab,ind,numfires_nat,ieff)
+subroutine spitfire(year,i,j,d,input,met,soilwater,snowpack,dphen,wscal,osv,spinup,avg_cont_area,burnedf20,forager_pd20,FDI,omega_o0,omega0,BBpft,Ab,ind,numfires_nat,ieff,hofc,mofe)
 
 use parametersmod,   only : pir,npft,pi,pft,pftpar,O2
 use weathergenmod,   only : metvars_out
@@ -374,12 +374,16 @@ integer        :: numfires  !number of fires started on the grid cell today
 integer                :: numfires_hum
 integer, intent(inout) :: numfires_nat !output for the number of natural fires
 integer, save  :: peopfire_account
+integer :: np 
+real(sp), dimension(npft) :: h_pft !heat of combustion for each PFT for given O2 concentration
 real(sp) :: riskfact         !FDI dependent factor influencing people's fire behavior; people become more careful when fire danger is high
 
 !real(sp), parameter, dimension(3) :: max_ig = [15., 2. , 8.]                 !maximum number of human possible fire ignitions (Mha-1 day-1) 
 
 real(sp) :: burnedf
 real(sp), intent(inout) :: ieff !output for ignition efficiency
+real(sp), intent(inout) :: hofc !output for heat of combustion
+real(sp), intent(inout) :: mofe !output for moisture of extinction
 real(sp) :: rho_livegrass
 real(sp) :: wind_multiplier
 real(sp) :: ieff_avg
@@ -536,10 +540,6 @@ if (d == 1) then
 
   !write(stdout,*)'done writing annual stats
 
- if(input%lat == 30.75 .and. input%lon == -102.25 .and. year == 5) then
-write(*,*)'fpc_grid start; ',fpc_grid
-end if
-
   !unburneda = area_ha
 
   !if (cumfires > 0) then
@@ -548,14 +548,11 @@ end if
 
 end if
 
-
 if (snowpack > 0.) then  !no fire on days with snow on the ground
   if(bavard)  write(*,'(a16,4i6,6f14.7)') 'snowpack ', year,i,d,cumfires, met%prec, NI, afire_frac, PD
-  cumfires = 0 		! extinguish all smouldering or burning fires  
-
-
-  return
-end if  
+  cumfires = 0          ! extinguish all smouldering or burning fires  
+ ! return
+end if 
 
 if (met%prec == 0.) then
   precsum = 0.
@@ -592,6 +589,27 @@ end if
 
 BBlive = 0.
 BBdead = 0.
+
+if (HoC) then
+
+! calulate HoC for each PFT for given O2
+do np = 1,npft
+h_pft(np) = heatc(h_par_a(np),h_par_b(np),O2)
+end do
+
+! if no fuel then no heat of combsution
+if (sum(fpc_grid)==0)then
+hofc = 0
+else
+! find weighted average ver PFTs
+hofc = sum(fpc_grid*h_pft)/sum(fpc_grid)
+end if
+
+else
+
+! previous constant
+hofc = 18
+end if
 
 !------------------
 !calculate fuel by PFT and by fuel type
@@ -673,9 +691,12 @@ totfuel = sum(deadfuel) + sum(livefuel) + cpool_surf(1)
 if (totfuel < 1000. .or. totvcover < 0.5) then
   if(bavard)  write(*,'(a16,4i6,13f14.4)')'no_fuel',year,i,d, cumfires, Ab, abarf, afire_frac, light*area_ha, 0., PD, met%prec, NI, PD
   cumfires = 0  
-
-
-  return  !no fuel
+    if (totvcover<0.1 .or. totfuel<50.)then
+    hofc = 0.
+    mofe = 0.
+    return
+    end if
+ ! return
 end if
 
 !---------------------------
@@ -814,14 +835,6 @@ me_ox = moistex(O2) / moistex(20.95)
 me_avg =  m_e * rdf + me_lf * rlf * me_ox
 me_nl = (me_ox * me_fc(1) * woi(1) + me_lf * (wlivegrass + SOM_surf)) / (wfinefuel + SOM_surf)
 
-!if (d==200) then
-!write(*,*)'me_ox: ',me_ox
-!write(*,*)'new me_avg: ',me_avg
-!write(*,*)'standard me_avg: ',m_e * rdf + me_lf * rlf
-!write(*,*)'new me_nl: ',me_nl
-!write(*,*)'standard me_avg: ',(me_fc(1) * woi(1) + me_lf * (wlivegrass + SOM_surf)) / (wfinefuel + SOM_surf)
-!end if 
-
 else
 
 me_avg = m_e * rdf + me_lf * rlf
@@ -841,10 +854,26 @@ if(me_nl>1)then
 me_nl = 1
 end if
 
-!if (d==230)then
-!write(*,*)'omega_nl: ',omega_nl
-!write(*,*)'omega_o: ',omega_o
-!end if
+if (grascover >= 0.6) then
+mofe = me_nl
+else
+mofe = me_avg
+end if
+
+! leave spitfire here is snow or no fuel:
+! put here so heat of combustion and MoE calculations still happen
+if (snowpack > 0.) then  !no fire on days with snow on the ground
+  if(bavard)  write(*,'(a16,4i6,6f14.7)') 'snowpack ', year,i,d,cumfires,met%prec, NI, afire_frac, PD
+  cumfires = 0          ! extinguish all smouldering or burning fires
+  return
+end if
+
+if (totfuel < 1000. .or. totvcover < 0.5) then
+  if(bavard)  write(*,'(a16,4i6,13f14.4)')'no_fuel',year,i,d, cumfires, Ab,abarf, afire_frac, light*area_ha, 0., PD, met%prec, NI, PD
+  cumfires = 0
+  return  !no fuel
+end if
+
 
 !---------------------------
 !part 2.2.1, ignition events
@@ -982,19 +1011,8 @@ end if
 
 if (grascover >= 0.6) then        !BURNING BEHAVIOR DOMINATED BY GRASS CHARACTERISTICS
   FDI = max(0.,(1. - omega_nl / me_nl))  !eqn. 8
-
-!if (d== 200) then
-!write(stdout,*)'new FDI',FDI
-!write(stdout,*)'old FDI', max(0.,(1. - omega_nl/((me_fc(1) * woi(1) + me_lf *(wlivegrass + SOM_surf)) / (wfinefuel + SOM_surf))))
-!end if
-
 else
   FDI = max(0.,(1. - omega_o / me_avg))  !eqn. 8
-! if (d== 200) then
-!write(stdout,*)'new FDI',FDI
-!write(stdout,*)'old FDI', max(0.,(1. - omega_o /m_e * rdf + me_lf * rlf))
-!end if
-
 end if
 
 
@@ -1030,6 +1048,7 @@ if (light * area_ha > 0.) then
 
   if (ieff > prob) then
     nlig = 1. 
+
   else
     nlig = 0.
   end if
@@ -1132,7 +1151,7 @@ relmoist = omega_o / me_avg
 if (relmoist < 1.) then       !FDI not zero for this landscape component
 
   !write(stdout,*)'calcros',orgf*wn,rho_b,omega_o,relmoist
-  call calcROS(orgf*wn,rho_b,sigma,omega_o,relmoist,Uforward,ROSfsurface_w,fpc_grid)
+  call calcROS(orgf*wn,rho_b,sigma,omega_o,relmoist,Uforward,ROSfsurface_w,fpc_grid,hofc)
 
 else
   ROSfsurface_w = 0.
@@ -1162,7 +1181,7 @@ end if
       sigma = sigma_i(1)
       relmoist = 0.99  !at moisture content just below extinction fire can spread
 
-      call calcROS(orgf*wn,rho_b,sigma,0.3,relmoist,Uforward,ROSfcrown,fpc_grid)
+      call calcROS(orgf*wn,rho_b,sigma,0.3,relmoist,Uforward,ROSfcrown,fpc_grid,hofc)
 
     end if
 
@@ -1308,7 +1327,6 @@ nhig = nhig * riskfact			  ! reduce number of fires caused when FDI gets above 0
 numfires_nat = int(nlig)! * area_ha)  !lightning fires started on this day
 numfires_hum = nhig                       !human fires started on this day
 
-
 numfires = numfires_nat + numfires_hum
 
 !write(*,'(a,3i5,4f14.8)')'potential burnday',year,i,d,FDI,NI,light*area_ha,nlig*area_ha
@@ -1328,8 +1346,6 @@ unburneda = max(0.,unburneda)
 
 !Ab = max(0.,min(unburneda-0.05*area_ha,cumfires * abarf))  !ha
 Ab = max(0.,min(unburneda,cumfires * abarf))  !ha
-
-
 
 !reduce cumfires by nhig (human caused fires only last for one day)
 
@@ -1358,6 +1374,7 @@ if (Abfrac > 1. .or. Abfrac < 0. .or. unburneda < 0.) then
   write(stdout,*)FDI,abarf,Abfrac,Ab,unburneda,numfires,totburn,area_ha,input%lon,input%lat
   stop
 end if
+
 
 !total area burned (ha)
 
@@ -1452,7 +1469,8 @@ FC = CF * woi * (1. - ST)
 !---
 !surface fire intensity (kW m-1)
 
-Isurface = h * sum(FC(1:3)) * ROSfsurface * min2sec  !eqn. 15
+Isurface = hofc * sum(FC(1:3)) * ROSfsurface * min2sec  !eqn. 15
+
 
 !write(stdout,*)'Isurf',isurface
 
@@ -1464,6 +1482,7 @@ if (Isurface < 50.) then  !ignitions are extinguished and there is no fire on th
   Abfrac = 0.
   return       !leave the subroutine
 end if
+
 
 !---
 !if there is fire today, update the fractional area burned and the live and dead biomass pools
@@ -1508,7 +1527,6 @@ if (d == 0) then
 
 end if
  
-
 !-----------------------
 !2.2.6 fire damage to living plants
 
@@ -1632,11 +1650,12 @@ aMx(6) = aMx(6) + (sum(emNOx * BBpft)) ! NOx
 
 !write(*,993)year,i,d,abarf,Ab,numfires,Abfrac,totburn,unburneda,crownfire,dphen(2)
 
+
 end subroutine spitfire
 
 !-----------------------------------------------------------------------------------------------------------------------------------------------------
 
-subroutine calcROS(wn,rho_b,sigma,omega_o,relmoist,Uforward,rateofspread,fpc_grid)
+subroutine calcROS(wn,rho_b,sigma,omega_o,relmoist,Uforward,rateofspread,fpc_grid,h)
 
 use parametersmod,   only : npft,O2
 
@@ -1651,6 +1670,7 @@ real(sp), intent(in)  :: Uforward      !windspeed (m min-1)
 real(sp), dimension(npft), intent(in)  :: fpc_grid      !coverage of pfts
 
 real(sp), intent(out) :: rateofspread  !fire rate of spread (m min-1)
+real(sp), intent(in) :: h             !average heat of combustion
 
 !parameters
 
@@ -1676,28 +1696,8 @@ real(sp) :: nu_M           !moisture dampening coefficient (unitless)
 real(sp) :: xi             !propagating flux ratio; proportion of IR transferred to unburned fuels (dimensionless); in reality influenced by convection, radiation, flame contact and ignition-point transfer
 real(sp) :: windfact       !high wind multiplier for rate of spread (unitless)
 real(sp) :: Ums            !wind speed (m s-1)
-real(sp), dimension(npft) :: h_pft !heat of combustion for each PFT for given O2 concentration
-integer  :: i
 
 !------------------------------
-!Calculate average heat content:
-
-if (HoC) then
-
-! calulate HoC for each PFT for given O2
-do i = 1,npft
-h_pft(i) = heatc(h_par_a(i),h_par_b(i),O2)
-end do
-
-! find weighted average ver PFTs
-h = sum(fpc_grid*h_pft)/sum(fpc_grid)
-
-else
-
-! previous constant
-h = 18
-end if
-
 
 !-------------------------------
 !Terms used in several equations

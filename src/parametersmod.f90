@@ -31,6 +31,7 @@ integer, parameter :: stderr = error_unit
 
 integer, parameter :: npft     =  9 
 integer, parameter :: npftpar  = 53
+integer, parameter :: numcell  = 259200
 integer, parameter :: nsoilpar =  7
 integer, parameter :: ncvar    =  3
 integer, parameter :: climbuf  = 20
@@ -151,11 +152,11 @@ real(dp), parameter :: Smin  = 0.033d0  !irreducible water saturation of snow (f
 real(dp), parameter :: z0mg  = 0.01d0   !momentum roughness length for soil (m, CLM eqn 3.49)
 
 ! Atmospheric Oxygen parameters
-real(sp), parameter :: O2 = 20.95   !concentration of atmospheric oxygen
+real(sp), parameter :: O2 = 38   !concentration of atmospheric oxygen
 
 logical :: PoI = .true.          !Turn on probability of ignition eqn 
-logical :: MoE = .false.           !Turn on Moisture of Extinction eqn
-logical :: HoC = .false.          !Turn on Heat of Combustion eqn
+logical :: MoE = .true.          !Turn on Moisture of Extinction eqn
+logical :: HoC = .true.          !Turn on Heat of Combustion eqn
 
 !other parameters
 

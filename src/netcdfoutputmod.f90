@@ -456,6 +456,40 @@ deallocate(rvar2d)
 
 !-----
 
+!-----
+!monthly average heat of combustion
+y = size(sv(1)%tile(1)%mhofc)        !ATTENTION: tile integration has already been done at end of lpjmod and put in tile 1, hence we only need to output tile1 for the integrated
+
+allocate(rvar2d(ncells,y))
+
+do i = 1,ncells
+  do j = 1,12
+    rvar2d(i,j) = sv(i)%tile(1)%mhofc(j)
+end do
+end do
+
+call putvar3d(ofid,tpos,'mhofc',rvar2d)
+deallocate(rvar2d)
+
+!-----
+
+!-----
+!monthly average moisture of extinction 
+y = size(sv(1)%tile(1)%mmofe)        !ATTENTION: tile integration has already been done at end of lpjmod and put in tile 1, hence we only need to output tile1 for the integrated
+
+allocate(rvar2d(ncells,y))
+
+do i = 1,ncells
+  do j = 1,12
+    rvar2d(i,j) = sv(i)%tile(1)%mmofe(j)
+end do
+end do
+
+call putvar3d(ofid,tpos,'mmofe',rvar2d)
+deallocate(rvar2d)
+
+!-----
+
 !monthly mean LAI, per PFT
 
 allocate(rvar4d(cntx,cnty,npft,12))

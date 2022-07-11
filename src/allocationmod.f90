@@ -152,11 +152,6 @@ do pft = 1,npft
 
       x1 = lminc_ind_min
       x2 = (bm_inc_ind - (lm / lm2rm - rm)) / (1. + 1. / lm2rm)
-if(input%lat == 30.75 .and. input%lon == -102.25) then
-       write(*,*)'x1:  ',x1
-end if      
-
-
       dx = x2 - x1
       
       if (dx < 0.01) then
