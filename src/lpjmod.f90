@@ -292,6 +292,9 @@ integer, pointer, dimension(:)  :: mnfire      !monthly number of fires
 real(sp), pointer, dimension(:) :: mieff       !monthly average ignition efficieny
 real(sp), pointer, dimension(:) :: mhofc       !monthly average heat of combustion
 real(sp), pointer, dimension(:) :: mmofe       !monthly average moisture of extinction
+real(sp), pointer, dimension(:) :: mfuelmoist  !monthly weighted average fuel moisture
+real(sp), pointer, dimension(:) :: mIR         !monthly reaction intensity
+real(sp), pointer, dimension(:) :: mROS        !monthly average forward rate of spread
 integer, dimension(12) :: nosnowdays           !number of days in a month with temp > 0. without snowcover
 
 !additional local variables
@@ -319,12 +322,17 @@ integer :: numfires_nat !number of natural fires per day
 real (sp) :: ieff !ignition efficiency per day
 real(sp) :: hofc  !heat of combustion
 real(sp) :: mofe  !moisture of extinction
+real(sp) :: IR    ! Reaction intensity 
+real(sp) :: ROSfsurface !forward rate of  spread
 
 real(sp), allocatable, dimension(:,:) :: help_me
 integer,  allocatable, dimension(:,:) :: help_me2
 real(sp), allocatable, dimension(:,:) :: help_me3
 real(sp), allocatable, dimension(:,:) :: help_me4
 real(sp), allocatable, dimension(:,:) :: help_me5
+real(sp), allocatable, dimension(:,:) :: help_me6
+real(sp), allocatable, dimension(:,:) :: help_me7
+real(sp), allocatable, dimension(:,:) :: help_me8
 
 integer :: startyr_foragers
 
@@ -654,6 +662,9 @@ do i = 1,3 !ntiles
   mieff            => osv%tile(i)%mieff
   mhofc            => osv%tile(i)%mhofc
   mmofe            => osv%tile(i)%mmofe
+  mfuelmoist       => osv%tile(i)%mfuelmoist
+  mIR              => osv%tile(i)%mIR
+  mROS             => osv%tile(i)%mROS
 
   !--------------------------------------------------------------------------------------
   !initializations (needed?)
@@ -1068,11 +1079,14 @@ do i = 1,3 !ntiles
         mieff(m)    = 0.
         mhofc(m)    = 0.
         mmofe(m)    = 0.
+        mfuelmoist(m) = 0.
+        mIR(m)      =0.
+        mROS(m)     =0.
         
 
         do dm = 1,ndaymonth(m)
 
-          call spitfire(year,i,j,d,in,met_out(d),dw1(d),snowpack(d),dphen(d,:),wscal_v(d,:),osv,spinup,avg_cont_area,burnedf20,forager_pd20,FDI,omega_o0,omega0,BBpft,Ab,hclass,numfires_nat,ieff,hofc,mofe)
+          call spitfire(year,i,j,d,in,met_out(d),dw1(d),snowpack(d),dphen(d,:),wscal_v(d,:),osv,spinup,avg_cont_area,burnedf20,forager_pd20,FDI,omega_o0,omega0,BBpft,Ab,hclass,numfires_nat,ieff,hofc,mofe,IR,ROSfsurface)
           mBBpft(:,m) = mBBpft(:,m) + BBpft  !accumulate biomass burned totals
 
           mburnedf(m) = mburnedf(m) + Ab/(in%cellarea * 1e-4) !convert cell area to ha, as Ab is in ha
@@ -1080,16 +1094,28 @@ do i = 1,3 !ntiles
         
           if (numfires_nat <0) then
            numfires_nat = 0
-          end if  
+          end if 
+ 
           mnfire(m)   = mnfire(m) + numfires_nat
 
           if (ieff <0) then
            ieff = 0
           end if
-          mieff(m)    = mieff(m) + (ieff/ndaymonth(m))
 
+          if(IR < 0) then
+           IR = 0
+          end if
+
+          if(ROSfsurface <0) then
+           ROSfsurface = 0
+          end if
+
+          mieff(m)    = mieff(m) + (ieff/ndaymonth(m))
           mhofc(m)    = mhofc(m) + (hofc/ndaymonth(m))
           mmofe(m)    = mmofe(m) + (mofe/ndaymonth(m))
+          mfuelmoist(m) = mfuelmoist(m) + (omega_o0/ndaymonth(m))
+          mIR(m)      = mIR(m) + (IR/ndaymonth(m))
+          mROS(m)     = mROS(m) + (ROSfsurface/ndaymonth(m))
 
           d = d + 1
 
@@ -1279,6 +1305,10 @@ allocate(help_me2(ntiles,12))
 allocate(help_me3(ntiles,12))
 allocate(help_me4(ntiles,12))
 allocate(help_me5(ntiles,12))
+allocate(help_me6(ntiles,12))
+allocate(help_me7(ntiles,12))
+allocate(help_me8(ntiles,12))
+
 
 do i = 1, ntiles
 !  write(stdout,'(i8,13f14.7)') i, osv%tile(i)%mburnedf, osv%tile(i)%coverfrac
@@ -1287,6 +1317,9 @@ do i = 1, ntiles
   help_me3(i,:) = osv%tile(i)%mieff
   help_me4(i,:) = osv%tile(i)%mhofc
   help_me5(i,:) = osv%tile(i)%mmofe
+  help_me6(i,:) = osv%tile(i)%mfuelmoist
+  help_me7(i,:) = osv%tile(i)%mIR
+  help_me8(i,:) = osv%tile(i)%mROS
 end do
 
 !to make it easier in netcdfoutputmod, and since we are only interested in the total, not tilewise, already do the tile-integration here and then put it 
@@ -1297,12 +1330,18 @@ osv%tile(1)%mnfire   = sum(help_me2(:,:), dim=1)
 osv%tile(1)%mieff    = sum(help_me3(:,:), dim=1)
 osv%tile(1)%mhofc    = sum(help_me4(:,:), dim=1)
 osv%tile(1)%mmofe    = sum(help_me5(:,:), dim=1)
+osv%tile(1)%mfuelmoist = sum(help_me6(:,:), dim=1)
+osv%tile(1)%mIR      = sum(help_me7(:,:), dim=1)
+osv%tile(1)%mROS     = sum(help_me8(:,:), dim=1)
 
 !write(stdout,'(a,12f14.7)') 'integrated', osv%tile(1)%mburnedf
 
 deallocate(help_me)
 deallocate(help_me2)
 deallocate(help_me3)
+deallocate(help_me6)
+deallocate(help_me7)
+deallocate(help_me8)
 
 end subroutine lpjcore
 

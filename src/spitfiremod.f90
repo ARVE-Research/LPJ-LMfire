@@ -34,6 +34,7 @@ real(sp), dimension(npft) :: ieffpft_ox !ignition effiency parameter (pft*ox)
 real(sp) :: ieffox_g  !oxygen ignition effiency parameter for grasses
 real(sp) :: ieffox_w  !oxygen ignition efficiency parameter for trees
 
+
 real(sp), dimension(npft) :: m_ex    !moisture of extinction
 real(sp) :: me_ox                    !moisture of extinction for varying O2
 
@@ -196,7 +197,7 @@ end subroutine managedburn
 
 !-----------------------------------------------------------------------------------------------------------------------------------------------------
 
-subroutine spitfire(year,i,j,d,input,met,soilwater,snowpack,dphen,wscal,osv,spinup,avg_cont_area,burnedf20,forager_pd20,FDI,omega_o0,omega0,BBpft,Ab,ind,numfires_nat,ieff,hofc,mofe)
+subroutine spitfire(year,i,j,d,input,met,soilwater,snowpack,dphen,wscal,osv,spinup,avg_cont_area,burnedf20,forager_pd20,FDI,omega_o0,omega0,BBpft,Ab,ind,numfires_nat,ieff,hofc,mofe,IR,ROSfsurface)
 
 use parametersmod,   only : pir,npft,pi,pft,pftpar,O2
 use weathergenmod,   only : metvars_out
@@ -221,6 +222,7 @@ real(sp), 	   intent(in) :: forager_pd20		!20-year running mean forager populati
 real(sp),          intent(inout) :: avg_cont_area        !average contiguous area size of non-used part of the gridcell (ha)
 real(sp),	   intent(inout) :: FDI
 real(sp), 	   intent(inout) :: omega_o0
+real(sp),          intent(inout) :: ROSfsurface     !rate of forward surface spread 
 real(sp), dimension(4), intent(inout) :: omega0     !moisture content of each fuel class on the previous day
 real(sp), dimension(:), intent(in) :: dphen                !phenological state (1=full leaf; 0=no leaves) per pft, on this day
 real(sp), dimension(:), intent(in) :: wscal          !water scalar (supply/demand <= 1) per pft, on this day
@@ -295,7 +297,6 @@ real(sp) :: Isurface       !surface fire intensity (kW m-1)
 real(sp) :: LB
 real(sp) :: LBgrass
 real(sp) :: LBtree
-real(sp) :: ROSfsurface    !overall forward rate of spread of fire (m min-1)
 real(sp) :: ROSfsurface_g  !forward rate of spread of fire in herbaceous fuel (m min-1)
 real(sp) :: ROSfsurface_w  !forward rate of spread of fire in woody fuels (m min-1)
 real(sp) :: ROSfcrown      !forward rate of spread of fire in crown (m min-1)
@@ -384,6 +385,7 @@ real(sp) :: burnedf
 real(sp), intent(inout) :: ieff !output for ignition efficiency
 real(sp), intent(inout) :: hofc !output for heat of combustion
 real(sp), intent(inout) :: mofe !output for moisture of extinction
+real(sp), intent(inout) :: IR   !output for reaction intensity
 real(sp) :: rho_livegrass
 real(sp) :: wind_multiplier
 real(sp) :: ieff_avg
@@ -832,8 +834,8 @@ if (MoE) then
 me_ox = moistex(O2) / moistex(20.95)
 
 ! scale moisture of extinctions for PFTs by oxygen calculation
-me_avg =  m_e * rdf + me_lf * rlf * me_ox
-me_nl = (me_ox * me_fc(1) * woi(1) + me_lf * (wlivegrass + SOM_surf)) / (wfinefuel + SOM_surf)
+me_avg =  (m_e * rdf + me_lf * rlf) * me_ox
+me_nl = (me_ox * (me_fc(1) * woi(1) + me_lf * (wlivegrass + SOM_surf))) / (wfinefuel + SOM_surf)
 
 else
 
@@ -1151,7 +1153,9 @@ relmoist = omega_o / me_avg
 if (relmoist < 1.) then       !FDI not zero for this landscape component
 
   !write(stdout,*)'calcros',orgf*wn,rho_b,omega_o,relmoist
-  call calcROS(orgf*wn,rho_b,sigma,omega_o,relmoist,Uforward,ROSfsurface_w,fpc_grid,hofc)
+  call calcROS(orgf*wn,rho_b,sigma,omega_o,relmoist,Uforward,ROSfsurface_w,fpc_grid,hofc,IR,d)
+
+
 
 else
   ROSfsurface_w = 0.
@@ -1181,7 +1185,7 @@ end if
       sigma = sigma_i(1)
       relmoist = 0.99  !at moisture content just below extinction fire can spread
 
-      call calcROS(orgf*wn,rho_b,sigma,0.3,relmoist,Uforward,ROSfcrown,fpc_grid,hofc)
+      call calcROS(orgf*wn,rho_b,sigma,0.3,relmoist,Uforward,ROSfcrown,fpc_grid,hofc,IR,d)
 
     end if
 
@@ -1192,6 +1196,7 @@ end if
   
   ROSfsurface = (ROSfsurface_w * treecover + ROSfsurface_g * grascover) / (treecover + grascover)
   
+
   !choose max from above calculations
   
 !  if (ROSfcrown > ROSfsurface) then        !set definition of logical "crownfire" here.......
@@ -1648,14 +1653,14 @@ aMx(6) = aMx(6) + (sum(emNOx * BBpft)) ! NOx
 992 format(2i6,l4,9f6.2)
 993 format(3i6,3f10.1,f12.6,2f10.1,l4,f6.2)
 
-!write(*,993)year,i,d,abarf,Ab,numfires,Abfrac,totburn,unburneda,crownfire,dphen(2)
+!write(*,992)year,i,d,abarf,Ab,numfires,Abfrac,totburn,unburneda,crownfire,dphen(2)
 
 
 end subroutine spitfire
 
 !-----------------------------------------------------------------------------------------------------------------------------------------------------
 
-subroutine calcROS(wn,rho_b,sigma,omega_o,relmoist,Uforward,rateofspread,fpc_grid,h)
+subroutine calcROS(wn,rho_b,sigma,omega_o,relmoist,Uforward,rateofspread,fpc_grid,h,IR,d)
 
 use parametersmod,   only : npft,O2
 
@@ -1670,8 +1675,9 @@ real(sp), intent(in)  :: Uforward      !windspeed (m min-1)
 real(sp), dimension(npft), intent(in)  :: fpc_grid      !coverage of pfts
 
 real(sp), intent(out) :: rateofspread  !fire rate of spread (m min-1)
-real(sp), intent(in) :: h             !average heat of combustion
-
+real(sp), intent(out) :: IR            !reactino intensity (kJ m-2 min-1)
+real(sp), intent(in) :: h              !average heat of combustion
+integer, intent(in) :: d               ! day of year
 !parameters
 
 real(sp), parameter :: rho_p = 513.       !oven-dry particle density (kg m-3)
@@ -1687,7 +1693,6 @@ real(sp) :: Beta           !packing ratio (unitless) (fuel bulk density / oven d
 real(sp) :: Beta_op        !optimum packing ratio (unitless)
 real(sp) :: Gammaprime     !potential reaction velocity; reaction velocity that would occur if fuel were free of moisture and mineral content; = Gamma / nu_M / nu_s 
 real(sp) :: Gammaprimemax  !maximum reaction velocity; would occur if fuel elements in the fuelbed were arranged in the most efficient way possible (min-1)
-real(sp) :: IR             !reaction intensity (kJ m-2 min-1)
 real(sp) :: Phiw           !wind coefficient (?)
 real(sp) :: pratio         !ratio of packing ratio to optimum packing ratio (unitless)
 real(sp) :: Qig            !heat of pre-ignition (kJ kg-1)
@@ -1782,6 +1787,7 @@ end if
 !Rate of spread (m min-1)
 
 rateofspread = IR * xi * (1. + Phiw) / (rho_b * epsilon * Qig) * windfact
+
 
 if(rateofspread < 0.) then
   write(stdout,'(a,7f14.7)') 'end calcROS: ', IR, xi, 1. + Phiw, rho_b, epsilon, Qig, windfact
