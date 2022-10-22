@@ -196,6 +196,8 @@ if (projgrid) then
     
   write(stdout,*)minval(geolon),maxval(geolon)
   write(stdout,*)minval(geolat),maxval(geolat)
+  
+  ! in_master(idx)%cellarea = 25000.
 
 end if
 

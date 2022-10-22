@@ -64,6 +64,8 @@ integer :: tlen
 
 integer(i8) :: idx
 
+real(sp) :: xres
+real(sp) :: yres
 
 character(45)  :: coords
 character(200) :: jobfile
@@ -289,7 +291,7 @@ allocate(cellindex(ncells,3))  !this is a potential maximum. we will check for v
 
 write(stdout,'(a,i5,a,i5,a,i5)')'input files have:  ',inputlonlen,' columns and',inputlatlen,' rows'
 write(stdout,'(a,i5,a,i5,a,i8)')'cells to calculate:',cntx,' x',cnty,' =',ncells
-write(stdout,'(a,2i5,2f12.6)')  'starting at:       ',srtx,srty,lonvect(srtx),latvect(srty)
+write(stdout,'(a,i0,a,i0,a,f0.4,a,f0.4)')  'starting at:       ',srtx,' ',srty,' ',lonvect(srtx),' ',latvect(srty)
 
 write(stdout,'(a,2f8.4)')'landuse turnover: ',lu_turn_yrs
 
@@ -312,6 +314,17 @@ allocate(in_master(ncells))
 
 idx = 1
 
+if (projgrid) then
+
+  xres = lonvect(2) - lonvect(1)
+  yres = latvect(2) - latvect(1)
+
+  in_master(idx)%cellarea = xres * yres
+  
+  write(0,'(a,f0.1,a)')'projected grid cell area: ',in_master(idx)%cellarea/1.e6,' km2'
+
+end if
+
 do y = 1,cnty
   b = srty + y - 1
   do x = 1,cntx
@@ -325,10 +338,9 @@ do y = 1,cnty
     !2015-12: new code to handle projected grids
     
     if (projgrid) then
-
+    
       in_master(idx)%lon  = geolon(x,y)
       in_master(idx)%lat  = geolat(x,y)
-      in_master(idx)%cellarea = 1.e8     !1.e8   !10 km grid. NB this should be flexible and handle grids of arbitrary cell size!
      
     else
 	

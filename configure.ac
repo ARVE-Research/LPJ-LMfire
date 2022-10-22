@@ -49,7 +49,7 @@ if test "x$FC_REALNAME" = xifort; then
 elif test "x$FC_REALNAME" = xgfortran; then
 
   CPPFLAGS="-Dgfortran $CPPFLAGS"
-  FCFLAGS="-I$NETCDF_FCFLAGS"
+  FCFLAGS="$FCFLAGS -I$NETCDF_FCFLAGS"
 
 fi
 
@@ -113,7 +113,8 @@ else
   elif test "x$FC_REALNAME" = xgfortran; then
   
     CPPFLAGS="$CPPFLAGS -Dgfortran"
-    FCFLAGS="$FCFLAGS -O3 -march=native -funroll-loops"
+    # FCFLAGS="$FCFLAGS -O3 -march=native -funroll-loops"
+    FCFLAGS="-O2 -ftree-vectorize -march=native -fno-math-errno -fPIC $FCFLAGS"
 
   else 
 

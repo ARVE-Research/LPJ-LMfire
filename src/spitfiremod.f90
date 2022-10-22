@@ -1289,10 +1289,11 @@ end if
 
 afire_frac = afire_frac + Abfrac
 
-!write(*,'(a16,4i6,29f14.4)') 'BURNDAY', year,i,d,cumfires,Ab,abarf,afire_frac,light*area_ha, nlig*area_ha,PD, area_ha, treecover, grascover, DT/1000., tfire/60., ROSfsurface*60./1000., ROSbsurface*60./1000., Uforward*60./1000.,  &
-!                                LB,LBtree,LBgrass,woi,omega_o,omega_o/me_avg,FDI,Isurface,slopefact,input%slope
-if(bavard) write(*,'(a16,4i10,23f14.3)')'BURNDAY', year,i,d,cumfires,AB,abarf,afire_frac,light*area_ha,nlig,FDI,woi,  &
-                                        omega_o,omega_o/me_avg,Isurface,met%prec,NI,grascover,omega_o,me_avg,omega_nl,me_nl,PD
+if (bavard) write(*,'(a16,4i6,29f14.4)') 'BURNDAY', year,i,d,cumfires,Ab,abarf,afire_frac,light*area_ha, nlig*area_ha,PD, area_ha, &
+                   treecover, grascover, DT/1000., tfire/60., ROSfsurface*60./1000., ROSbsurface*60./1000., Uforward*60./1000.,    &
+                   LB,LBtree,LBgrass,woi,omega_o,omega_o/me_avg,FDI,Isurface,slopefact,input%slope
+! if(bavard) write(*,'(a16,4i10,23f14.3)')'BURNDAY', year,i,d,cumfires,AB,abarf,afire_frac,light*area_ha,nlig,FDI,woi,  &
+!                                         omega_o,omega_o/me_avg,Isurface,met%prec,NI,grascover,omega_o,me_avg,omega_nl,me_nl,PD
 
 !-------------------------------------------
 !update litter pools to remove burned litter
