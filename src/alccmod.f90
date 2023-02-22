@@ -294,7 +294,7 @@ litter_ag_fast => osv%tile(i)%litter_ag_fast(:,1)
 
 !crop_biomass = sum(lm_ind,mask=present)
 
-where(present) crop_biomass = lm_ind	!do it pft-wise, for the PFTs that are present
+where(present) crop_biomass = lm_ind  !do it pft-wise, for the PFTs that are present
   
 crop_harvest   = 0.8 * crop_biomass   !80% of the crop biomass is removed from the field
 

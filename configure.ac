@@ -114,7 +114,7 @@ else
   
     CPPFLAGS="$CPPFLAGS -Dgfortran"
     # FCFLAGS="$FCFLAGS -O3 -march=native -funroll-loops"
-    FCFLAGS="-O2 -ftree-vectorize -march=native -fno-math-errno -fPIC $FCFLAGS"
+    FCFLAGS="-O2 -ftree-vectorize -march=native -fno-math-errno -fPIC -ffree-line-length-none $FCFLAGS"
 
   else 
 

@@ -318,10 +318,8 @@ if (projgrid) then
 
   xres = lonvect(2) - lonvect(1)
   yres = latvect(2) - latvect(1)
-
-  in_master(idx)%cellarea = xres * yres
   
-  write(0,'(a,f0.1,a)')'projected grid cell area: ',in_master(idx)%cellarea/1.e6,' km2'
+  write(0,'(a,f0.1,a)')'projected grid cell area: ',xres * yres * 1.e-6,' km2'
 
 end if
 
@@ -335,15 +333,16 @@ do y = 1,cnty
     in_master(idx)%xpos = x
     in_master(idx)%ypos = y
     
-    !2015-12: new code to handle projected grids
+    ! 2015-12: new code to handle equal-area projected grids
     
     if (projgrid) then
     
       in_master(idx)%lon  = geolon(x,y)
       in_master(idx)%lat  = geolat(x,y)
+      in_master(idx)%cellarea = xres * yres
      
     else
-	
+  
       in_master(idx)%lon  = lonvect(a)
       in_master(idx)%lat  = latvect(b)
       in_master(idx)%cellarea = area(latvect(b),[30.,30.])  !NB this should be changed to allow geographic input grids of arbitrary resolution

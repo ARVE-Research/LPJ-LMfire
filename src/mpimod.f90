@@ -156,6 +156,7 @@ real, parameter :: missing = -32768.
 !loop through the cells of work
 
 i = 1
+j = 0
 
 do
   
@@ -181,8 +182,10 @@ do
     j = in(k)%idx
 
     if (j > 0 .and. j <= ncells) then
+    
       in_master(j) = in(k)
       sv_master(j) = sv(k)
+
     end if
     
   end do
@@ -328,7 +331,7 @@ ntiles      = jobinfo%ntiles
 nlayers     = jobinfo%nlayers
 pftparsfile = jobinfo%pftparsfile
 
-! write(stderr,*)'worker pftparsfile',pftparsfile
+! write(stderr,*)'worker pftparsfile: ',pftparsfile
 
 allocate(in(bufsize))
 allocate(sv(bufsize))
@@ -411,9 +414,8 @@ do  !until we receive a message from the master that there is no more work to do
 
     in(k) = transfer(iobuf(:a,k),in(1))
     sv(k) = transfer(iobuf(b:,k),sv(1))
+
   end do
-  
-!   write(stdout,*)'worker transfer'
 
   tflag = mpistat(MPI_TAG)
   

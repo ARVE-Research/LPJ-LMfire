@@ -100,10 +100,12 @@ if (dospinup) then
     end do
 
     if (.not. dotransient .and. year == spinupyears) lastyear = .true.
-
-    call getdata(ncells,year,cal_year,firstyear,time0,in_master)                   !returns gs filled with model input for this year
     
-    call master(lastyear,ncells,in_master,sv_master)      !sends out and returns filled with model output
+    call getdata(ncells,year,cal_year,firstyear,time0,in_master)   !returns gs filled with model input for this year
+    
+     ! write(0,*)'driver',in_master(1:3)%cellarea
+    
+    call master(lastyear,ncells,in_master,sv_master)               !sends out and returns filled with model output
     
     if(year > firstyrout) then
 

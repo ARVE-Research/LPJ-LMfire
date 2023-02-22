@@ -7,7 +7,7 @@ public :: bioclim
 
 contains
 
-!----------------------------------------------------------
+! ----------------------------------------------------------
 
 subroutine climate20(mtemp,dtemp,gdd,mtemp_min_buf,gdd_buf,mtemp_min20,gdd20,mtemp_max,mat20,mat_buf)
 
@@ -43,8 +43,8 @@ real(sp) :: mtemp_min
 real(sp) :: yrs
 real(sp) :: mat
 
-!---------
-!mean annual temperature
+! ---------
+! mean annual temperature
 
 mat = sum(mtemp) / 12.
 
@@ -54,7 +54,7 @@ mat_buf = eoshift(mat_buf,-1,mat)
   
 mat20 = sum(mat_buf,mask=mat_buf /= -9999.) / count(mat_buf /= -9999.)
 
-!mean temperature of the coldest month
+! mean temperature of the coldest month
 
 mtemp_min = minval(mtemp)
 
@@ -62,15 +62,15 @@ mtemp_min_buf = eoshift(mtemp_min_buf,-1,mtemp_min)
 
 mtemp_min20 = sum(mtemp_min_buf,mask=mtemp_min_buf /= -9999.) / count(mtemp_min_buf /= -9999.)
 
-!---------
-!MTWM
+! ---------
+! MTWM
 
 mtemp_max = maxval(mtemp)
 
-!---------
-!calculate GDD5 and add to buffer
+! ---------
+! calculate GDD5 and add to buffer
 
-gdd = sum(dtemp-gddbase,mask = dtemp>=gddbase)
+gdd = sum(dtemp - gddbase,mask=dtemp >= gddbase)
 
 gdd_buf = eoshift(gdd_buf,-1,gdd)
 
@@ -80,13 +80,13 @@ gdd20 = sum(gdd_buf,mask=gdd_buf /= -9999.) / count(gdd_buf /= -9999.)
 
 end subroutine climate20
 
-!----------------------------------------------------------
+! ----------------------------------------------------------
 
 subroutine bioclim(mtemp_min20,gdd,mtemp_max,survive,estab)
 
-!Limits based on 20-year running averages of coldest-month mean temperature and growing degree days (5 degree base).
-!For SURVIVAL, coldest month temperature and GDD should be at least as high as PFT-specific limits.
-!For REGENERATION, PFT must be able to survive AND coldest month temperature should be no higher than a PFT-specific limit.
+! Limits based on 20-year running averages of coldest-month mean temperature and growing degree days (5 degree base).
+! For SURVIVAL, coldest month temperature and GDD should be at least as high as PFT-specific limits.
+! For REGENERATION, PFT must be able to survive AND coldest month temperature should be no higher than a PFT-specific limit.
 
 use parametersmod, only : sp,pftpar
 
@@ -145,6 +145,6 @@ end where
 
 end subroutine bioclim
 
-!----------------------------------------------------------
+! ----------------------------------------------------------
 
 end module bioclimmod

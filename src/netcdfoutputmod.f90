@@ -31,7 +31,7 @@ implicit none
 integer, intent(in)    :: ncells
 integer, intent(inout) :: tpos
 integer, intent(in)    :: year
-type(statevars), dimension(:), intent(in) :: sv
+type(statevars), dimension(:), intent(inout) :: sv
 type(inputdata), dimension(:), intent(in) :: in_master
 
 integer, dimension(1) :: tval
@@ -181,7 +181,6 @@ end do
 
 call putvar2d(ofid,tpos,'NPP',rvar1d)
 
-
 !---
 !burned fraction
 
@@ -214,8 +213,17 @@ end do
 
 call putvar2d(ofid,tpos,'NBP',rvar1d)
 
-!---
-!fire CO2
+! ---
+! fire gas fluxes
+
+do i = 1,ncells
+  do j = 1,ntiles
+    where(sv(i)%tile(j)%aMx < 1.e-5) sv(i)%tile(j)%aMx = 0.
+  end do
+end do
+
+! ---
+! fire CO2
 
 do i = 1,ncells
   rvar1d(i) = sum(sv(i)%tile%aMx(1) * sv(i)%tile%coverfrac)
@@ -223,8 +231,8 @@ end do
 
 call putvar2d(ofid,tpos,'fireCO2',rvar1d)
 
-!---
-!fire CO
+! ---
+! fire CO
 
 do i = 1,ncells
   rvar1d(i) = sum(sv(i)%tile%aMx(2) * sv(i)%tile%coverfrac)
@@ -232,8 +240,8 @@ end do
 
 call putvar2d(ofid,tpos,'fireCO',rvar1d)
 
-!---
-!fire CH4
+! ---
+! fire CH4
 
 do i = 1,ncells
   rvar1d(i) = sum(sv(i)%tile%aMx(3) * sv(i)%tile%coverfrac)
@@ -242,22 +250,22 @@ end do
 call putvar2d(ofid,tpos,'fireCH4',rvar1d)
 
 !---
-!fire VOC
+! fire VOC
 
 do i = 1,ncells
   rvar1d(i) = sum(sv(i)%tile%aMx(4) * sv(i)%tile%coverfrac)
-  !rvar1d(i) = sv(i)%tile(1)%aMx(4)				!FLAG: temporary use aMX(4) to output annual number of fires per km2
+  !rvar1d(i) = sv(i)%tile(1)%aMx(4)        !FLAG: temporary use aMX(4) to output annual number of fires per km2
 end do
 
 call putvar2d(ofid,tpos,'fireVOC',rvar1d)
 
-!---
-!fire TPM
+! ---
+! fire TPM
 
 do i = 1,ncells
   rvar1d(i) = sum(sv(i)%tile%aMx(5) * sv(i)%tile%coverfrac)
-  !rvar1d(i) = sv(i)%tile(1)%aMx(5)				!FLAG: temporary use aMX(5) to output annual average FDI on burndays
-  !rvar1d(i) = sv(i)%tile(1)%forager_pd				!FLAG: temporary use forager PD
+  !rvar1d(i) = sv(i)%tile(1)%aMx(5)        !FLAG: temporary use aMX(5) to output annual average FDI on burndays
+  !rvar1d(i) = sv(i)%tile(1)%forager_pd        !FLAG: temporary use forager PD
 end do
 
 call putvar2d(ofid,tpos,'fireTPM',rvar1d)
@@ -267,7 +275,7 @@ call putvar2d(ofid,tpos,'fireTPM',rvar1d)
 
 do i = 1,ncells
   rvar1d(i) = sum(sv(i)%tile%aMx(6) * sv(i)%tile%coverfrac)
-  !rvar1d(i) = sum(sv(i)%tile%aMx(6) * sv(i)%tile%coverfrac)				!FLAG: temporary use aMX(6) to output the total annual area burned in the gridcell
+  !rvar1d(i) = sum(sv(i)%tile%aMx(6) * sv(i)%tile%coverfrac)        !FLAG: temporary use aMX(6) to output the total annual area burned in the gridcell
 end do
 
 call putvar2d(ofid,tpos,'fireNOx',rvar1d)
@@ -404,7 +412,7 @@ deallocate(rvar2d)
 !-----
 !monthly burned area fraction of grid cell
 
-y = size(sv(1)%tile(1)%mburnedf)	!ATTENTION: tile integration has already been done at end of lpjmod and put in tile 1, hence we only need to output tile1 for the integrated
+y = size(sv(1)%tile(1)%mburnedf)  !ATTENTION: tile integration has already been done at end of lpjmod and put in tile 1, hence we only need to output tile1 for the integrated
 
 allocate(rvar2d(ncells,y))
 

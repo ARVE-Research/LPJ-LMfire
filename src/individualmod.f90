@@ -86,7 +86,7 @@ hmax = 1.25 * hbar
 
 !calculate difference
 
-hsl = hmax - hbar 	!well, that just equals 0.25 * hbar
+hsl = hmax - hbar   !well, that just equals 0.25 * hbar
 
 !calculate height of each height class
 
@@ -97,7 +97,7 @@ ind%lcrown = ind%height * CLf(pft)
 !calculate fraction of total biomass in each height class
 !check if one of the lower height classes is shorter than a sapling, if so, roll the distribution up to taller height classes
 
-do i = 1,6	! we have 7 height classes, so go up to 6 to roll up to class 7 max and not step over the array boundary (M.P. 12.07.2013)
+do i = 1,6  ! we have 7 height classes, so go up to 6 to roll up to class 7 max and not step over the array boundary (M.P. 12.07.2013)
   if (ind(i)%height < hsapl) then
     
     ind(i+1)%massf = ind(i+1)%massf + ind(i)%massf

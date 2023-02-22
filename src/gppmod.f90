@@ -10,7 +10,7 @@ subroutine calcgpp(present,co2,soilpar,pftpar,lai_ind,fpc_grid,mdayl,mtemp,mpar_
                    agpp,alresp,arunoff_surf,arunoff_drain,arunoff,mrunoff,dwscal365,dphen_w,dphen,wscal,mgpp,mlresp,  &
                    mw1,dw1,aaet,leafondays,leafoffdays,leafon,tree,raingreen,year,mat20,wscal_v,idx)
 
-!Calculation of GPP, explicitly linking photosynthesis and water balance through canopy conductance feedback
+! Calculation of GPP, explicitly linking photosynthesis and water balance through canopy conductance feedback
 
 use parametersmod,     only : sp,npft,npftpar,nsoilpar,ncvar,ndaymonth,i8
 use waterbalancemod,   only : waterbalance
@@ -21,15 +21,15 @@ implicit none
 
 integer(i8) :: idx
 
-!parameters
+! parameters
 
-real(sp), parameter :: epsilon = 0.05   !min precision of solution in bisection method
+real(sp), parameter :: epsilon = 0.05   ! min precision of solution in bisection method
 real(sp), dimension(npft) :: lambdam ! optimal Ci/Ca ratio
 
-!arguments
+! arguments
 
 integer,  intent(in) :: year
-real(sp), intent(in) :: mat20  !20 year running mean annual temperature
+real(sp), intent(in) :: mat20  ! 20 year running mean annual temperature
 
 logical,  dimension(:), intent(in) :: present
 logical,  dimension(:), intent(in) :: tree
@@ -73,7 +73,7 @@ real(sp), dimension(:,:), intent(inout) :: dphen_t
 real(sp), dimension(:,:), intent(inout) :: dphen
 real(sp), dimension(:,:), intent(inout) :: wscal_v
 
-!local variables
+! local variables
 
 integer  :: m
 integer  :: b
@@ -131,17 +131,17 @@ real(sp), dimension(12,npft)  :: Cratio
 real(sp), dimension(365,npft) :: dgp
 real(sp), dimension(365,npft) :: dgc
       
-!------------------------------------------
-!initializations
+! ------------------------------------------
+! initializations
 
 ksat(1) = soilpar(1)
 ksat(2) = soilpar(2)
 awc(1)  = soilpar(3)
 awc(2)  = soilpar(4)
 
-!write(stdout,*) 'CO2 in gppmod: ', co2(1)
+! write(stdout,*) 'CO2 in gppmod: ', co2(1)
 
-ca = co2(1) * 1.e-6  !from ppmv to mole fraction
+ca = co2(1) * 1.e-6  ! from ppmv to mole fraction
 
 mrunoff = 0.
 mrunoff_surf  = 0.
@@ -151,7 +151,7 @@ aaet = 0.
 arunoff_surf  = 0.
 arunoff_drain = 0.
 
-!------------------------------------------
+! ------------------------------------------
 
 do pft=1,npft
 
@@ -159,7 +159,7 @@ do pft=1,npft
       
   longevity(pft) = pftpar(pft,7)
 
-  !define pft inhibition function parameters
+  ! define pft inhibition function parameters
 
   inhibx1(pft) = pftpar(pft,22)
   inhibx2(pft) = pftpar(pft,23)
@@ -179,7 +179,7 @@ do pft=1,npft
       C4(pft) = .false.
     end if
 
-    !gminp = PFT-specific min canopy conductance scaled by fpc assuming full leaf cover
+    ! gminp = PFT-specific min canopy conductance scaled by fpc assuming full leaf cover
 
     gminp(pft) = pftpar(pft,4) * fpc_grid(pft)
 
@@ -193,27 +193,27 @@ do pft=1,npft
 
   end if
 
-end do  !pft
+end do  ! pft
 
-!------------------------------------------
+! ------------------------------------------
 
 do pft = 1,npft
 
   if (present(pft)) then
 
-    !find the potential canopy conductance realisable under non-water-stressed conditions
+    ! find the potential canopy conductance realisable under non-water-stressed conditions
 
     do m = 1,12
 
-      !Initialisations
+      ! Initialisations
 
       meanfpc(m,pft)  = 0.
       meangc(m,pft)   = 0.
       meangmin(m,pft) = 0.
 
-      tsecs(m) = 3600. * mdayl(m)  !number of daylight seconds/day
+      tsecs(m) = 3600. * mdayl(m)  ! number of daylight seconds/day
 
-      !Calculate non-water-stressed net daytime photosynthesis assuming full leaf cover
+      ! Calculate non-water-stressed net daytime photosynthesis assuming full leaf cover
 
       fpar = fpc_grid(pft)
 
@@ -226,8 +226,8 @@ do pft = 1,npft
 
       if (tsecs(m) > 0.) then
 
-        !Calculate non-water-stressed canopy conductance (gp) mm/sec basis averaged over entire grid cell
-        !Eqn 21 Haxeltine & Prentice 1996
+        ! Calculate non-water-stressed canopy conductance (gp) mm/sec basis averaged over entire grid cell
+        ! Eqn 21 Haxeltine & Prentice 1996
 
         gp(m)=(((1.6 * adtmm) / (ca * (1. - lambdam(pft)))) / tsecs(m)) + gminp(pft)
 
@@ -237,26 +237,26 @@ do pft = 1,npft
 
       end if
 
-    end do  !month
+    end do  ! month
 
-    !Linearly interpolate mid-monthly gp to daily values
+    ! Linearly interpolate mid-monthly gp to daily values
 
     bound(1) = gp(12)
     bound(2) = gp(1)
 
     call daily(gp,dval,.true.)
-    !call rmsmooth(gp,ndaymonth,bound,dval)
+    ! call rmsmooth(gp,ndaymonth,bound,dval)
 
     dgp(:,pft) = max(dval,0.)
 
-  end if !present
+  end if ! present
 
-end do !pft
+end do ! pft
 
-!------------------------------------------
-!calculate daily actual evapotranspiration and soil water balance
+! ------------------------------------------
+! calculate daily actual evapotranspiration and soil water balance
       
-d = 1 !day of year
+d = 1 ! day of year
 
 do m = 1,12
 
@@ -268,17 +268,17 @@ do m = 1,12
 
       if (present(pft)) then
 
-        !Use yesterday's potential water scalar to determine today's drought phenology
+        ! Use yesterday's potential water scalar to determine today's drought phenology
 
         if (d == 1) dwscal(pft) = dwscal365(pft)
 
-        !Drought phenology and net phenology for today. Drought deciduous PFTs shed their leaves
-        !when their water scalar falls below the PFT specific minimum value (minwscal).
-        !Leaves are replaced immediately (i.e., daily) once the minimum water scalar is exceeded.
+        ! Drought phenology and net phenology for today. Drought deciduous PFTs shed their leaves
+        ! when their water scalar falls below the PFT specific minimum value (minwscal).
+        ! Leaves are replaced immediately (i.e., daily) once the minimum water scalar is exceeded.
 
-        !if (pft == 9) then
+        ! if (pft == 9) then
         !  write(stdout,'(a,2i5,3f10.3)')'gppmod',pft,d,dwscal(pft),minwscal(pft),dgp(d,9)
-        !end if
+        ! end if
 
         if (dwscal(pft) > minwscal(pft) .and. leafon(pft)) then
 
@@ -293,7 +293,7 @@ do m = 1,12
 
         end if
 
-        !stop deciduous vegetation behaving like evergreen when climate permits
+        ! stop deciduous vegetation behaving like evergreen when climate permits
 
         if (raingreen(pft) .and. tree(pft)) then
 
@@ -314,30 +314,30 @@ do m = 1,12
         end if
 
       endif
-    end do  !pft
+    end do  ! pft
 
     call waterbalance(d,present,rootprop,w,dgp,dpet,dphen,dgc,dmelt,dprec,ksat,awc,  &
                       drunoff_drain,drunoff_surf,dwscal,daet,fpc_grid,mat20,idx)
 
-    !Store today's water content in soil layer 1
+    ! Store today's water content in soil layer 1
 
     dw1(d) = w(1)
 
-    !Increment monthly runoff totals
+    ! Increment monthly runoff totals
 
     mrunoff_surf(m)  = mrunoff_surf(m)  + drunoff_surf
     mrunoff_drain(m) = mrunoff_drain(m) + drunoff_drain
 
     aaet = aaet + daet
 
-    !Increment monthly w(1) total
+    ! Increment monthly w(1) total
 
     mw1(m) = mw1(m) + w(1)
 
     do pft = 1,npft
       if (present(pft)) then
 
-        !Accumulate count of days with some leaf cover and pft-specific annual water scalar used in allocation
+        ! Accumulate count of days with some leaf cover and pft-specific annual water scalar used in allocation
 
         if (dphen(d,pft) > 0.) then
 
@@ -346,8 +346,8 @@ do m = 1,12
 
         end if 
 
-        !Accumulate mean monthly fpc, actual (gc) and minimum (gmin) canopy conductances,
-        !incorporating leaf phenology
+        ! Accumulate mean monthly fpc, actual (gc) and minimum (gmin) canopy conductances,
+        ! incorporating leaf phenology
 
         meangc(m,pft)   = meangc(m,pft)   + dgc(d,pft) / real(ndaymonth(m))
         meangmin(m,pft) = meangmin(m,pft) + gminp(pft) * dphen(d,pft) / real(ndaymonth(m))
@@ -355,68 +355,68 @@ do m = 1,12
 
         wscal_v(d,pft) = dwscal(pft)
 
-        !Save final daily water scalar for next year
+        ! Save final daily water scalar for next year
 
         if (d == 365) dwscal365(pft) = dwscal(pft)
 
       end if
 
-    end do !pft
+    end do ! pft
      
     d = d + 1
 
-  end do !day of month
+  end do ! day of month
 
-  !Increment annual runoff totals
+  ! Increment annual runoff totals
 
   mrunoff(m)    = mrunoff_surf(m) ! + mrunoff_drain(m)
   arunoff_surf  = arunoff_surf  + mrunoff_surf(m)
   arunoff_drain = arunoff_drain + mrunoff_drain(m)
 
-  !calculate gpp for each pft
-  !Find water-limited daily net photosynthesis (And) and ratio of intercellular to ambient partial pressure of CO2
-  !(lambda) by solving simultaneously Eqns 2, 18 and 19 (Haxeltine & Prentice 1996). 
+  ! calculate gpp for each pft
+  ! Find water-limited daily net photosynthesis (And) and ratio of intercellular to ambient partial pressure of CO2
+  ! (lambda) by solving simultaneously Eqns 2, 18 and 19 (Haxeltine & Prentice 1996). 
 
-  !Using a tailored implementation of the bisection method with a fixed 10 bisections, assuming root (f(lambda)=0)
-  !bracketed by f(0.02) < 0 and f(lambdam + 0.05) > 0
+  ! Using a tailored implementation of the bisection method with a fixed 10 bisections, assuming root (f(lambda)=0)
+  ! bracketed by f(0.02) < 0 and f(lambdam + 0.05) > 0
 
   do pft = 1,npft 
 
     if (present(pft)) then
 
-      !Convert canopy conductance assoc with photosynthesis (actual minus minimum gc) (gpd) from mm/sec to mm/day
+      ! Convert canopy conductance assoc with photosynthesis (actual minus minimum gc) (gpd) from mm/sec to mm/day
 
       gpd = tsecs(m) * (meangc(m,pft) - meangmin(m,pft))
 
-      fpar = meanfpc(m,pft)  !cover including phenology  
+      fpar = meanfpc(m,pft)  ! cover including phenology  
 
-      if (gpd > 1.e-5) then  !canopy conductance
+      if (gpd > 1.e-5) then  ! canopy conductance
             
-        !Implement numerical solution
+        ! Implement numerical solution
 
-        x1 = 0.02                  !minimum bracket of the root
-        x2 = lambdam(pft) + 0.05   !maximum bracket of the root
-        rtbis = x1                 !root of the bisection
+        x1 = 0.02                  ! minimum bracket of the root
+        x2 = lambdam(pft) + 0.05   ! maximum bracket of the root
+        rtbis = x1                 ! root of the bisection
         dx = x2 - x1
 
-        b = 0  !number of tries towards solution
+        b = 0  ! number of tries towards solution
 
         fmid = epsilon + 1.
 
-        do  !bisection root finding
+        do  ! bisection root finding
 
           b    = b + 1
           dx   = dx * 0.5
           xmid = rtbis + dx
 
-          !Calculate total daytime photosynthesis implied by canopy conductance from water balance routine and
-          !current guess for lambda (xmid).  Units are mm/m2/day (mm come from gpd value, mm/day)
-          !Eqn 18, Haxeltine & Prentice 1996
+          ! Calculate total daytime photosynthesis implied by canopy conductance from water balance routine and
+          ! current guess for lambda (xmid).  Units are mm/m2/day (mm come from gpd value, mm/day)
+          ! Eqn 18, Haxeltine & Prentice 1996
 
           adt1 = gpd / 1.6 * ca * (1. - xmid)
 
-          !Call photosynthesis to determine alternative total daytime photosynthesis estimate (adt2) implied by
-          !Eqns 2 & 19, Haxeltine & Prentice 1996, and current guess for lambda (xmid)
+          ! Call photosynthesis to determine alternative total daytime photosynthesis estimate (adt2) implied by
+          ! Eqns 2 & 19, Haxeltine & Prentice 1996, and current guess for lambda (xmid)
 
 !           call photosynthesis(ca,mtemp(m),fpar,mpar_day(m),mdayl(m),c4(pft),sla(pft),nmax(pft),xmid, &
 !                               rd,agd,adt2,inhibx1(pft),inhibx2(pft),inhibx3(pft),inhibx4(pft),pft)
@@ -425,29 +425,29 @@ do m = 1,12
                               rd,agd,adt2,inhibx1(pft),inhibx2(pft),inhibx3(pft),inhibx4(pft),pft)
 
 
-          !Evaluate fmid at the point lambda = xmid fmid will be an increasing function with xmid,
-          !with a solution (fmid=0) between x1 and x2
+          ! Evaluate fmid at the point lambda = xmid fmid will be an increasing function with xmid,
+          ! with a solution (fmid=0) between x1 and x2
         
           fmid = adt2 - adt1
 
           if (fmid < 0.) rtbis = xmid
 
-          !exit if solution found or > 10 iterations needed without solution
+          ! exit if solution found or > 10 iterations needed without solution
  
           if (abs(fmid) < epsilon .or. b > 10) exit
 
-        end do !bisection
+        end do ! bisection
 
-      else  !infinitesimal canopy conductance
+      else  ! infinitesimal canopy conductance
 
         rd   = 0.
         agd  = 0.
         xmid = 0.
 
-      end if  !canopy conductance
+      end if  ! canopy conductance
 
-      !Estimate monthly gross photosynthesis and monthly leaf respiration from mid-month daily values
-      !Agd = And + Rd (Eqn 2 Haxeltine & Prentice 1996)
+      ! Estimate monthly gross photosynthesis and monthly leaf respiration from mid-month daily values
+      ! Agd = And + Rd (Eqn 2 Haxeltine & Prentice 1996)
 
       mgpp(m,pft,1) = real(ndaymonth(m)) * agd
       agpp(pft,1)   = agpp(pft,1) + mgpp(m,pft,1)
@@ -463,14 +463,14 @@ do m = 1,12
 
     end if
           
-  end do  !pft
+  end do  ! pft
         
   mw1(m) = mw1(m) / real(ndaymonth(m))
 
-end do  !month
+end do  ! month
        
-!------------------------------------------
-!Convert water scalar to average daily basis using phenology
+! ------------------------------------------
+! Convert water scalar to average daily basis using phenology
 
 do pft = 1,npft
   if (present(pft)) then
@@ -484,8 +484,8 @@ do pft = 1,npft
   end if
 end do
 
-!------------------------------------------
-!Calculate the carbon isotope fractionation in plants following Lloyd & Farquhar 1994
+! ------------------------------------------
+! Calculate the carbon isotope fractionation in plants following Lloyd & Farquhar 1994
 
 do pft=1,npft
    if (present(pft)) then
@@ -494,7 +494,7 @@ do pft=1,npft
 
          call isotope(pft,cratio,co2,mtemp,mlresp,c4,mgpp,agpp)
 
-         !assign DELTA 14C value from atmospheric time series to plant production
+         ! assign DELTA 14C value from atmospheric time series to plant production
          mgpp(:,pft,3) = co2(3)
          agpp(pft,3)   = co2(3)
 
@@ -508,24 +508,24 @@ do pft=1,npft
    end if
 end do
 
-!increement annual total runoff
+! increement annual total runoff
 
 arunoff = arunoff_surf + arunoff_drain
 
-!write(stdout,*)sum(meanfpc,dim=1)
-!write(stdout,*)sum(meangc,dim=1)
-!write(stdout,*)sum(meangmin,dim=1)
+! write(stdout,*)sum(meanfpc,dim=1)
+! write(stdout,*)sum(meangc,dim=1)
+! write(stdout,*)sum(meangmin,dim=1)
 
-!write(stdout,*)'  gpp: dgc    ',sum(dgc,dim=1)
-!write(stdout,*)'  gpp: wscal  ',wscal   
-!write(stdout,*)'  gpp: present',present!sum(dphen_t,dim=1)
-!write(stdout,*)'  gpp: awscal ',awscal
-!write(stdout,*)'  gpp: alfdays',aleafdays
+! write(stdout,*)'  gpp: dgc    ',sum(dgc,dim=1)
+! write(stdout,*)'  gpp: wscal  ',wscal   
+! write(stdout,*)'  gpp: present',present! sum(dphen_t,dim=1)
+! write(stdout,*)'  gpp: awscal ',awscal
+! write(stdout,*)'  gpp: alfdays',aleafdays
 
-!write(stdout,'(24f12.2)')mw1,mrunoff
+! write(stdout,'(24f12.2)')mw1,mrunoff
     
 end subroutine calcgpp
 
-!------------------------------
+! ------------------------------
 
 end module gppmod

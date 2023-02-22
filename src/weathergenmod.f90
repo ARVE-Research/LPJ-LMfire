@@ -267,8 +267,8 @@ real(sp), dimension(3) :: resid     !previous day's weather residuals
 
 real(sp) :: tdiff
 
-real(sp) :: tmean  !rough approximation of daily mean temperature (max + min / 2)
-real(sp) :: temp   !rough approximation of daily mean temperature (max + min / 2)
+real(sp) :: tmean  ! rough approximation of daily mean temperature (max + min / 2)
+real(sp) :: temp   ! rough approximation of daily mean temperature (max + min / 2)
 real(sp) :: prec
 real(sp) :: tmin
 real(sp) :: tmax
@@ -277,12 +277,12 @@ real(sp) :: es
 real(sp) :: tdew
 real(sp) :: NI
 
-real(sp) :: pbar     !mean amount of precipitation per wet day (mm)
-real(sp) :: pwd      !transition probability of a wet day following a dry day (fraction)
-real(sp) :: pww      !transition probability of a wet day following a wet day (fraction)
-real(sp) :: alpha    !shape parameter for the precipitation amount function
-real(sp) :: beta     !shape parameter for the precipitation amount function
-real(sp) :: u        !uniformly distributed random number (0-1)
+real(sp) :: pbar     ! mean amount of precipitation per wet day (mm)
+real(sp) :: pwd      ! transition probability of a wet day following a dry day (fraction)
+real(sp) :: pww      ! transition probability of a wet day following a wet day (fraction)
+real(sp) :: alpha    ! shape parameter for the precipitation amount function
+real(sp) :: beta     ! shape parameter for the precipitation amount function
+real(sp) :: u        ! uniformly distributed random number (0-1)
 
 type(daymetvars), target :: dmetvars
 

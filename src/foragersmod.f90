@@ -199,7 +199,7 @@ ltrange = log10(trange)
 
 !MRAIN, a measure of rainfall evenness (page 72)
 
-mrain = mprec(driest_month)/max(mprec(wettest_month) * 100.,1e-6)		!FLAG MP: this led to a division-by-zero in some desert places with no rain at all, threfore the max
+mrain = mprec(driest_month)/max(mprec(wettest_month) * 100.,1e-6)    !FLAG MP: this led to a division-by-zero in some desert places with no rain at all, threfore the max
 
 !write(stdout,*) 'mrain:', mrain
 
@@ -244,7 +244,7 @@ termg2 = (exprim3 * 0.00006) / (exwgt / 0.043748)
 
 termd2 = termh2 + termg2
 
-pd = max((termd2 * 0.01),0.)  !convert to persons km-2	!FLAG MP: would go below zero in some low-productivity places, therefore constrained it
+pd = max((termd2 * 0.01),0.)  !convert to persons km-2  !FLAG MP: would go below zero in some low-productivity places, therefore constrained it
 
 !write(stdout,*) 'pd:', pd
 
@@ -291,7 +291,7 @@ if(pop==0. .and. ppd==0.) then
 
 else  
 
-  pop = ppd * pop * exp(pgr) / (ppd + pop *(exp(pgr) - 1.)) 	!FLAG MP: caused divide-by-zero for cases when both ppd and pop equal zero 
+  pop = ppd * pop * exp(pgr) / (ppd + pop *(exp(pgr) - 1.))   !FLAG MP: caused divide-by-zero for cases when both ppd and pop equal zero 
     
 end if    
 

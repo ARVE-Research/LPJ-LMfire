@@ -152,7 +152,7 @@ if (dotransient) then
       x = in_master(i)%xpos
       y = in_master(i)%ypos     
         
-      if (.not.cellmask(x,y)) cycle	 
+      if (.not.cellmask(x,y)) cycle   
 
       call lpjcore(in_master(i),sv_master(i))
 

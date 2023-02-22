@@ -6,9 +6,8 @@ implicit none
 
 public :: establishment
 
-integer, parameter :: npft = 9
-
-real(sp), parameter :: pi               =   3.14159265
+integer,  parameter :: npft = 9
+real(sp), parameter :: pi   = 3.14159265
 
 contains
 

@@ -15,7 +15,7 @@ use parametersmod, only : sp,dp,npft,npftpar,ncvar,pftpar
 implicit none
 
 ! parameters
-	
+  
 real(sp), parameter :: alphaa    =    0.5     ! fraction of PAR assimilated at ecosystem level
 real(sp), parameter :: alphac3   =    0.08    ! intrinsic quantum efficiency of CO2 uptake in C3 plants
 real(sp), parameter :: alphac4   =    0.053   ! C4 intrinsic quantum efficiency

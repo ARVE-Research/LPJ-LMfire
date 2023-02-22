@@ -146,7 +146,7 @@ type soiltype
 
   logical    :: water
   integer(2) :: elv
-  real(sp)   :: slopeangle 	!mean slope angle (radians)
+  real(sp)   :: slopeangle   !mean slope angle (radians)
   real(sp)   :: landf       !fraction of the grid cell that is land
   real(sp), allocatable, dimension(:) :: zpos
   real(sp), allocatable, dimension(:) :: whc

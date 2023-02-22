@@ -177,7 +177,7 @@ end if
 
 if (projgrid) then
   
-  write(0,*)'NB: input data is in a projected grid!'
+  write(0,*)'initsoil: NB input data is in a projected grid!'
   
   allocate(geolon(cntx,cnty))
   allocate(geolat(cntx,cnty))
@@ -299,18 +299,18 @@ do j=1,cnty
 !     soil(i,j)%zpos(1:2) = depth(1)
 !     soil(i,j)%zpos(3:5) = depth(2)
 ! 
-! 				soil(i,j)%sand(1:2) = sand(i,j,1)
-! 				soil(i,j)%sand(3:5) = sand(i,j,2)
+!         soil(i,j)%sand(1:2) = sand(i,j,1)
+!         soil(i,j)%sand(3:5) = sand(i,j,2)
 ! 
-! 				soil(i,j)%clay(1:2) = clay(i,j,1)
-! 				soil(i,j)%clay(3:5) = clay(i,j,2)
+!         soil(i,j)%clay(1:2) = clay(i,j,1)
+!         soil(i,j)%clay(3:5) = clay(i,j,2)
 
 !     write(stdout,*)'DONE READING SOIL'
 !     write(stdout,*)soil(i,j)%zpos
 !     write(stdout,*)soil(i,j)%sand
 !     write(stdout,*)soil(i,j)%clay
 
-		end do
+    end do
 end do
 
 !-------------------------

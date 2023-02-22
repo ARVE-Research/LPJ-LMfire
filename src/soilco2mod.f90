@@ -136,7 +136,7 @@ do m = 1,12
           logDgs(l) = logDg0 + log((2. * T33(2)**3.) + (0.04 * T33(2))) & 
           + ((2. + (3. / B_SHAPE)) * log(porespace(2) / T33(2)))       
       end if
-	  Dgs(l) = exp(logDgs(l)) * 3600.
+    Dgs(l) = exp(logDgs(l)) * 3600.
   end do
 
   ! Compute soil CO2 concentrations following Ryan et al 2015

@@ -201,9 +201,9 @@ if (year == 1) then
     
 !     write(stdout,*)'SETTING OUTPUT SOIL' 
 !     write(stdout,*)in_master(i)%soil%sand
-! 				write(stdout,*)in_master(i)%soil%clay
-! 				write(stdout,*)in_master(i)%soil%orgm
-! 				write(stdout,*)in_master(i)%soil%zpos
+!         write(stdout,*)in_master(i)%soil%clay
+!         write(stdout,*)in_master(i)%soil%orgm
+!         write(stdout,*)in_master(i)%soil%zpos
 
     !FLAGFLAGFLAG
     
@@ -582,6 +582,7 @@ end subroutine getforg
 
 subroutine gettopo(year,cal_year)
 
+use ieee_arithmetic, only : ieee_is_nan
 use netcdf
 use typesizes
 use errormod,       only : netcdf_err,ncstat
@@ -599,8 +600,8 @@ real(sp),    dimension(cntx,cnty) :: rvals
 integer :: srtt
 integer, dimension(1) :: tloc
 
-!-------------------------
-!get elevation, slope, and land fraction
+! -------------------------
+! get elevation, slope, and land fraction
 
 !slope does not change from year to year, so only get it once
 if (year == 1) then
@@ -632,9 +633,11 @@ soil%elv = real(ivals)
 ncstat = nf90_get_var(topofid,landfid,rvals,start=[srtx,srty,srtt],count=[cntx,cnty,1])
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat) 
 
+where (ieee_is_nan(rvals)) rvals = -9999.
+
 soil%landf = rvals
 
-!write(stdout,*) 'end of gettopo'
+! write(stdout,*) 'end of gettopo',soil%landf
 
 end subroutine gettopo
 

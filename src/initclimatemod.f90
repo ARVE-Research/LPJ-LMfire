@@ -107,7 +107,7 @@ if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
 climateyears = climatemonths / 12
 
-write(stdout,'(a,i6,a)')'climate input data contains',climateyears,' years of data'
+write(stdout,'(a,i0,a)')'climate input data contains ',climateyears,' years of data'
 
 !-------------------------
 !retrieve variable IDs, scale factor and add offset
@@ -119,6 +119,7 @@ varname(5) = 'dtr'
 varname(6) = 'wnd'
 varname(7) = 'lght'
 
+write(stdout,*)'variable  scale       offset'
 
 do i = 1,nclimv
 
@@ -131,7 +132,7 @@ do i = 1,nclimv
   ncstat = nf90_get_att(cfid,varinfo(i)%varid,'add_offset',varinfo(i)%add_offset)
   if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
-  write(stdout,'(a5,2f11.5)')trim(varname(i)),varinfo(i)%scale_factor,varinfo(i)%add_offset
+  write(stdout,'(a6,2f12.5)')trim(varname(i)),varinfo(i)%scale_factor,varinfo(i)%add_offset
 
 end do
 

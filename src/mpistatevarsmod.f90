@@ -56,24 +56,24 @@ type inputdata
 
   !values input to LPJ
   
-  integer(i8)        :: idx              ! gridcell index
-  integer(i4)        :: xpos             ! gridcell position in x
-  integer(i4)        :: ypos             ! gridcell position in y
-  real(dp)           :: lon              ! longitude of gridcell center
-  real(dp)           :: lat              ! latitude of gridcell center
-  real(sp)           :: elev             ! elevation of gridcell center (m.a.s.l.)
-  real(sp)           :: slope            ! mean gridcell slope (degrees)
-  real(sp)           :: cellarea         ! area of the gridcell (m2)
-  real(sp)           :: landf            ! fraction of grid cell that is land
-  logical            :: spinup           ! are we in the model spinup
-  real(sp)           :: co2              ! co2 concentration
-  integer            :: year             ! simulation year (not calendar year), starts at 1
-  integer            :: startyr_foragers ! first year to start calculating forager activity (ignored if not desired)
-  logical 			 :: dosoilco2
-  type(orbitpars)    :: orbit
-  type(climatedata)  :: climate
-  type(soildata)     :: soil
-  type(humandata)    :: human
+  integer(i8)       :: idx              ! gridcell index
+  integer(i4)       :: xpos             ! gridcell position in x
+  integer(i4)       :: ypos             ! gridcell position in y
+  real(dp)          :: lon              ! longitude of gridcell center
+  real(dp)          :: lat              ! latitude of gridcell center
+  real(sp)          :: elev             ! elevation of gridcell center (m.a.s.l.)
+  real(sp)          :: slope            ! mean gridcell slope (degrees)
+  real(sp)          :: cellarea         ! area of the gridcell (m2)
+  real(sp)          :: landf            ! fraction of grid cell that is land
+  logical           :: spinup           ! are we in the model spinup
+  real(sp)          :: co2              ! co2 concentration
+  integer           :: year             ! simulation year (not calendar year), starts at 1
+  integer           :: startyr_foragers ! first year to start calculating forager activity (ignored if not desired)
+  logical           :: dosoilco2
+  type(orbitpars)   :: orbit
+  type(climatedata) :: climate
+  type(soildata)    :: soil
+  type(humandata)   :: human
 
 end type inputdata   !150 elements
 
@@ -90,59 +90,59 @@ type subgrid
   
   !scalars: 14 elements
   
-  real(sp) :: afire_frac    !fraction of gridcell burnt this year
-  real(sp) :: k_fast_ave    !running average k_fast for subroutine littersom
-  real(sp) :: k_slow_ave    !running average k_slow for subroutine littersom
+  real(sp) :: afire_frac    ! fraction of gridcell burnt this year
+  real(sp) :: k_fast_ave    ! running average k_fast for subroutine littersom
+  real(sp) :: k_slow_ave    ! running average k_slow for subroutine littersom
   real(sp) :: litterC_bg
   real(sp) :: litterC_fast
   real(sp) :: litterC_slow
-  real(sp) :: livebiomass   !sum of living plant carbon across all PFTs
-  real(sp) :: albiomass	    ! total carbon in aboveground living biomass (g m-2 yr-1) Chaste 03.03.2016
-  real(sp) :: snow0         !Dec 31 snow pack
-  real(sp) :: coverfrac     !land use cover fraction
-  real(sp) :: tilecarbon    !total carbon by land use tile (living + littler + SOM)
-  real(sp) :: soilerosion   !total annual soilerosion by tile (g m-2)
-  real(sp) :: erflux        !soil erosion carbon flux (g m-2)
-  real(sp) :: forager_pd    !forager potential population density (persons 100km-2)
-  integer  :: cumfires      !cumulative number of burning fires
-  real(sp) :: grasscover    !decadal running mean grass cover fraction
-  real(sp) :: dgrassdt      !rate of change of decadal running mean grass cover fraction
+  real(sp) :: livebiomass   ! sum of living plant carbon across all PFTs
+  real(sp) :: albiomass     ! total carbon in aboveground living biomass (g m-2 yr-1) Chaste 03.03.2016
+  real(sp) :: snow0         ! Dec 31 snow pack
+  real(sp) :: coverfrac     ! land use cover fraction
+  real(sp) :: tilecarbon    ! total carbon by land use tile (living + littler + SOM)
+  real(sp) :: soilerosion   ! total annual soilerosion by tile (g m-2)
+  real(sp) :: erflux        ! soil erosion carbon flux (g m-2)
+  real(sp) :: forager_pd    ! forager potential population density (persons 100km-2)
+  integer  :: cumfires      ! cumulative number of burning fires
+  real(sp) :: grasscover    ! decadal running mean grass cover fraction
+  real(sp) :: dgrassdt      ! rate of change of decadal running mean grass cover fraction
 
   !soil layer: 2 elements
 
-  !real(sp), dimension(2) :: zpos   !depth to soil layer midpoint
-  !real(sp), dimension(2) :: dz     !soil layer thickness (m)
-  !real(sp), dimension(2) :: sand   !mass %
-  !real(sp), dimension(2) :: silt   !mass %
-  !real(sp), dimension(2) :: clay   !mass %
-  !real(sp), dimension(2) :: OM     !mass %
-  !real(sp), dimension(2) :: OrgM   !organic matter (g m-2)
-  !real(sp), dimension(2) :: bulk   !bulk density (g cm-3)
-  !real(sp), dimension(2) :: Tsat   !saturation (volume fraction)
-  !real(sp), dimension(2) :: T33    !33 kPa (volume fraction)
-  !real(sp), dimension(2) :: T1500  !1500 kPa (volume fraction)
-  !real(sp), dimension(2) :: whc    !water holding capacity T33 - T1500 (volume fraction)
-  !real(sp), dimension(2) :: Ksat   !saturated conductivity (mm hr-1)
-  real(sp), dimension(2) :: w      !instantaneous soil water content
+  !real(sp), dimension(2) :: zpos   ! depth to soil layer midpoint
+  !real(sp), dimension(2) :: dz     ! soil layer thickness (m)
+  !real(sp), dimension(2) :: sand   ! mass %
+  !real(sp), dimension(2) :: silt   ! mass %
+  !real(sp), dimension(2) :: clay   ! mass %
+  !real(sp), dimension(2) :: OM     ! mass %
+  !real(sp), dimension(2) :: OrgM   ! organic matter (g m-2)
+  !real(sp), dimension(2) :: bulk   ! bulk density (g cm-3)
+  !real(sp), dimension(2) :: Tsat   ! saturation (volume fraction)
+  !real(sp), dimension(2) :: T33    ! 33 kPa (volume fraction)
+  !real(sp), dimension(2) :: T1500  ! 1500 kPa (volume fraction)
+  !real(sp), dimension(2) :: whc    ! water holding capacity T33 - T1500 (volume fraction)
+  !real(sp), dimension(2) :: Ksat   ! saturated conductivity (mm hr-1)
+  real(sp), dimension(2) :: w       ! instantaneous soil water content
 
   !npft 12*npft = 216 elements (ASSUMING 9 PFTS)
 
-  logical,  dimension(npft) :: present       !whether PFT present in gridcell
-  logical,  dimension(npft) :: leafon
-  integer,  dimension(npft) :: leafondays
-  integer,  dimension(npft) :: leafoffdays
-  real(sp), dimension(npft) :: crownarea     !crown area (m2)
-  real(sp), dimension(npft) :: dwscal365     !daily water scalar for day 365
-  real(sp), dimension(npft) :: fpc_grid      !gridcell foliar projective cover (FPC)
-  real(sp), dimension(npft) :: fpc_inc       !increment (if +ve) in FPC since last year
-  real(sp), dimension(npft) :: height        !tree height (m)
-  real(sp), dimension(npft) :: pftalbiomass  !Biomasse par PFT, E.C. 21.10.2016
-  real(sp), dimension(npft) :: lai_ind       !individual leaf area index
-  real(sp), dimension(npft) :: nind          !gridcell individual density (indiv/m2)
-  real(sp), dimension(npft) :: plant_carbon
-  real(sp), dimension(npft) :: above_carbon
-  real(sp), dimension(npft,12) :: mlai	     !monthly mean LAI, per pft, per tile
-  real(sp), dimension(npft,12) :: mBBpft     !biomass burned (kg dry matter, per pft, per month)
+  logical,  dimension(npft)    :: present       ! whether PFT present in gridcell
+  logical,  dimension(npft)    :: leafon
+  integer,  dimension(npft)    :: leafondays
+  integer,  dimension(npft)    :: leafoffdays
+  real(sp), dimension(npft)    :: crownarea     ! crown area (m2)
+  real(sp), dimension(npft)    :: dwscal365     ! daily water scalar for day 365
+  real(sp), dimension(npft)    :: fpc_grid      ! gridcell foliar projective cover (FPC)
+  real(sp), dimension(npft)    :: fpc_inc       ! increment (if +ve) in FPC since last year
+  real(sp), dimension(npft)    :: height        ! tree height (m)
+  real(sp), dimension(npft)    :: pftalbiomass  ! Biomasse par PFT, E.C. 21.10.2016
+  real(sp), dimension(npft)    :: lai_ind       ! individual leaf area index
+  real(sp), dimension(npft)    :: nind          ! gridcell individual density (indiv/m2)
+  real(sp), dimension(npft)    :: plant_carbon
+  real(sp), dimension(npft)    :: above_carbon
+  real(sp), dimension(npft,12) :: mlai          ! monthly mean LAI, per pft, per tile
+  real(sp), dimension(npft,12) :: mBBpft        ! biomass burned (kg dry matter, per pft, per month)
 
   !ncvar 9*ncvar = 27 elements (3 NCVARS)
   
@@ -284,10 +284,10 @@ sv%met%resid = 0.
 
 ! if (.not.ismaster) then
 ! 
-! 		allocate(in%soil%sand(layers))
-! 		allocate(in%soil%clay(layers))
-! 		allocate(in%soil%orgm(layers))
-! 		allocate(in%soil%zpos(layers))
+!     allocate(in%soil%sand(layers))
+!     allocate(in%soil%clay(layers))
+!     allocate(in%soil%orgm(layers))
+!     allocate(in%soil%zpos(layers))
 ! 
 ! end if
 ! 
@@ -295,11 +295,11 @@ sv%met%resid = 0.
 ! 
 ! do i = 1,ntiles
 ! 
-! 		allocate(sv%tile(i)%soil%zpos(layers))
-! 		allocate(sv%tile(i)%soil%sand(layers))
-! 		allocate(sv%tile(i)%soil%clay(layers))
-! 		allocate(sv%tile(i)%soil%orgm(layers))
-! 		allocate(sv%tile(i)%soil%bulk(layers))
+!     allocate(sv%tile(i)%soil%zpos(layers))
+!     allocate(sv%tile(i)%soil%sand(layers))
+!     allocate(sv%tile(i)%soil%clay(layers))
+!     allocate(sv%tile(i)%soil%orgm(layers))
+!     allocate(sv%tile(i)%soil%bulk(layers))
 ! 
 ! end do
 
