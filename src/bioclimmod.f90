@@ -4,6 +4,7 @@ implicit none
 
 public :: climate20
 public :: bioclim
+public :: wscal_mean
 
 contains
 
@@ -15,16 +16,16 @@ use parametersmod, only : sp
 
 implicit none
 
-!parameters
+! parameters
 real(sp), parameter :: gddbase = 5.
 integer,  parameter :: climbuf = 20
 
-!arguments
+! arguments
 
 real(sp), intent(in), dimension(:) :: mtemp
 real(sp), intent(in), dimension(:) :: dtemp
 
-!arguments used locally by other core routines
+! arguments used locally by other core routines
 
 real(sp), intent(out) :: mat20
 real(sp), intent(out) :: gdd
@@ -32,23 +33,28 @@ real(sp), intent(out) :: gdd20
 real(sp), intent(out) :: mtemp_max
 real(sp), intent(out) :: mtemp_min20
 
-!state variables that must be saved from one year to the next
 
-real(sp), intent(inout), dimension(:) :: mat_buf         !
+! state variables that must be saved from one year to the next
+
+real(sp), intent(inout), dimension(:) :: mat_buf
 real(sp), intent(inout), dimension(:) :: gdd_buf
 real(sp), intent(inout), dimension(:) :: mtemp_min_buf
 
-!local variables
+! local variables
+
 real(sp) :: mtemp_min
 real(sp) :: yrs
 real(sp) :: mat
+
+integer :: pft
+integer :: npfts
 
 ! ---------
 ! mean annual temperature
 
 mat = sum(mtemp) / 12.
 
-!write(stdout,'(13f7.2)')mtemp,mat
+! write(stdout,'(13f7.2)')mtemp,mat
 
 mat_buf = eoshift(mat_buf,-1,mat)
   
@@ -76,9 +82,43 @@ gdd_buf = eoshift(gdd_buf,-1,gdd)
 
 gdd20 = sum(gdd_buf,mask=gdd_buf /= -9999.) / count(gdd_buf /= -9999.)
 
-!write(stdout,'(a,22f8.1)')'bioclim',gdd,gdd20,gdd_buf
+! write(stdout,'(a,22f8.1)')'bioclim',gdd,gdd20,gdd_buf
 
 end subroutine climate20
+
+! ----------------------------------------------------------
+
+subroutine wscal_mean(wscal,wscal_buf,wscal8)
+
+use parametersmod, only : sp
+
+implicit none
+
+! arguments
+
+real(sp), dimension(:),   intent(in)    :: wscal      ! current year's water scalar, per PFT
+real(sp), dimension(:,:), intent(inout) :: wscal_buf  ! 20-year buffer of PFT-specific water scalar
+real(sp), dimension(:),   intent(out)   :: wscal8     ! 8-year running-mean water scalar, per PFT
+
+! local variable
+
+integer :: npfts
+integer :: pft
+
+! ---------
+! water scalar
+
+npfts = size(wscal)
+
+do pft = 1,npfts
+
+  wscal_buf(:,pft) = eoshift(wscal_buf(:,pft),-1,wscal(pft))
+
+  wscal8(pft) = sum(wscal_buf(1:8,pft),mask=wscal_buf(1:8,pft) /= -9999.) / count(wscal_buf(1:8,pft) /= -9999.)
+
+end do
+
+end subroutine wscal_mean
 
 ! ----------------------------------------------------------
 
@@ -86,13 +126,14 @@ subroutine bioclim(mtemp_min20,gdd,mtemp_max,survive,estab)
 
 ! Limits based on 20-year running averages of coldest-month mean temperature and growing degree days (5 degree base).
 ! For SURVIVAL, coldest month temperature and GDD should be at least as high as PFT-specific limits.
-! For REGENERATION, PFT must be able to survive AND coldest month temperature should be no higher than a PFT-specific limit.
+! For ESTABLISHMENT, PFT must be able to survive AND coldest month temperature should be no higher than a PFT-specific limit.
+! and the running mean water scalar (supply:demand ratio) should meet a threshold value
 
 use parametersmod, only : sp,pftpar
 
 implicit none
 
-!arguments
+! arguments
 
 real(sp), intent(in) :: mtemp_min20
 real(sp), intent(in) :: gdd
@@ -101,18 +142,18 @@ real(sp), intent(in) :: mtemp_max
 logical, dimension(:), intent(out) :: survive
 logical, dimension(:), intent(out) :: estab
 
-integer, parameter :: pfts = size(pftpar,dim=1)
+integer, parameter :: npfts = size(pftpar,dim=1)
 
-!integer :: i
+! integer :: i
 
-!local variables
+! local variables
 
-real(sp), dimension(pfts) :: tcmin   !PFT-specific minimum coldest-month temperature
-real(sp), dimension(pfts) :: tcmax   !PFT-specific maximum coldest-month temperature
-real(sp), dimension(pfts) :: gddmin  !PFT-specific minimum GDD
-real(sp), dimension(pfts) :: twmax   !PFT-specific upper limit of warmest-month temperature
+real(sp), dimension(npfts) :: tcmin   ! PFT-specific minimum coldest-month temperature
+real(sp), dimension(npfts) :: tcmax   ! PFT-specific maximum coldest-month temperature
+real(sp), dimension(npfts) :: gddmin  ! PFT-specific minimum GDD
+real(sp), dimension(npfts) :: twmax   ! PFT-specific upper limit of warmest-month temperature
 
-!------------------------------------------
+! ------------------------------------------
 
 tcmin  = pftpar(:,27)
 tcmax  = pftpar(:,28)
@@ -139,9 +180,9 @@ elsewhere
 
 end where
 
-!do i = 1,pfts
+! do i = 1,pfts
 !  write(stdout,*)i,tcmin(i),tcmax(i),gddmin(i),twmax(i),gdd,mtemp_min20,mtemp_max,survive(i),estab(i)
-!end do
+! end do
 
 end subroutine bioclim
 

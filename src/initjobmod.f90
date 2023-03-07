@@ -70,6 +70,12 @@ real(sp) :: yres
 character(45)  :: coords
 character(200) :: jobfile
 
+integer, dimension(8) :: ts
+
+character(8)  :: date
+character(10) :: time
+character(5)  :: zone
+
 namelist /joboptions/ &
   cfile_spinup,       &
   cfile_transient,    &
@@ -94,6 +100,18 @@ namelist /joboptions/ &
   startyr_foragers
 
 !-------------------------
+
+call date_and_time(values=ts)
+
+write(stdout,*)'==== Welcome to LPJ, the versatile DGVM ===='
+write(stdout,10)' Timestamp: ',ts(1),'-',ts(2),'-',ts(3),'T',ts(5),':',ts(6),':',ts(7)
+
+
+write(stderr,*)'==== Welcome to LPJ, the versatile DGVM ===='
+write(stderr,10)' Timestamp: ',ts(1),'-',ts(2),'-',ts(3),'T',ts(5),':',ts(6),':',ts(7)
+
+10 format(a,i4,a,i2.2,a,i2.2,a,i2.2,a,i2.2,a,i2.2)
+
 !initialize variables with a default value if they are not specified in the namelist
 
 spinupyears    = -9999
@@ -102,8 +120,6 @@ nspinyrsout    = -9999
 nolanduse      = .false.
 startyr_foragers = 1000
 dosoilco2 = .false.
-
-write(stdout,*)'==== Welcome to LPJ, the versatile DGVM ===='
 
 !read the joboptions
 
@@ -115,7 +131,7 @@ read(10,nml=joboptions)
 
 close(10)
 
-write(0,*)' using pftpars file:',pftparsfile
+write(stdout,'(a,a)')' pftpars file: ',pftparsfile
 
 if (spinupyears <= 0) then
   write(stdout,*)'no years indicated for spinup!'
@@ -319,7 +335,7 @@ if (projgrid) then
   xres = lonvect(2) - lonvect(1)
   yres = latvect(2) - latvect(1)
   
-  write(0,'(a,f0.1,a)')'projected grid cell area: ',xres * yres * 1.e-6,' km2'
+  write(stdout,'(a,f0.1,a)')'projected grid cell area: ',xres * yres * 1.e-6,' km2'
 
 end if
 

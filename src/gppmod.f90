@@ -71,7 +71,7 @@ real(sp), dimension(:),   intent(inout) :: dwscal365
 real(sp), dimension(:,:), intent(inout) :: dphen_w
 real(sp), dimension(:,:), intent(inout) :: dphen_t
 real(sp), dimension(:,:), intent(inout) :: dphen
-real(sp), dimension(:,:), intent(inout) :: wscal_v
+real(sp), dimension(:,:), intent(out) :: wscal_v
 
 ! local variables
 
@@ -255,6 +255,8 @@ end do ! pft
 
 ! ------------------------------------------
 ! calculate daily actual evapotranspiration and soil water balance
+
+wscal_v = 0.
       
 d = 1 ! day of year
 
@@ -364,6 +366,8 @@ do m = 1,12
     end do ! pft
      
     d = d + 1
+    
+  ! write(0,'(a,3i5,9f7.3)')'dwscal ',d,m,dm,dwscal
 
   end do ! day of month
 
@@ -476,9 +480,9 @@ do pft = 1,npft
   if (present(pft)) then
 
     if (aleafdays(pft) /= 0) then
-      wscal(pft)=awscal(pft) / real(aleafdays(pft))
+      wscal(pft) = awscal(pft) / real(aleafdays(pft))
     else
-      wscal(pft)=1.
+      wscal(pft) = 1.
     end if
 
   end if

@@ -358,6 +358,8 @@ real(sp), parameter :: t0  = 0.15  !maximum SOM partitioning coefficient between
 
 real(sp), parameter :: klit2som = 1. - exp(-2.)  !transfer rate for fast litter to surface SOM pool
 
+real(sp), parameter :: littermin = 1.e-5    ! minimum size of a litter pool before it gets zeroed out (g m-2)
+
 !local variables
 
 integer  :: pft
@@ -498,7 +500,11 @@ do m = 1,12
   !litter decomposition: pft vectors
 
   do pft = 1,npft
-
+     
+    ! if (litter_ag_fast(pft,1) > 0. .and. litter_ag_fast(pft,1) < 1.e-5) then
+    !   write(0,*)ek_lf(m),litter_ag_fast(pft,1)
+    ! end if
+     
     litterdag_fast(pft) = ek_lf(m) * litter_ag_fast(pft,1)
     litterdag_slow(pft) = ek_ls(m) * litter_ag_slow(pft,1)
     litterdag_bg(pft)   = ek_lf(m) * litter_bg(pft,1)        !belowground litter has the same turnover rate as fast litter
@@ -508,6 +514,12 @@ do m = 1,12
     litter_ag_fast(pft,1) = max(litter_ag_fast(pft,1) - litterdag_fast(pft),0.)
     litter_ag_slow(pft,1) = max(litter_ag_slow(pft,1) - litterdag_slow(pft),0.)
     litter_bg(pft,1)      = max(litter_bg(pft,1)      - litterdag_bg(pft),0.)
+    
+    ! zero out litter pools that get very small to avoid underflow
+    
+    if (litter_ag_fast(pft,1) < littermin) litter_ag_fast(pft,1) = 0.
+    if (litter_ag_slow(pft,1) < littermin) litter_ag_slow(pft,1) = 0.
+    if (litter_bg(pft,1) < littermin)      litter_bg(pft,1)      = 0.
 
   end do
 

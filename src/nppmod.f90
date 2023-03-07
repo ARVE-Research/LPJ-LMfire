@@ -6,39 +6,39 @@ public :: calcnpp
 
 contains
 
-!----------------------------------------------------------------------------------------------------------------------
+! ----------------------------------------------------------------------------------------------------------------------
 
 subroutine calcnpp(tair,tsoil,dphen,present,nind,lm_ind,sm_ind,hm_ind,rm_ind,cstore,mgpp,mnpp,anpp)
 
 use parametersmod,   only : sp,npft,pft,pftpar,ndaymonth,firstday
 
-!calculate NPP based on temperature and plant mass
+! calculate NPP based on temperature and plant mass
 
 implicit none
 
-!arguments
+! arguments
 
-real(sp), dimension(:),   intent(in)    :: tair    !per day
+real(sp), dimension(:),   intent(in)    :: tair    ! per day
 real(sp), dimension(:),   intent(in)    :: tsoil
-real(sp), dimension(:,:), intent(in)    :: dphen   !per day,pft
+real(sp), dimension(:,:), intent(in)    :: dphen   ! per day,pft
 logical,  dimension(:),   intent(in)    :: present
 real(sp), dimension(:),   intent(in)    :: nind
 real(sp), dimension(:),   intent(in)    :: lm_ind
 real(sp), dimension(:),   intent(in)    :: sm_ind
 real(sp), dimension(:),   intent(in)    :: hm_ind
 real(sp), dimension(:),   intent(in)    :: rm_ind
-real(sp), dimension(:),   intent(inout) :: cstore  !per pft
-real(sp), dimension(:,:), intent(inout) :: mgpp    !per month,pft
-real(sp), dimension(:,:), intent(out)   :: mnpp    !per month,pft
-real(sp), dimension(:),   intent(out)   :: anpp    !per pft
+real(sp), dimension(:),   intent(inout) :: cstore  ! per pft
+real(sp), dimension(:,:), intent(inout) :: mgpp    ! per month,pft
+real(sp), dimension(:,:), intent(out)   :: mnpp    ! per month,pft
+real(sp), dimension(:),   intent(out)   :: anpp    ! per pft
 
-!parameters
+! parameters
 
 real(sp), parameter :: k  = 0.0548
 real(sp), parameter :: tc = 1. / 56.02
 real(sp), parameter :: min_npp = 0.02
 
-!local variables
+! local variables
 
 integer :: i
 integer :: m
@@ -63,10 +63,10 @@ real(sp), dimension(365) :: lresp_ind
 real(sp), dimension(365) :: rresp_ind
 real(sp), dimension(365) :: sresp_ind
 
-real(sp), dimension(12,npft) :: gresp    !per month,pft
+real(sp), dimension(12,npft) :: gresp    ! per month,pft
 
-!----------------------------
-!calculate temperature coefficients
+! ----------------------------
+! calculate temperature coefficients
 
 where (tair > -40.) 
   gtemp_air = exp(308.56 * (tc - 1. / (tair  + 46.02)))
@@ -80,13 +80,13 @@ elsewhere
   gtemp_soil = 0.
 end where
 
-!---
-!calculate NPP
+! ---
+! calculate NPP
 
 do i = 1,npft
   if (present(i)) then
     
-    !C to N ratios of leaf, sapwood & roots
+    ! C to N ratios of leaf, sapwood & roots
 
     l_n2c = 1. / pftpar(i,11)
     r_n2c = 1. / pftpar(i,13)
@@ -99,15 +99,15 @@ do i = 1,npft
 
     respcoeff = pftpar(i,5)
 
-    !---
-    !daily individual respiration amounts
+    ! ---
+    ! daily individual respiration amounts
 
     lresp_ind = lm_ind(i) * l_n2c * respcoeff * k * gtemp_air  * dphen(:,i)
     rresp_ind = rm_ind(i) * r_n2c * respcoeff * k * gtemp_soil * dphen(:,i)
     sresp_ind = sm_ind(i) * s_n2c * respcoeff * k * gtemp_air
 
-    !---
-    !first calculate annual npp and make sure it is positive
+    ! ---
+    ! first calculate annual npp and make sure it is positive
 
     agpp = sum(mgpp(:,i))
     
@@ -117,19 +117,19 @@ do i = 1,npft
 
     if (anpp(i) < 0.)  then
       
-      !make up the negative npp with what is stored in cstore, if possible
+      ! make up the negative npp with what is stored in cstore, if possible
 
-      !write(stdout,*)'negative npp',i,anpp(i),cstore(i)
+      ! write(stdout,*)'negative npp',i,anpp(i),cstore(i)
       
       mgpp(:,i) = mgpp(:,i) + cstore(i) / 12.
       cstore(i) = 0.
 
-      !anpp(i) = cstore(i)
-      !mnpp(:,i) = 0.
+      ! anpp(i) = cstore(i)
+      ! mnpp(:,i) = 0.
       
     end if
     
-    !disaggregate npp into monthly values
+    ! disaggregate npp into monthly values
 
     do m = 1,12
 
@@ -159,6 +159,6 @@ end do
 
 end subroutine calcnpp
 
-!----------------------------------------------------------------------------------------------------------------------
+! ----------------------------------------------------------------------------------------------------------------------
 
 end module nppmod

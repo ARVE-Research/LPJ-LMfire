@@ -122,7 +122,7 @@ allocate(iobuf(nelem,bufsize))
 
 tsize = size(iobuf)  !the total number of elements in the array that is passed as a message
 
-write(stdout,'(a,f6.1,a)')' MPI message size',real(tsize)/1024.,' kB'
+write(stdout,'(a,f6.1,a)')' MPI message size: ',real(tsize)/1024.,' kB'
 
 end subroutine initmpi
 

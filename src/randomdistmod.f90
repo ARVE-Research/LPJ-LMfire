@@ -30,7 +30,7 @@ real(sp), parameter :: rng2 = 1. / real(huge(i4))         !scales the random int
 
 real(sp), parameter :: one    = 1.
 real(sp), parameter :: half   = 0.5
-real(sp), parameter :: vsmall = tiny(1.)
+real(sp), parameter :: vsmall = tiny(1._sp)
 real(sp), parameter :: zero   = 0.
 
 type randomstate
@@ -40,7 +40,7 @@ type randomstate
   integer(i4) :: xs    = 521288629_i4  !default seed
   integer(i4) :: indx  = qsiz + 1
   logical     :: have  = .false.
-end type randomstate  !5+qsiz elements = 15 elements
+end type randomstate  ! 5+qsiz elements = 15 elements
 
 contains
 
@@ -199,7 +199,7 @@ real(sp),          intent(out)   :: nval
 
 !---
 
-real(sp), dimension(2) :: vals
+real(sp), dimension(2), save :: vals
 
 integer(i4), dimension(2) :: u
 real(sp),    dimension(2) :: v

@@ -24,14 +24,13 @@ integer,  dimension(2), parameter :: lu_id = [ 1,3 ]
 
 !arguments
 
-integer,  intent(in)    :: j
-type(inputdata), intent(in) :: input
-real(sp), intent(out)   :: recoverf
-real(sp), intent(inout) :: unusable   !fraction of the gridcell that cannot be used
-real(sp), intent(inout) :: cropfrac
+integer,                 intent(in)    :: j
+type(inputdata),         intent(in)    :: input
+real(sp),                intent(out)   :: recoverf
+real(sp),                intent(inout) :: unusable   !fraction of the gridcell that cannot be used
+real(sp),                intent(inout) :: cropfrac
 type(statevars), target, intent(inout) :: osv
-
-real(sp), dimension(:), intent(inout) :: coverfrac
+real(sp), dimension(:),  intent(inout) :: coverfrac
 
 !pointers
 

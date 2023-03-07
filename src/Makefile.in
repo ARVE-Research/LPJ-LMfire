@@ -104,7 +104,8 @@ CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
 am_lpj_OBJECTS = overprint.$(OBJEXT) parametersmod.$(OBJEXT) \
-	randomdistmod.$(OBJEXT) weathergenmod.$(OBJEXT) \
+	randomdistmod.$(OBJEXT) utilitiesmod.$(OBJEXT) \
+	newsplinemod.$(OBJEXT) weathergenmod.$(OBJEXT) \
 	orbitmod.$(OBJEXT) geohashmod.$(OBJEXT) \
 	mpistatevarsmod.$(OBJEXT) iovariablesmod.$(OBJEXT) \
 	errormod.$(OBJEXT) coordsmod.$(OBJEXT) initsoilmod.$(OBJEXT) \
@@ -359,6 +360,8 @@ lpj_SOURCES = \
   overprint.c               \
   parametersmod.f90         \
   randomdistmod.f90         \
+  utilitiesmod.f90          \
+  newsplinemod.f90          \
   weathergenmod.f90         \
   orbitmod.f90              \
   geohashmod.f90            \

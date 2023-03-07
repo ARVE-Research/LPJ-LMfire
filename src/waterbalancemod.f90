@@ -36,9 +36,9 @@ real(sp), intent(in) :: mat20  ! 20 year running mean annual temperature
 
 real(sp), intent(in), dimension(:) :: dpet
 real(sp), intent(in), dimension(:) :: dmelt
-real(sp), intent(in), dimension(:) :: dprec
-real(sp), intent(in), dimension(:) :: ksat  ! (mm hr-1)
-real(sp), intent(in), dimension(:) :: awc
+real(sp), intent(in), dimension(:) :: dprec   ! daily total precipitation (mm)
+real(sp), intent(in), dimension(:) :: ksat    ! soil saturated hydraulic conductivity (mm hr-1)
+real(sp), intent(in), dimension(:) :: awc     ! soil water holding capacity (field capacity - wilting point) (mm)
 real(sp), intent(in), dimension(:) :: fpc_grid
 logical,  intent(in), dimension(:) :: present
 

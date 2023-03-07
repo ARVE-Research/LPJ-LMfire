@@ -12,39 +12,40 @@ contains
 
 subroutine lpjcore(in,osv)
 
-use parametersmod,    only : sp,dp,npft,ncvar,ndaymonth,midday,pftpar,pft, &
-                             lm_sapl,sm_sapl,rm_sapl,hm_sapl,sla,          &
-                             allom1,allom2,allom3,latosa,wooddens,reinickerp,lutype,climbuf,nhclass
-use mpistatevarsmod,  only : inputdata,statevars
-use weathergenmod,    only : metvars_in,metvars_out,rmsmooth,weathergen_driver,daily
-use radiationmod,     only : elev_corr,calcPjj,radpet
-use alccmod,          only : harvest,alcc,tile_landuse
-use bioclimmod,       only : climate20,bioclim
-use spitfiremod,      only : spitfire,burnedbiomass,managedburn
-use snowmod,          only : snow
-use hetrespmod,       only : littersom2,hetresp
-use lightmod,         only : light
-use simplesoilmod,    only : simplesoil
-use nppmod,           only : calcnpp
-use gppmod,           only : calcgpp
-use mortalitymod,     only : mortality
-use establishmentmod, only : establishment
-use allocationmod,    only : allocation
-use turnovermod,      only : turnover
-use killplantmod,     only : killplant
+use parametersmod,      only : sp,dp,npft,ncvar,ndaymonth,midday,pftpar,pft, &
+                               lm_sapl,sm_sapl,rm_sapl,hm_sapl,sla,          &
+                               allom1,allom2,allom3,latosa,wooddens,reinickerp,lutype,climbuf,nhclass
+use mpistatevarsmod,    only : inputdata,statevars
+use weathergenmod,      only : metvars_in,metvars_out,rmsmooth,weathergen_driver,daily
+use radiationmod,       only : elev_corr,calcPjj,radpet
+use alccmod,            only : harvest,alcc,tile_landuse
+use bioclimmod,         only : climate20,bioclim,wscal_mean
+use spitfiremod,        only : spitfire,burnedbiomass,managedburn
+use snowmod,            only : snow
+use hetrespmod,         only : littersom2,hetresp
+use lightmod,           only : light
+use simplesoilmod,      only : simplesoil
+use nppmod,             only : calcnpp
+use gppmod,             only : calcgpp
+use mortalitymod,       only : mortality
+use establishmentmod,   only : establishment
+use allocationmod,      only : allocation
+use turnovermod,        only : turnover
+use killplantmod,       only : killplant
+use foragersmod,        only : foragers,popgrowth,simpleforagers
+use individualmod,      only : sizeind,allomind
+use soilco2mod,         only : soilco2
 use soiltemperaturemod, only : soiltemp
-use foragersmod,      only : foragers,popgrowth,simpleforagers
-use individualmod,    only : sizeind,allomind
-use soilco2mod,       only : soilco2
+use newsplinemod,       only : newspline
 use landscape_geometrymod, only : landscape_fractality
 
 ! use lpjstatevarsmod,  only : gsv,sv,ov  ! TEMPORARY
 
 implicit none
 
-! argument
+! arguments
 
-type(inputdata), intent(in)    :: in
+type(inputdata),         intent(in)    :: in
 type(statevars), target, intent(inout) :: osv  ! state variables sent back out with MPI
 
 integer :: ntiles
@@ -95,7 +96,6 @@ real(sp), dimension(12) :: mpet
 real(sp), dimension(12) :: mdayl
 real(sp), dimension(12) :: mpar_day
 
-real(sp), dimension(365) :: dtemps  ! smooth interpolation daily temperature
 real(sp), dimension(365) :: dtemp
 real(sp), dimension(365) :: dprec
 real(sp), dimension(365) :: dtmn
@@ -162,6 +162,8 @@ real(sp), dimension(npft) :: pftCflux     ! total annual carbon flux from agricu
 real(sp), dimension(npft,ncvar) :: bm_inc  ! annual biomass increment (gC/m2)
 real(sp), dimension(npft,ncvar) :: alresp  ! annual gridcell leaf respiration (gC/m2)
 
+real(sp), dimension(npft) :: wscal8  ! 8-year moving average of water scalar, per PFT
+
 ! height class variables
 
 type(sizeind), dimension(nhclass,npft) :: hclass
@@ -175,6 +177,8 @@ real(sp), dimension(365,npft) :: dphen_t  ! daily leaf-on fraction due to temper
 real(sp), dimension(365,npft) :: dphen_w  ! daily leaf-on fraction due to drought phenology
 
 real(sp), dimension(365,npft) :: wscal_v  ! daily supply/demand ratio
+
+real(sp), dimension(npft) :: wiltdays     ! count of days with wscal_v < 0.35 (leaf off wscal)
 
 ! monthly gridcell state variables
 
@@ -233,6 +237,7 @@ real(sp), dimension(365) :: dw1         ! daily soil layer 1 water content
 real(sp), pointer, dimension(:) :: mat_buf
 real(sp), pointer, dimension(:) :: gdd_buf
 real(sp), pointer, dimension(:) :: mtemp_min_buf
+real(sp), pointer, dimension(:,:) :: wscal_buf
 
 ! soil layer
 
@@ -321,8 +326,9 @@ real(sp), pointer, dimension(:) :: soilco2conc    ! monthly CO2 concentration, w
 real(sp), pointer, dimension(:) :: soilcconc_dec  ! December soil CO2 concentrations (2 soil layers + surface, from surface down) (mg CO2 m-3)
 
 logical :: dosoilco2
+
 ! declarations end here
-! ---------------------------------------------------------------
+! ---------------------------------------------------------------------------------------------------------------------
 
 ! write(0,*)'lpjcore:',in%cellarea
 
@@ -347,8 +353,16 @@ end if
 
 ! import handle incoming input and state variables
 
-met_out(1) = osv%met   ! FLAG FLAG FLAG FLAG FLAG - correct?
+! initialize the meteorological variables. mainly the residuals are important for the temporal autocorrelation
 
+if (year == 1) then
+  met_out(365)%resid = 0.     ! just set the residuals to zero, rest shouldn't matter
+else
+  ! copy last day of last year into last day of this year because it will be used to init weathergen residuals
+  met_out(365) = osv%met  
+end if
+
+temp = in%climate%temp
 tmin = in%climate%temp - 0.5 * in%climate%trng      ! MP: temp is average temperature, trng is temperature range
 tmax = in%climate%temp + 0.5 * in%climate%trng
 cldf = in%climate%cldp * 0.01
@@ -403,66 +417,46 @@ end if
 
     ! osv%tile(1)%coverfrac = 1. - in%human%landuse(i)  ! should not be necessary for correct initialization
 
-! --------------
-
+! ---------------------------------------------------
 ! smooth interpolation to pseudo-daily values for temperature, cloud, lightning and windspeed
 
-! call rmsmooth(tmin,ndaymonth,[tmin(12),tmin(1)],dtmn)
-! call rmsmooth(tmax,ndaymonth,[tmax(12),tmax(1)],dtmx)
-! call rmsmooth(cldf,ndaymonth,[cldf(12),cldf(1)],dcld)
-! call rmsmooth(lght,ndaymonth,[lght(12),lght(1)],dlght)
-! call rmsmooth(wind,ndaymonth,[wind(12),wind(1)],dwind)
+call newspline(temp,ndaymonth,[tmin(12),tmin(1)],dtemp)
+call newspline(tmin,ndaymonth,[tmin(12),tmin(1)],dtmn)
+call newspline(tmax,ndaymonth,[tmax(12),tmax(1)],dtmx)
+call newspline(cldf,ndaymonth,[cldf(12),cldf(1)],dcld,llim=0.,ulim=1.)
+call newspline(lght,ndaymonth,[lght(12),lght(1)],dlght,llim=0.)
+call newspline(wind,ndaymonth,[wind(12),wind(1)],dwind,llim=0.)
 
-call daily(tmin,dtmn,.true.)
-call daily(tmax,dtmx,.true.)
-call daily(cldf,dcld,.true.)
-call daily(lght,dlght,.true.)
-call daily(wind,dwind,.true.)
+! weather generator: disaggregate monthly meteorological variables
 
-call daily(in%climate%prec,dprec,.false.)
+call weathergen_driver(dtmn,dtmx,dcld,prec,wetd,lght,met_out)
 
-dtemps = 0.5 * (dtmn + dtmx)
-  
-! write(stdout,*)'flag A'
+! set the daily precipitation vector
 
-! correct for potential out of bounds interpolation
+dprec = met_out%prec
 
-dcld  = max(min(dcld,1.),0.)
-dprec = max(dprec,0.)
-met_out%lght = max(dlght,0.)
-met_out%wind = max(dwind,0.)
+! set the daily wind in the met structure (used by spitfiremod)
+
+met_out%wind = dwind
+
+! store the last day of the year for the next year's simulation
+
+osv%met = met_out(365)  
 
 ! ---------------------------------------------------
-! initialize annual values for radiation calculations
+! calculate solar radiation and potential evapotranspiration
 
 Ratm = elev_corr(in%elev)
 
 tcm = minval(in%climate%temp)  ! temperature of the coldest month
 
-! day loop for weather generator and radiation calculations
-
-call weathergen_driver(dtmn,dtmx,dcld,prec,wetd,lght,met_out)
-
-! we need to set a value for temp in order to calculate Pjj
-
-temp = in%climate%temp
-
-! write(stdout,*)'flag A1',temp
-
 call calcPjj(temp,prec,Pjj)  ! precipitation equitability index
-
-! write(stdout,*)'flag A2'
 
 do dyr = 1,365  ! calculate radiation budget and PET
 
  call radpet(in%orbit,in%lat,tcm,Pjj,dyr,Ratm,met_out(dyr))
- ! write(*,*)'after radpet', dyr,met_out(dyr)%prec,met_out(dyr)%lght
  
 end do
-
-! write(stdout,*)'flag A3'
-
-! met_out%wind = max(dwind,0.)
 
 ! ---------------------------------------------------
 ! write(stdout,*)'flag B'
@@ -484,21 +478,11 @@ end do
 
 ! write(*,'(i5,2f10.4,i5,2f10.2)') year, minval(met_out%tmin), maxval(met_out%tmax), maxdry, maxprec, sum(dprec)      
 
-osv%met = met_out(365)  ! store the last day of the year for the next year's simulation
-
 dtmn = met_out%tmin
 dtmx = met_out%tmax
 dpet = met_out%dpet
 
 apet = sum(dpet)
-
-! -----------------------------------------------------
-! FLAG TEMPORARY SOLUTIONS
-
-dtemp = 0.5 * (dtmn + dtmx)
-
-call daily(in%climate%temp,dtemp,.true.)
-! call daily(in%climate%temp,dsunp,.true.)
 
 ! -----------------------------------------------------
 
@@ -526,6 +510,7 @@ mtemp_min20   => osv%mtemp_min20
 gdd20         => osv%gdd20
 mtemp_min_buf => osv%mtemp_min_buf
 gdd_buf       => osv%gdd_buf
+wscal_buf     => osv%wscal_buf
 coverfrac     => osv%tile%coverfrac
 
 if (year == 1) then
@@ -563,7 +548,7 @@ call summerphenology(pftpar,temp,dtemp,gdd,dphen_t,pft%summergreen,pft%tree)  ! 
 ! --------
 ! 20-year average climate variables
 
-call climate20(temp,dtemps,gdd,mtemp_min_buf,gdd_buf,mtemp_min20,gdd20,mtemp_max,mat20,mat_buf)
+call climate20(temp,dtemp,gdd,mtemp_min_buf,gdd_buf,mtemp_min20,gdd20,mtemp_max,mat20,mat_buf)
 
 ! --------------------------------------------------------------------------------------
 ! set survival and establishment based on PFT bioclimatic limits
@@ -579,6 +564,10 @@ if (lucc) then
   call alcc(j,in,osv,cropfrac,unusable,coverfrac,recoverf)
   
   ! write(stdout,*)'alcc',unusable,cropfrac,coverfrac
+
+else
+
+  recoverf = 0.
 
 end if
 
@@ -609,7 +598,7 @@ do i = 1,3 ! ntiles
   fpc_grid         => osv%tile(i)%fpc_grid
   fpc_inc          => osv%tile(i)%fpc_inc
   grid_npp         => osv%tile(i)%grid_npp
-  grid_gpp         => osv%tile(i)%grid_gpp ! E.C. avril 2016
+  grid_gpp         => osv%tile(i)%grid_gpp      ! E.C. avril 2016
   height           => osv%tile(i)%height
   pftalbiomass     => osv%tile(i)%pftalbiomass  ! E.C. octobre 2016
   hm_ind           => osv%tile(i)%hm_ind
@@ -647,6 +636,7 @@ do i = 1,3 ! ntiles
   mburnedf         => osv%tile(i)%mburnedf
   soilco2conc      => osv%tile(i)%soilco2conc
   soilcconc_dec    => osv%tile(i)%soilcconc_dec
+
   ! --------------------------------------------------------------------------------------
   ! initializations (needed?)
     
@@ -728,11 +718,21 @@ do i = 1,3 ! ntiles
 
 ! ===== end special conditions for Canada version ONLY =====
   
-  call establishment(pftpar,present,survive,estab,nind,lm_ind,sm_ind,rm_ind,hm_ind,lm_sapl,sm_sapl,rm_sapl,hm_sapl,pft%tree,       &
-                     crownarea,fpc_grid,lai_ind,height,sla,wooddens,latosa,prec,reinickerp,litter_ag_fast,litter_ag_slow,litter_bg,&
-                     allom1,allom2,allom3,acflux_estab,leafondays,leafoffdays,leafon,estab_pft,afire_frac,osv%tile(i)%soil%clay,   &
-                     osv%tile(i)%soil%sand)
-                     
+  ! first year establishment - after the first year, we will calculate establishment after 
+  ! wscal has been calculated in gppmod, so we can have a water supply:demand limited establishment
+  
+  if (year == 1) then
+  
+    where (pft%tree) estab = .false.
+  
+    call establishment(pftpar,present,survive,estab,nind,lm_ind,sm_ind,rm_ind,hm_ind,lm_sapl,sm_sapl,rm_sapl,hm_sapl,pft%tree,  &
+                       crownarea,fpc_grid,lai_ind,height,sla,wooddens,latosa,prec,reinickerp,                                   &
+                       litter_ag_fast,litter_ag_slow,litter_bg,                                                                 &
+                       allom1,allom2,allom3,acflux_estab,leafondays,leafoffdays,leafon,estab_pft,afire_frac,                    &
+                       osv%tile(i)%soil%clay,osv%tile(i)%soil%sand,in%cellarea)
+
+  end if
+
 !  if(i==2) write(stdout,'(a,i3,9f14.4)') 'after establishment',i, litter_ag_fast(:,1)               
                      
   do a = 1, npft
@@ -758,7 +758,7 @@ do i = 1,3 ! ntiles
   ! light competition among trees and between trees and grasses
 
   call light(present,pft%tree,lm_ind,sm_ind,hm_ind,rm_ind,crownarea,fpc_grid,fpc_inc,nind,  &
-             litter_ag_fast,litter_ag_slow,litter_bg,sla,fpc_tree_max) 
+             litter_ag_fast,litter_ag_slow,litter_bg,sla,fpc_tree_max,in%cellarea)
   
 !  if(i==2)   write(stdout,'(a,i3,9f14.4)') 'after light1',i, litter_ag_fast(:,1) 
 
@@ -808,6 +808,10 @@ do i = 1,3 ! ntiles
   ! do a = 1,npft
   !  write(stdout,*)a,fpc_grid(a),lai_ind(a)
 ! end do
+
+!   do m = 1,365
+!     write(0,*)m,dpet(m),dprec(m)
+!   end do
 
   call calcgpp(present,[co2,-8.,0.],soilpar,pftpar,lai_ind,fpc_grid,mdayl,temp,mpar_day,dphen_t,w,dpet,dprec,dmelt,   &
                sla,agpp,alresp,arunoff_surf,arunoff_drain,arunoff,mrunoff,dwscal365,dphen_w,dphen,wscal,mgpp,mlresp,  &
@@ -910,7 +914,7 @@ do i = 1,3 ! ntiles
     if (any(treecarbon(1:3) <= 0.) .and. (sum(treecarbon) > 0. .or. nind(a) > 0.)) then
       
       write(stdout,*)'invalid allometry, resetting',year, present(a)
-      write(stdout,'(2f10.2,i4,5f14.7)')in%lon,in%lat,a,nind(a),lm_ind(a,1),sm_ind(a,1),hm_ind(a,1),rm_ind(a,1)
+      write(stdout,'(2f10.4,i4,5f16.7)')in%lon,in%lat,a,nind(a),lm_ind(a,1),sm_ind(a,1),hm_ind(a,1),rm_ind(a,1)
       
       ! read(*,*) 
       
@@ -944,7 +948,7 @@ do i = 1,3 ! ntiles
   ! end if
   
   call mortality(pftpar,present,pft%tree,pft%boreal,bm_inc,turnover_ind,sla,lm_ind,sm_ind,hm_ind,rm_ind,nind,year,  &
-                 litter_ag_fast,litter_ag_slow,litter_bg,dtemp,anpp,mtemp_max) 
+                 litter_ag_fast,litter_ag_slow,litter_bg,dtemp,anpp,mtemp_max,in%cellarea) 
 
   do a = 1, npft
    if ((nind(a) <= 0.) .and. ((lm_ind(a,1) .ne. 0.) .or. (sm_ind(a,1) .ne. 0.) .or. (hm_ind(a,1) .ne. 0.) .or. &
@@ -957,10 +961,16 @@ do i = 1,3 ! ntiles
 !  if(i==2)   write(stdout,'(a,i3,9f14.4)') 'after mortality',i, litter_ag_fast(:,1)                           
 
 
+  ! establishment on all except the first year
+  
+  
+
+
+
   ! light competition between trees and grasses
 
   call light(present,pft%tree,lm_ind,sm_ind,hm_ind,rm_ind,crownarea,fpc_grid,fpc_inc,nind,  &
-             litter_ag_fast,litter_ag_slow,litter_bg,sla,fpc_tree_max)
+             litter_ag_fast,litter_ag_slow,litter_bg,sla,fpc_tree_max,in%cellarea)
   
 !  if(i==2)   write(stdout,'(a,i3,9f14.4)') 'after light2',i, litter_ag_fast(:,1) 
 
@@ -1148,22 +1158,48 @@ do i = 1,3 ! ntiles
     write(stdout,*)'light1',in%lon,in%lat,fpc_grid
     stop
   end if
+  
+  ! ----------------------------------------------------------------------------
+  ! establishment for all years, calculated after wscal-limited establishment
+  ! problem: wscal is not calculated if a PFT is not present, so there will be 
+  ! no establishment once a PFT disappears. solution (2023.02), use the grass wscal
+  ! (grass is always present) to indicate the water conditions of seedlings and use
+  ! that to control establishment
+  ! limiting woody establishment to well-watered periods results in more realistic tree:grass
+  ! mixtures in seasonally arid environments
+
+  wiltdays = real(count(wscal_v > 0.35,dim=1))
+  
+  call wscal_mean(wiltdays,wscal_buf,wscal8)
+  
+  pftalbiomass = crownarea
+
+  ! need average 140 or more days of wscal > 0.35 for sapling recruitment  
+         
+  if (wscal8(8) < 140. .or. year < 10) estab(1:7) = .false.
+  
+  call establishment(pftpar,present,survive,estab,nind,lm_ind,sm_ind,rm_ind,hm_ind,lm_sapl,sm_sapl,rm_sapl,hm_sapl,pft%tree,       &
+                   crownarea,fpc_grid,lai_ind,height,sla,wooddens,latosa,prec,reinickerp,litter_ag_fast,litter_ag_slow,litter_bg,  &
+                   allom1,allom2,allom3,acflux_estab,leafondays,leafoffdays,leafon,estab_pft,afire_frac,osv%tile(i)%soil%clay,     &
+                   osv%tile(i)%soil%sand,in%cellarea)
+    
+  ! ----------------------------------------------------------------------------
+  ! light competition once again, following establishment
 
   call light(present,pft%tree,lm_ind,sm_ind,hm_ind,rm_ind,crownarea,fpc_grid,fpc_inc,nind,  &
-             litter_ag_fast,litter_ag_slow,litter_bg,sla,fpc_tree_max)
+             litter_ag_fast,litter_ag_slow,litter_bg,sla,fpc_tree_max,in%cellarea)
   
-!  if(i==2)   write(stdout,'(a,i3,9f14.4)') 'after light3',i, litter_ag_fast(:,1) 
+  !  if(i==2)   write(stdout,'(a,i3,9f14.4)') 'after light3',i, litter_ag_fast(:,1) 
   
   if (any(fpc_grid < 0.)) then
     write(stdout,*)'light2',in%lon,in%lat,fpc_grid  ! '(a,2f10.2,9f14.7)'
     stop
   end if
   
-!  write(stdout,'(a,i4,10f8.3)')'after light',year,fpc_grid,sum(fpc_grid)
-!  write(stdout,*) 
+  !  write(stdout,'(a,i4,10f8.3)')'after light',year,fpc_grid,sum(fpc_grid)
+  !  write(stdout,*) 
 
-
-
+  ! ----------------------------------------------------------------------------
 
   ! radioactive decay of 14C
 

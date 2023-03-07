@@ -94,7 +94,7 @@ real(sp), parameter :: dt    = 86400.d0  !number of seconds in 24hrs
 
 !fixed CLM parameters
 
-real(sp), parameter :: pi    = 3.14159265358979323846d0 !26433 83279 50288 41971 69399 37510 (unitless)
+real(dp), parameter :: pi    = 3.14159265358979323846d0 !26433 83279 50288 41971 69399 37510 (unitless)
 real(dp), parameter :: grav  = 9.80616d0     !Gravitational acceleration  (m s-2)
 real(dp), parameter :: Pstd  = 101325.d0     !Standard pressure           (Pa)
 real(dp), parameter :: sigsb = 5.67e-8       !Stefan-Boltzmann constant   (W m-2 K-4)

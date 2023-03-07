@@ -1,0 +1,49 @@
+&joboptions
+ cal_year         = 49   !1901: must be in units cal yr BP (1950)
+ dospinup         = .true.
+ dotransient      = .false.
+ spinupyears      = 500 ! 1020 = 34 30-year cycles
+ transientyears   = 10
+ cfile_spinup     = '/home/terraces/datasets/climate/NorthAm_hybrid/makeclimate/NAclimate_spinup.nc'
+ cfile_transient  = ''
+ soilfile         = '/home/terraces/datasets/soils/NA5km/NAsoil.nc'
+ co2file          = '/home/terraces/datasets/dgvm_input/ghg/ghg2.nc'
+ topofile         = '/home/terraces/datasets/topography/NA5km/NAtopo.nc'
+ pftparsfile      = '/home/terraces/projects/fire_deficit/LPJ-LMfire/share/pftpars_global.csv'
+ nspinyrsout      = 1020
+ maxmem           = 12288.
+ lu_turn_yrs      = 0.
+ outputvar     = 'cover','albiomass','livebiomass','litterC_fast','litterC_slow','litterC_bg','soilC_surf',
+                 'soilC_fast','soilC_slow','burnedf','coverfrac','tilecarbon','NPP','GPP','nind', 'pftalbiomass',
+                 'NBP','acflux_fire','fireCO2','fireCO','fireCH4','fireVOC','fireTPM','fireNOx','mLAI','mBBpft','mburnedf','height'
+ nolanduse     = .true.
+! pftsel = 'TempNET','TempBET','TempBST','ColdNET','ColdBST','C3grass','C4grass'
+! pftparsdb = './share/pftparameters.sqlite3'
+/
+
+! mpirun -np 2 src/lpj joboptions/NA_spinup_natural.namelist -1978000/-1918000/-1128000/-1043000 output/sfbay.nc
+! mpirun -np 21 src/lpj joboptions/NA_spinup_natural.namelist -2050000/-1590000/-1400000/-480000 output/CAcentral.nc > output/CAcentral.log
+! mpirun -np 31 src/lpj joboptions/NA_spinup_natural.namelist -2050000/-155000/-2035000/490000 output/NAwest.nc > output/NAwest.log
+
+! mpirun -np 2 src/lpj joboptions/NA_spinup_natural.namelist -1887500/-912500 output/test1pix.nc
+! mpirun -np 2 src/lpj joboptions/NA_spinup_natural.namelist -1887500/-1882500/-920000/-910000 output/test4pix.nc
+
+! current catalog of selectable PFT names
+! +------------+---------+--------------------------------------------------------+
+! | standard   |         |                                                        |
+! | PFT number |  pft    |         long_name                                      |
+! +------------+---------+--------------------------------------------------------+
+! |      1     | TropBET | tropical broadleaved evergreen tree                    |
+! |      2     | TropBRT | tropical broadleaved raingreen tree                    |
+! |      3     | TempNET | temperate needleleaved evergreen tree                  |
+! |      4     | TempBET | temperate broadleaved evergreen tree                   |
+! |      5     | TempBST | temperate broadleaved summergreen tree                 |
+! |      6     | ColdNET | boreal needleleaved evergreen tree                     |
+! |      7     | ColdBST | boreal summergreen tree                                |
+! |      8     | C3grass | C3 perennial grass                                     |
+! |      9     | C4grass | C4 perennial grass                                     |
+! |            | Picea   | boreal spruce type eastern Canada                      |
+! |            | Abies   | boreal fir type eastern Canada                         |
+! |            | Pinus   | boreal pine type eastern Canada                        |
+! |            | Populus | boreal broadleaf deciduous (aspen-type) eastern Canada |
+! +------------+---------+--------------------------------------------------------+

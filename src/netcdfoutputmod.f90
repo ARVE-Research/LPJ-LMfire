@@ -365,13 +365,14 @@ deallocate(rvar2d)
 !-----
 !Aboveground Biomass by PFTs
 
-y = size(sv(1)%tile(1)%pftalbiomass)
+y = size(sv(1)%tile(1)%crownarea)
 
 allocate(rvar2d(ncells,y))
 
 do i = 1,ncells
   do j = 1,npft
-    rvar2d(i,j) = sv(i)%tile(1)%above_carbon(j) ! 
+    rvar2d(i,j) = sv(i)%tile(1)%pftalbiomass(j) ! 
+    ! rvar2d(i,j) = sv(i)%tile(1)%crownarea(j) ! 
   end do
 end do
 

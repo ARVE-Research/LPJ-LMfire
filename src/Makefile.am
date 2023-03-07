@@ -3,6 +3,8 @@ lpj_SOURCES =               \
   overprint.c               \
   parametersmod.f90         \
   randomdistmod.f90         \
+  utilitiesmod.f90          \
+  newsplinemod.f90          \
   weathergenmod.f90         \
   orbitmod.f90              \
   geohashmod.f90            \

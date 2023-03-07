@@ -56,7 +56,7 @@ real(sp), parameter, dimension(6) :: zpos_std = [ 2.5, 10., 22.5, 45., 80., 150.
 !-------------------------
 !generate file names. Regardless of the path name the input files must always have these names.
 
-write(stdout,'(a,a)')'using soil file: ',trim(soilfile)
+write(stdout,'(a,a)')' soil file:    ',trim(soilfile)
 
 !-------------------------
 !open soil file
@@ -177,7 +177,7 @@ end if
 
 if (projgrid) then
   
-  write(0,*)'initsoil: NB input data is in a projected grid!'
+  write(stdout,*)'initsoil: NB input data is in a projected grid!'
   
   allocate(geolon(cntx,cnty))
   allocate(geolat(cntx,cnty))

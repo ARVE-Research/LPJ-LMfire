@@ -52,6 +52,10 @@ logical, dimension(npft), intent(out) :: raingreen
 logical, dimension(npft), intent(out) :: needle
 logical, dimension(npft), intent(out) :: boreal
 
+! parameters
+
+real(sp), parameter :: sla1 = 2.e-4 * exp(6.15)
+
 ! local variables
 
 integer :: ierror
@@ -61,8 +65,10 @@ integer :: pft
 real(sp) :: lai_sapl       ! sapling or initial grass LAI
 real(sp) :: x              ! sapwood:heartwood diameter ratio
 real(sp) :: lmtorm         ! non-water-stressed leafmass to rootmass ratio
-real(sp) :: stemdiam       ! sapling stem diameter
-real(sp) :: height_sapl    ! sapling height
+real(sp) :: stemdiam       ! sapling stem diameter (m)
+real(sp) :: height_sapl    ! sapling height (m)
+real(sp) :: crownarea      ! sapling crown area (m2)
+real(sp) :: longevity      ! leaf longevity (months)
 
 ! -----------------------------------------------------------------------------
 ! List of the PFT parameters
@@ -220,17 +226,25 @@ do pft = 1,npft
 
   ! Calculate specific leaf area (SLA) for each PFT from leaf longevity
   ! Include conversion (multiplier of 2.) from m2/g(dry wt) to m2/gC
-  ! Equation based on Reich et al 1997, Fig 1f:
+  ! Equation based on Reich et al 1997, Fig 1f.
+  
+  longevity = 12. * pftpar(pft,7)  ! convert years to months
 
-  ! SLA = 2e-4 * exp(6.15 - 0.46 ln (leaf_longevity * 12))
-
-  ! SLA in m2/gC, leaf_longevity in years
-
-  sla(pft) = 2.e-4 * exp(6.15 - 0.46 * log(pftpar(pft,7) * 12.))
+  ! SLA = 2e-4 * exp(6.15) / (12 * leaf_longevity)^0.46) ! Sitch et al. 2003 Eqn. 6
+  
+  ! the term sla1 (2.e-4 * exp(6.15)) is precalculated above
+  
+  sla(pft) = sla1 / longevity**0.46
 
   ! Define initial mass structure
+  
+  ! In the original LPJ, the sapling mass structure is solved by defining an initial LAI from which
+  ! the sapling leaf mass is solved to (I think) assume the minimum allometrically consistent mass (leaf, sapwood, etc.)
+  ! that can support the prescribed LAI. This results in saplings of highly unrealistic size and shape.
+  ! As an alternative (Mar 2023), I suggest prescribing a sapling leaf mass of 25gC and calculating the
+  ! rest of the allometry based on this. I have not made any change for grasses. 
 
-  lai_sapl=pftpar(pft,19)
+  lai_sapl = pftpar(pft,19)
 
   if (tree(pft)) then ! woody PFTs
 
@@ -263,8 +277,10 @@ do pft = 1,npft
 
     x = pftpar(pft,20)
 
-    lm_sapl(pft,1) = (lai_sapl * allom1 * x**reinickerp * (4. *sla(pft) / pi / latosa)**(reinickerp * 0.5) / & 
-                      sla(pft))**(1. - 1. / reinickerp)  !eqn 14
+!     lm_sapl(pft,1) = (lai_sapl * allom1 * x**reinickerp * (4. * sla(pft) / pi / latosa)**(reinickerp * 0.5) / & 
+!                       sla(pft))**(1. - 1. / reinickerp)  !eqn 14
+                      
+    lm_sapl(pft,1) = 25. ! try setting to a standard 25 gC
 
     lm_sapl(pft,2) = 17.8 - co2(2)   ! initial 13C value from lloyd & farquhar, 1994
     lm_sapl(pft,3) = 0.
@@ -278,7 +294,9 @@ do pft = 1,npft
     ! Calculate sapling height
     ! (16) height = allom2 * (stem diameter)**allom3 (source?)
 
-    height_sapl=allom2*stemdiam**allom3   !Eqn 16
+    ! height_sapl = allom2 * stemdiam**allom3   !Eqn 16
+
+    height_sapl = allom2 * stemdiam   !recent studies show that the exponent is close to 1 for saplings
 
     ! Calculate sapling sapwood mass
     ! (17) (sapwood volume) = height * (sapwood xs area)
@@ -302,10 +320,16 @@ do pft = 1,npft
     hm_sapl(pft,1) = (x - 1.) * sm_sapl(pft,1)  ! Eqn 22
     hm_sapl(pft,2) = sm_sapl(pft,2)             ! 13C value in permille
     hm_sapl(pft,3) = sm_sapl(pft,3)
+    
+    crownarea = allom1 * stemdiam**reinickerp
+
+    lai_sapl = lm_sapl(pft,1) * sla(pft) / crownarea
+
+    ! write(0,*)'sapling ',pft,sla(pft),lai_sapl,lm_sapl(pft,1),height_sapl,stemdiam*100.,crownarea
 
   else ! grass PFT
 
-    lm_sapl(pft,1)=lai_sapl/sla(pft)
+    lm_sapl(pft,1 )= lai_sapl / sla(pft)
 
     ! Set initial 13C values for saplings, grass
 
@@ -333,9 +357,10 @@ do pft = 1,npft
   ! Calculate sapling or initial grass rootmass
   ! (23) lmtorm = (leafmass) / (rootmass)
 
-  lmtorm = pftpar(pft,16) 
+  lmtorm = pftpar(pft,16)
   rm_sapl(pft,1) = (1. / lmtorm) * lm_sapl(pft,1)  ! From Eqn 23
   rm_sapl(pft,2) = lm_sapl(pft,2)                  ! 13C value in permille
+ 
 
 end do ! pft loop
 

@@ -8,7 +8,7 @@ implicit none
 public  :: allocation
 private :: root
 
-integer,  parameter :: npft = 9
+integer,  parameter :: npft =  9
 integer,  parameter :: nseg = 20
 real(sp), parameter :: pi   =  3.14159265
 real(sp), parameter :: xacc =  0.1     ! x-axis precision threshold for the allocation solution
@@ -57,6 +57,7 @@ real(sp), dimension(:,:), intent(inout) :: lm_ind
 real(sp), dimension(:,:), intent(inout) :: sm_ind
 real(sp), dimension(:,:), intent(inout) :: hm_ind
 real(sp), dimension(:,:), intent(inout) :: rm_ind
+
 real(sp), dimension(:,:), intent(inout) :: litter_ag_fast
 real(sp), dimension(:,:), intent(inout) :: litter_ag_slow
 real(sp), dimension(:,:), intent(inout) :: litter_bg
@@ -77,12 +78,13 @@ real(sp) :: lminc_ind_min  ! min leafmass increment to maintain current sapwood
 real(sp) :: rminc_ind_min  ! min rootmass increment to support new leafmass
 real(sp) :: sap_xsa        ! cross sectional area of sapwood  
 real(sp) :: sminc_ind      ! individual sapmass increment this year
-real(sp) :: stemdiam       ! stem diameter 
+real(sp) :: stemdiam       ! stem diameter
 
 real(sp) :: lm
 real(sp) :: sm
 real(sp) :: hm
 real(sp) :: rm
+real(sp) :: mtotal
 
 real(sp) :: x1             ! working vars in bisection
 real(sp) :: x2
@@ -127,7 +129,33 @@ do pft = 1,npft
 
   if (tree(pft)) then
 
+    ! ---------------------------------------------
     ! TREE ALLOCATION
+
+    ! [2023-03] trying out a major change in the way bm_inc is partitioned from the m-2 basis to the individual
+    ! multiply by crownarea per individual vs. divide by nind - it could make the allocation more realistic
+
+    ! bm_inc_ind = bm_inc(pft,1) * crownarea(pft)
+
+    crownarea_max = pftpar(pft,18)
+
+    if (crownarea(pft) >= crownarea_max) then
+    
+      ! the average individual is as big as it can get
+      ! assume the biomass increment just goes into tissue maintenance (presupposes turnover)
+      ! so don't make any changes to the tree allometry here
+      ! and add to the litter pools an amount of biomass equivalent to the biomass increment 
+      ! partitioned as a function of the ratio of each living pool size to the total
+      
+      mtotal = lm + sm + hm + rm
+      
+      litter_ag_fast(pft,1) = litter_ag_fast(pft,1) + nind(pft) * bm_inc_ind * lm / mtotal
+      litter_ag_slow(pft,1) = litter_ag_slow(pft,1) + nind(pft) * bm_inc_ind * (hm + sm) / mtotal
+      litter_bg(pft,1)      = litter_bg(pft,1)      + nind(pft) * bm_inc_ind * rm / mtotal
+      
+      cycle    
+    
+    end if
 
     lm1 = latosa * sm / (wooddens * height(pft) * sla(pft))  ! allometric leaf mass requirement
 
@@ -327,10 +355,24 @@ do pft = 1,npft
 
       crownarea(pft) = min(allom1 * stemdiam**reinickerp,crownarea_max)  ! eqn (D)
 
+!       if (height(pft) > 30) then
+!         write(0,*)'alloc? ',bm_inc(pft,1),nind(pft),crownarea(pft),height(pft)
+!       end if
+
     end if
+    
+!     if (hm_ind(pft,1) > 1.e6) then
+!       write(0,*)'big trees',pft,1./nind(pft),crownarea(pft),bm_inc_ind,bm_inc(pft,1), &
+!                             lm_ind(pft,1),rm_ind(pft,1),hm_ind(pft,1),sm_ind(pft,1)
+!     end if
+      
+
+    ! end of tree allocation
+    ! ---------------------------------------------
 
   else
 
+    ! ---------------------------------------------
     ! GRASS ALLOCATION
 
     ! Distribute this year's production among leaves and fine roots according to leaf to rootmass ratio [eqn (33)] (see below)
@@ -372,6 +414,9 @@ do pft = 1,npft
 
     lm_ind(pft,1) = lm + lminc_ind
     rm_ind(pft,1) = rm + rminc_ind
+    
+    ! end of grass allocation
+    ! ---------------------------------------------
 
   end if  ! tree/grass
 

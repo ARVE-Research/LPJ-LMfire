@@ -36,18 +36,21 @@ real(sp), dimension(:,:), intent(inout) :: litter_bg
 
 !parameter
 
-real(sp), parameter :: bminc_ind_min = 1e-6 !minimum annual productivity per individual has to be more than this value (gC)
+real(sp), parameter :: bminc_ind_min = 1.e-6 ! minimum annual productivity per individual has to be more than this value (gC)
 
 !local variables
 
 integer  :: pft
 real(sp) :: bm_inc_ind
 
-!--------------------------------------
+! --------------------------------------
+! we cannot use this subroutine for herbaceous PFTs because the long recovery time in the model
+! means that the recovery in leafmass is too slow (several years) compared to within one year
+! in reality
 
 do pft = 1,npft
 
-  if (present(pft)) then
+  if (present(pft) .and. tree(pft)) then  
 
     bm_inc_ind = bm_inc(pft,1) / nind(pft)
     
