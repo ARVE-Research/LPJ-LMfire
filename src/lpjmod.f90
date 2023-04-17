@@ -332,7 +332,7 @@ logical :: dosoilco2
 
 ! write(0,*)'lpjcore:',in%cellarea
 
-! write(stdout,*) 'working on gridcell ', in%year, in%lon, in%lat, in%human%foragerPD, in%slope ! 0,'(a,i5,3f14.2)'
+! write(stdout,*) 'working on gridcell ', in%year, in%lon, in%lat !, in%human%foragerPD, in%slope ! 0,'(a,i5,3f14.2)'
 
 ntiles = count(in%human%landuse >= 0.)
 
@@ -678,6 +678,8 @@ do i = 1,3 ! ntiles
      sm_ind(a,1), hm_ind(a,1), rm_ind(a,1)
    end if
   end do
+  
+!  write(0,*)'lpjmod 0 lm_ind(3):',lm_ind(3,1)
 
   ! Establishment of new individuals (saplings) of woody PFTs, grass establishment, 
   ! removal of PFTs not adapted to current climate, update of individual structure and FPC
@@ -809,6 +811,8 @@ do i = 1,3 ! ntiles
   !  write(stdout,*)a,fpc_grid(a),lai_ind(a)
 ! end do
 
+! write(stderr,*)'LAI',lai_ind(8)
+
 !   do m = 1,365
 !     write(0,*)m,dpet(m),dprec(m)
 !   end do
@@ -819,7 +823,7 @@ do i = 1,3 ! ntiles
   
 !  write(stdout,*)'after calcgpp ',present
 
-  ! write(stdout,'(13f10.1)')agpp(8,1),mgpp(:,8,1)
+! write(stderr,'(a,13f10.1)')'GPP ',agpp(8,1),mgpp(:,8,1)
 
 !  write(stdout,*)'flag D2',lm_ind(7:8,1),present
 
@@ -841,10 +845,10 @@ do i = 1,3 ! ntiles
   call calcnpp(dtemp,dtemp_soil,dphen,present,nind,lm_ind(:,1),sm_ind(:,1),hm_ind(:,1),rm_ind(:,1),cstore(:,1),  &
                mgpp(:,:,1),mnpp(:,:,1),anpp(:,1))
     
-  bm_inc = anpp
   anpp = max(0.,anpp)
+  bm_inc = anpp
   
-!  write(stdout,*)'flag D2b',lm_ind(7:8,1)
+  ! write(stdout,*)'flag D2b',lm_ind(8,1),anpp(8,1),bm_inc(8,1)
 
   ! call npp(pftpar,dtemp,dtemp_soil,pft%tree,dphen,nind,year,lm_ind,sm_ind,rm_ind,mgpp,anpp,mnpp,bm_inc,present,agpp,co2,aresp)
 
@@ -865,11 +869,14 @@ do i = 1,3 ! ntiles
   call reproduction(bm_inc,lm_sapl,sm_sapl,hm_sapl,rm_sapl,litter_ag_fast,litter_ag_slow,present,pft%tree,[co2,-8.,0.])
  
 !  if(i==2)   write(stdout,'(a,i3,9f14.4)') 'after reproduction',i, litter_ag_fast(:,1) 
-!  write(stdout,*)'flag D2d',lm_ind(:,1)
+ ! write(stdout,*)'flag D2d',bm_inc(8,1)
 
   ! leaf, sapwood, and fine-root turnover
 
   call turnover(pftpar,present,lm_ind,sm_ind,hm_ind,rm_ind,litter_ag_fast,litter_ag_slow,litter_bg,nind,turnover_ind,year)
+  
+!  write(0,*)'lpjmod 1 lm_ind(3):',lm_ind(3,1)
+  
   
 !  if(i==2)   write(stdout,'(a,i3,9f14.4)') 'after turnover',i, litter_ag_fast(:,1) 
 
@@ -882,9 +889,9 @@ do i = 1,3 ! ntiles
   ! -------------------------------------------------------------------------
   ! removal of PFTs with negative C increment this year
 
-  ! write(stdout,*)
+  ! write(stdout,*)'killplant',bm_inc(8,1),present(8),lm_ind(8,1)
 
-  call killplant(bm_inc,present,pft%tree,lm_ind,rm_ind,hm_ind,sm_ind,nind,litter_ag_fast,litter_ag_slow,litter_bg)
+  call killplant(bm_inc,present,pft%tree,crownarea,lm_ind,rm_ind,hm_ind,sm_ind,nind,litter_ag_fast,litter_ag_slow,litter_bg)
   
 !  if(i==2)   write(stdout,'(a,i3,9f14.4)') 'after killplant',i, litter_ag_fast(:,1) 
 

@@ -100,6 +100,7 @@ real(sp) :: adt1
 real(sp) :: adt2
 real(sp) :: adtmm
 real(sp) :: daet
+real(sp) :: fpc_ind
 
 real(sp), dimension(2)    :: ksat
 real(sp), dimension(2)    :: awc
@@ -214,8 +215,12 @@ do pft = 1,npft
       tsecs(m) = 3600. * mdayl(m)  ! number of daylight seconds/day
 
       ! Calculate non-water-stressed net daytime photosynthesis assuming full leaf cover
+      
+      fpc_ind = 1. - exp(-0.5 * lai_ind(pft))
 
-      fpar = fpc_grid(pft)
+      fpar = fpc_ind
+
+      ! fpar = fpc_grid(pft)  ! NB old formulation
 
 !       call photosynthesis(ca,mtemp(m),fpar,mpar_day(m),mdayl(m),c4(pft),sla(pft),nmax(pft),lambdam(pft), &
 !                           rd,agd,adtmm,inhibx1(pft),inhibx2(pft),inhibx3(pft),inhibx4(pft),pft)
@@ -350,10 +355,15 @@ do m = 1,12
 
         ! Accumulate mean monthly fpc, actual (gc) and minimum (gmin) canopy conductances,
         ! incorporating leaf phenology
+        
+        fpc_ind = 1. - exp(-0.5 * lai_ind(pft))
 
         meangc(m,pft)   = meangc(m,pft)   + dgc(d,pft) / real(ndaymonth(m))
         meangmin(m,pft) = meangmin(m,pft) + gminp(pft) * dphen(d,pft) / real(ndaymonth(m))
-        meanfpc(m,pft)  = meanfpc(m,pft)  + fpc_grid(pft) * dphen(d,pft) / real(ndaymonth(m))
+
+        meanfpc(m,pft)  = meanfpc(m,pft)  + fpc_ind * dphen(d,pft) / real(ndaymonth(m))
+
+        ! meanfpc(m,pft)  = meanfpc(m,pft)  + fpc_grid(pft) * dphen(d,pft) / real(ndaymonth(m)) ! original formulation
 
         wscal_v(d,pft) = dwscal(pft)
 

@@ -212,11 +212,6 @@ elsewhere
 
 end where
 
-! write(0,*)' pft   fpci   nind  crown    lai   fpcg'
-! do pft = 1,npft
-!   if (.not.present(pft)) cycle
-!   write(0,'(i5,5f7.3)')pft,fpc_ind(pft),nind(pft),crownarea(pft),lai_ind(pft),fpc_grid(pft)
-! end do
 
 ! correct for mathematical overshoot
       
@@ -224,7 +219,17 @@ litter_ag_fast = max(litter_ag_fast,0.)
 litter_ag_slow = max(litter_ag_slow,0.)
 litter_bg      = max(litter_bg,0.)
 
-do pft=1,npft
+if (any(fpc_grid < 0.)) then 
+  write(0,*)' pft   fpci   nind  crown    lai   fpcg   lm_ind'
+  do pft = 1,npft
+    if (.not.present(pft)) cycle
+    write(0,'(i5,6f7.3)')pft,fpc_ind(pft),nind(pft),crownarea(pft),lai_ind(pft),fpc_grid(pft),lm_ind(pft,1)
+  end do
+  
+  stop 
+end if 
+
+do pft = 1,npft
   if (fpc_grid(pft) < 0. .or. fpc_grid(pft) > 1.) write(stdout,*)'resetting pft ',pft,fpc_grid(pft)
 end do
 

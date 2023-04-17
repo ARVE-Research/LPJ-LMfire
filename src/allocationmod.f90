@@ -135,7 +135,13 @@ do pft = 1,npft
     ! [2023-03] trying out a major change in the way bm_inc is partitioned from the m-2 basis to the individual
     ! multiply by crownarea per individual vs. divide by nind - it could make the allocation more realistic
 
-    ! bm_inc_ind = bm_inc(pft,1) * crownarea(pft)
+    fpc_ind = 1. - exp(-0.5 * lai_ind(pft))
+
+    bm_inc_ind = bm_inc(pft,1) * crownarea(pft) * fpc_ind
+
+!     if (pft == 3) then
+!       write(0,'(a,2f8.4,3f12.2)')'allocate0 ',nind(pft),crownarea(pft),bm_inc(pft,1),bm_inc_ind,lm_ind(pft,1) ! (pft,1) * crownarea(pft),bm_inc(pft,1) / nind(pft)
+!     end if
 
     crownarea_max = pftpar(pft,18)
 
@@ -156,8 +162,15 @@ do pft = 1,npft
       cycle    
     
     end if
+    
+    ! calculate the allometric leaf mass requirement
+    ! in the turnover subroutine, leaf mass will be reduced as a function of longevity
+    ! and some sapwood mass is converted to heartwood, so here leaves need to be put back
+    ! on the tree
 
-    lm1 = latosa * sm / (wooddens * height(pft) * sla(pft))  ! allometric leaf mass requirement
+    lm1 = latosa * sm / (wooddens * height(pft) * sla(pft))
+    
+!     if (pft == 3) write(0,*)'allom req',lm,lm1,bm_inc_ind
 
     lminc_ind_min = lm1 - lm  ! eqn (27)
 
@@ -346,10 +359,17 @@ do pft = 1,npft
     if (lm_ind(pft,1) > 0.) then
 
       sap_xsa = lm_ind(pft,1) * sla(pft) / latosa  ! eqn (5)
+      
+      if (sap_xsa <= 0.) then
+        write(0,*)'alloc sap xsa ',lm_ind(pft,1),sla(pft),latosa
+      end if
+        
 
       height(pft) = sm_ind(pft,1) / sap_xsa / wooddens
 
-      stemdiam    = (height(pft) / allom2)**(1./allom3)                  ! eqn (C)
+      ! stemdiam    = (height(pft) / allom2)**(1./allom3)                  ! eqn (C)
+      
+      stemdiam = 3. * (4. * lm_ind(pft,1) * sla(pft) / pi / latosa)**0.5  ! Eqn 15
 
       crownarea_max  = pftpar(pft,18)
 
@@ -366,6 +386,11 @@ do pft = 1,npft
 !                             lm_ind(pft,1),rm_ind(pft,1),hm_ind(pft,1),sm_ind(pft,1)
 !     end if
       
+
+!     if (pft == 3) then
+!       write(0,'(a,2f8.4,3f12.2)')'allocate1 ',nind(pft),crownarea(pft),bm_inc(pft,1),bm_inc_ind,lm_ind(pft,1) ! (pft,1) * crownarea(pft),bm_inc(pft,1) / nind(pft)
+!     end if
+
 
     ! end of tree allocation
     ! ---------------------------------------------
@@ -432,6 +457,12 @@ do pft = 1,npft
   fpc_ind       = 1. - exp(-0.5 * lai_ind(pft))
   fpc_grid(pft) = crownarea(pft) * nind(pft) * fpc_ind
   fpc_inc(pft)  = max(fpc_grid(pft) - fpc_grid_old,0.)
+  
+  if (lai_ind(pft) < 0.) then
+    write(0,*)'alloc invalid LAI',pft,lai_ind(pft),lm_ind(pft,1),sla(pft),crownarea(pft),bm_inc(pft,1) 
+  end if
+  
+  
 
 end do  ! pft loop
 
@@ -441,7 +472,7 @@ end subroutine allocation
 
 real(dp) function root(lm,sm,hm,rm,inc,lm2rm,sla,x)
 
-use parametersmod, only : pi,allom2,allom3,latosa,wooddens
+use parametersmod, only : allom2,allom3,latosa,wooddens
 
 implicit none
 

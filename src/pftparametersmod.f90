@@ -325,11 +325,11 @@ do pft = 1,npft
 
     lai_sapl = lm_sapl(pft,1) * sla(pft) / crownarea
 
-    ! write(0,*)'sapling ',pft,sla(pft),lai_sapl,lm_sapl(pft,1),height_sapl,stemdiam*100.,crownarea
 
   else ! grass PFT
 
-    lm_sapl(pft,1 )= lai_sapl / sla(pft)
+    ! lm_sapl(pft,1) = lai_sapl / sla(pft)
+    lm_sapl(pft,1) = 1. / sla(pft)
 
     ! Set initial 13C values for saplings, grass
 
@@ -361,6 +361,7 @@ do pft = 1,npft
   rm_sapl(pft,1) = (1. / lmtorm) * lm_sapl(pft,1)  ! From Eqn 23
   rm_sapl(pft,2) = lm_sapl(pft,2)                  ! 13C value in permille
  
+  ! write(0,*)'sapling ',pft,sla(pft),lai_sapl,lm_sapl(pft,1),height_sapl,stemdiam*100.,crownarea,hm_sapl(pft,1),sm_sapl(pft,1),rm_sapl(pft,1)
 
 end do ! pft loop
 

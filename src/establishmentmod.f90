@@ -99,16 +99,7 @@ real(sp) :: stemdiam         ! stem diameter (m)
 
 real(sp) :: nind_min
 
-! real(sp) :: clay_mean ! Moyenne du clay dans les differents tiles
-! real(sp) :: sand_mean ! Moyenne du clay dans les differents tiles
-
 ! --------------------------------------------
-! write(stdout,*)'burnedf',burnedf
-
-! Faire la moyenne du pourcentage de clay et de sand pour les deux couches 
-! clay_mean = (clay(1) + clay(3))/2
-! sand_mean = (sand(1) + sand(3))/2
-
 ! Kill PFTs not adapted to current climate, introduce newly "adapted" PFTs
 
 nind_min = 1. / cellarea   ! limit density to one individual per gridcell
@@ -160,6 +151,7 @@ do pft = 1,npft
 
 end do
 
+! --------------------------------------------
 ! sapling and grass establishment
 
 ! Calculate total woody FPC and number of woody PFTs present and able to establish
@@ -170,9 +162,6 @@ fpc_total      = sum(fpc_grid)
 fpc_tree_total = sum(fpc_grid,mask = tree)
 
 acflux_estab = 0.
-
-! Rajouter maximum clay content for establishment 
-! Creer un vecteur d'establishment ! E.C. 21.10.16
 
 if (aprec >= aprec_min_estab .and. npft_estab > 0) then
 
@@ -200,14 +189,6 @@ do pft = 1,npft
   if (present(pft) .and. estab(pft)) then
     if (tree(pft)) then
       if (estab_grid > 0.) then
-    
-        ! ===== the following statements were only used in a special version of the model for the boreal Canada simulations (clay-limited establishment) ======
-
-        ! Ici on va limiter letablissement que si le pourcentage de clay pour les 4 PFTs est inferieur a un seuil 
-        ! et si il y a pas eu de feux alors le pin ne peut pas setablir
-    
-        !  if ((pft == 1. .and. clay_mean < 20.0) .OR. (pft == 3. .and. clay_mean < 13.0) .OR. (pft == 4. .and. clay_mean < 18.0) .OR. (pft == 8. .and. clay_mean < 23.0)) then 
-        ! if ((pft == 1. .and. burnedf >= 0.) .OR. (pft == 3. .and. burnedf >= 0.) .OR. (pft == 4. .and. burnedf > 0.) .OR. (pft == 8. .and. burnedf >= 0.)) then
       
         crownarea_max = pftpar(pft,18)
 
@@ -215,8 +196,11 @@ do pft = 1,npft
 
         ! Add new saplings to current population
 
-        nind0 = nind(pft)
-        nind(pft) = nind0 + estab_grid   
+        nind0     = nind(pft)
+        nind(pft) = nind0 + estab_grid
+        
+        ! weighted average of the current population state variables
+        ! and the density of the newly establishing individuals (estab_grid)
 
         sm_ind_tmp    = (sm_ind(pft,1) * nind0 + sm_sapl(pft,1) * estab_grid) / nind(pft) ! Sapwood mass
         hm_ind(pft,1) = (hm_ind(pft,1) * nind0 + hm_sapl(pft,1) * estab_grid) / nind(pft) ! Heartwood mass
@@ -231,7 +215,9 @@ do pft = 1,npft
 
         if (estab_mass * estab_grid > eps) acflux_estab(1) = acflux_estab(1) + estab_mass * estab_grid
 
-        stemdiam = (4. * (sm_ind_tmp + hm_ind(pft,1)) / wooddens / pi / allom2)**(1./(2. + allom3)) ! Eqn 9
+        ! stemdiam = (4. * (sm_ind_tmp + hm_ind(pft,1)) / wooddens / pi / allom2)**(1./(2. + allom3)) ! Eqn 9
+        
+        stemdiam = 3. * (4. * lm_ind(pft,1) * sla(pft) / pi / latosa)**0.5  ! Eqn 15
 
         height(pft) = allom2 * stemdiam**allom3                           ! Eqn C
 
@@ -243,12 +229,13 @@ do pft = 1,npft
 
         hm_ind(pft,1) = max(hm_ind(pft,1) + (sm_ind_tmp - sm_ind(pft,1)),0.)
 
-        ! if (pft == 5) write(stdout,*)'establishment',estab_grid,crownarea(pft),sm_ind(pft,1),sm_ind_tmp,sm_ind_tmp - sm_ind(pft,1)
-        
-      ! end if 
-    
-    ! end if 
-    
+
+!         if (pft == 3) then
+!           write(0,'(a,3f8.4,f12.1)')'new estab ',nind(pft),crownarea(pft),stemdiam*100.,lm_ind(pft,1) ! ,height(pft),lm_ind(pft,1),hm_ind(pft,1),sm_ind(pft,1),rm_ind(pft,1)
+!           write(0,*)
+!         end if
+
+
     end if  ! estab grid
  
     else ! grass
@@ -262,7 +249,7 @@ do pft = 1,npft
 
       ! Accumulate biomass increment due to grass establishment
 
-      estab_mass    = bare * (lm_sapl(pft,1) + rm_sapl(pft,1))
+      estab_mass = bare * (lm_sapl(pft,1) + rm_sapl(pft,1))
 
       estab_pft(pft) = estab_mass * crownarea(pft)
 

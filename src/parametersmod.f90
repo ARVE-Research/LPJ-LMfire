@@ -36,9 +36,9 @@ integer, parameter :: climbuf  = 20
 integer, parameter :: nspec    =  6   !trace gas species from biomass burning
 integer, parameter :: nhclass  =  7   !number of height classes for discretization
 
-real(sp), parameter :: allom1 = 100
-real(sp), parameter :: allom2 =  40
-real(sp), parameter :: allom3 =   0.5
+real(sp), parameter :: allom1 = 100.
+real(sp), parameter :: allom2 =  40.
+real(sp), parameter :: allom3 =   1.  ! 0.5
 real(sp), parameter :: allom4 =   0.3
 
 real(sp), parameter :: reinickerp = 1.6

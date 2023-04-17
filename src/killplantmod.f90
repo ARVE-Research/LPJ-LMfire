@@ -12,7 +12,7 @@ contains
 
 !---------------------------------------------------------
 
-subroutine killplant(bm_inc,present,tree,lm_ind,rm_ind,hm_ind,sm_ind,nind,litter_ag_fast,litter_ag_slow,litter_bg)
+subroutine killplant(bm_inc,present,tree,crownarea,lm_ind,rm_ind,hm_ind,sm_ind,nind,litter_ag_fast,litter_ag_slow,litter_bg)
 
 !Removal of PFTs with negative annual C increment so that there are not problems in allocation
 !Note: Killing of PFTs newly beyond their bioclimatic limits is done in subroutine establishment
@@ -23,6 +23,7 @@ implicit none
 
 logical,  dimension(:),   intent(in)    :: tree
 real(sp), dimension(:,:), intent(in)    :: bm_inc
+real(sp), dimension(:), intent(in)    :: crownarea
 
 logical,  dimension(:),   intent(inout) :: present
 real(sp), dimension(:),   intent(inout) :: nind
@@ -52,9 +53,10 @@ do pft = 1,npft
 
   if (present(pft) .and. tree(pft)) then  
 
-    bm_inc_ind = bm_inc(pft,1) / nind(pft)
+    ! bm_inc_ind = bm_inc(pft,1) / nind(pft)
+    bm_inc_ind = bm_inc(pft,1) * crownarea(pft)
     
-    if (bm_inc_ind < bminc_ind_min) then
+    if (bm_inc_ind < bminc_ind_min .or. lm_ind(pft,1) < 1.) then
 
       !not enough C increment this year, kill PFT and transfer carbon to litter
 
