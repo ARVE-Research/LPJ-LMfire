@@ -2,7 +2,7 @@
  cal_year         = 49   !1901: must be in units cal yr BP (1950)
  dospinup         = .true.
  dotransient      = .false.
- spinupyears      = 500 ! 1020 = 34 30-year cycles
+ spinupyears      = 120 ! 1020 = 34 30-year cycles
  transientyears   = 10
  cfile_spinup     = '/home/terraces/datasets/climate/NorthAm_hybrid/makeclimate/NAclimate_spinup.nc'
  cfile_transient  = ''

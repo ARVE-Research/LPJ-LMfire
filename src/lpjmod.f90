@@ -807,10 +807,6 @@ do i = 1,3 ! ntiles
   ! write(stdout,'(12f10.1)')mpar_day*0.001
   ! write(stdout,'(12f10.1)')dcld(midday)*100.
   
-  ! do a = 1,npft
-  !  write(stdout,*)a,fpc_grid(a),lai_ind(a)
-! end do
-
 ! write(stderr,*)'LAI',lai_ind(8)
 
 !   do m = 1,365
@@ -820,6 +816,14 @@ do i = 1,3 ! ntiles
   call calcgpp(present,[co2,-8.,0.],soilpar,pftpar,lai_ind,fpc_grid,mdayl,temp,mpar_day,dphen_t,w,dpet,dprec,dmelt,   &
                sla,agpp,alresp,arunoff_surf,arunoff_drain,arunoff,mrunoff,dwscal365,dphen_w,dphen,wscal,mgpp,mlresp,  &
                mw1,dw1,aaet,leafondays,leafoffdays,leafon,pft%tree,pft%raingreen,year,mat20,wscal_v,in%idx)           
+  
+!   write(stderr,*)year
+!   do a = 1,npft
+!    if (present(a)) then
+!      write(stderr,'(i4,2f7.3,f8.1)')a,fpc_grid(a),lai_ind(a),agpp(a,1)
+!    end if
+!   end do
+
   
 !  write(stdout,*)'after calcgpp ',present
 

@@ -51,7 +51,7 @@ real(sp) :: rm_turn
 
 !--------------------------
 
-do pft=1,npft
+do pft = 1,npft
 
   if (.not.present(pft)) cycle
        
@@ -86,6 +86,10 @@ do pft=1,npft
   !Record total turnover
 
   turnover_ind(pft) = lm_turn + sm_turn + rm_turn
+  
+!   if (pft == 8) then
+!     write(0,*)'grass turnover',lm_ind(pft,1)
+!   end if
 
 end do
 

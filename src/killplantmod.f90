@@ -56,9 +56,15 @@ do pft = 1,npft
     ! bm_inc_ind = bm_inc(pft,1) / nind(pft)
     bm_inc_ind = bm_inc(pft,1) * crownarea(pft)
     
-    if (bm_inc_ind < bminc_ind_min .or. lm_ind(pft,1) < 1.) then
+    ! because of leaf turnover, it is possible that lm_ind = 0 at this stage, so we cannot use a leafmass threshold for killing the plant
+
+    ! if (bm_inc_ind < bminc_ind_min .or. lm_ind(pft,1) < 1.) then  ! does not work
+
+    if (bm_inc_ind < bminc_ind_min) then   ! original LPJ formulation
 
       !not enough C increment this year, kill PFT and transfer carbon to litter
+      
+      ! write(0,*)'killing pft',pft,bm_inc_ind,crownarea(pft),lm_ind(pft,1)
 
       !all PFTs leaf and root mass
 

@@ -154,7 +154,7 @@ arunoff_drain = 0.
 
 ! ------------------------------------------
 
-do pft=1,npft
+do pft = 1,npft
 
   lambdam(pft) = pftpar(pft,26)
       
@@ -182,7 +182,17 @@ do pft=1,npft
 
     ! gminp = PFT-specific min canopy conductance scaled by fpc assuming full leaf cover
 
-    gminp(pft) = pftpar(pft,4) * fpc_grid(pft)
+    if (tree(pft)) then
+    
+      fpc_ind = 1. - exp(-0.5 * lai_ind(pft))
+    
+      gminp(pft) = pftpar(pft,4) * fpc_ind
+      
+    else
+
+      gminp(pft) = pftpar(pft,4) * fpc_grid(pft)
+
+    end if
 
     rootprop(1,pft) = pftpar(pft,1)
     rootprop(2,pft) = 1. - pftpar(pft,1)
@@ -204,6 +214,20 @@ do pft = 1,npft
 
     ! find the potential canopy conductance realisable under non-water-stressed conditions
 
+    if (tree(pft)) then
+          
+      fpc_ind = 1. - exp(-0.5 * lai_ind(pft))
+
+      fpar = fpc_ind
+    
+    else
+
+      fpar = fpc_grid(pft)  ! NB old formulation
+
+    end if
+
+    ! write(0,*)pft,lai_ind(pft),fpar
+
     do m = 1,12
 
       ! Initialisations
@@ -215,12 +239,6 @@ do pft = 1,npft
       tsecs(m) = 3600. * mdayl(m)  ! number of daylight seconds/day
 
       ! Calculate non-water-stressed net daytime photosynthesis assuming full leaf cover
-      
-      fpc_ind = 1. - exp(-0.5 * lai_ind(pft))
-
-      fpar = fpc_ind
-
-      ! fpar = fpc_grid(pft)  ! NB old formulation
 
 !       call photosynthesis(ca,mtemp(m),fpar,mpar_day(m),mdayl(m),c4(pft),sla(pft),nmax(pft),lambdam(pft), &
 !                           rd,agd,adtmm,inhibx1(pft),inhibx2(pft),inhibx3(pft),inhibx4(pft),pft)
@@ -228,13 +246,12 @@ do pft = 1,npft
       call photosynthesis(ca,mtemp(m),fpar,mpar_day(m),mdayl(m),c4(pft),lambdam(pft), &
                           rd,agd,adtmm,inhibx1(pft),inhibx2(pft),inhibx3(pft),inhibx4(pft),pft)
 
-
       if (tsecs(m) > 0.) then
 
         ! Calculate non-water-stressed canopy conductance (gp) mm/sec basis averaged over entire grid cell
         ! Eqn 21 Haxeltine & Prentice 1996
 
-        gp(m)=(((1.6 * adtmm) / (ca * (1. - lambdam(pft)))) / tsecs(m)) + gminp(pft)
+        gp(m) = (((1.6 * adtmm) / (ca * (1. - lambdam(pft)))) / tsecs(m)) + gminp(pft)
 
       else
 
@@ -307,7 +324,7 @@ do m = 1,12
           if (real(leafondays(pft)) >= (365. * longevity(pft))) then
 
             leafon(pft)      = .false.
-            leafoffdays(pft) = leafoffdays(pft)+1
+            leafoffdays(pft) = leafoffdays(pft) + 1
 
             if (real(leafoffdays(pft)) >= (365. * longevity(pft))) then
 
@@ -356,14 +373,21 @@ do m = 1,12
         ! Accumulate mean monthly fpc, actual (gc) and minimum (gmin) canopy conductances,
         ! incorporating leaf phenology
         
-        fpc_ind = 1. - exp(-0.5 * lai_ind(pft))
 
         meangc(m,pft)   = meangc(m,pft)   + dgc(d,pft) / real(ndaymonth(m))
         meangmin(m,pft) = meangmin(m,pft) + gminp(pft) * dphen(d,pft) / real(ndaymonth(m))
 
-        meanfpc(m,pft)  = meanfpc(m,pft)  + fpc_ind * dphen(d,pft) / real(ndaymonth(m))
+        if (tree(pft)) then
 
-        ! meanfpc(m,pft)  = meanfpc(m,pft)  + fpc_grid(pft) * dphen(d,pft) / real(ndaymonth(m)) ! original formulation
+          fpc_ind = 1. - exp(-0.5 * lai_ind(pft))
+
+          meanfpc(m,pft) = meanfpc(m,pft) + fpc_ind * dphen(d,pft) / real(ndaymonth(m))
+          
+        else
+
+          meanfpc(m,pft) = meanfpc(m,pft) + fpc_grid(pft) * dphen(d,pft) / real(ndaymonth(m)) ! original formulation
+
+        end if
 
         wscal_v(d,pft) = dwscal(pft)
 
@@ -402,16 +426,20 @@ do m = 1,12
 
       gpd = tsecs(m) * (meangc(m,pft) - meangmin(m,pft))
 
-      fpar = meanfpc(m,pft)  ! cover including phenology  
+!       if (pft == 8) then
+!         write(0,*)'grass fpc',m,meanfpc(m,pft)
+!       end if
+
+      fpar = meanfpc(m,pft)  ! cover including phenology
 
       if (gpd > 1.e-5) then  ! canopy conductance
             
         ! Implement numerical solution
 
-        x1 = 0.02                  ! minimum bracket of the root
-        x2 = lambdam(pft) + 0.05   ! maximum bracket of the root
-        rtbis = x1                 ! root of the bisection
-        dx = x2 - x1
+        x1    = 0.02                  ! minimum bracket of the root
+        x2    = lambdam(pft) + 0.05   ! maximum bracket of the root
+        rtbis = x1                    ! root of the bisection
+        dx    = x2 - x1
 
         b = 0  ! number of tries towards solution
 

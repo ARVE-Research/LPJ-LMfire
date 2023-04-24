@@ -271,6 +271,10 @@ do pft = 1,npft
 
     fpc_ind       = (1. - exp(-0.5 * lai_ind(pft)))
     fpc_grid(pft) = crownarea(pft) * nind(pft) * fpc_ind
+    
+!     if (pft == 8) then
+!       write(0,*)'grass estab',lm_ind(pft,1),crownarea(pft),lai_ind(pft),fpc_grid(pft)
+!     end if
   
   end if
   

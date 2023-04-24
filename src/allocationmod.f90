@@ -100,6 +100,8 @@ real(sp) :: lm1            ! allometric leafmass requirement (leafmass req'd to 
 
 integer :: i
 
+logical :: perennial = .true. ! grass life habit
+
 ! --------------------------------------
 ! The goal of the allocation routine is to partition the annual biomass increment (bm_inc_ind)
 ! over the three living carbon pools (leaf, root, sapwood) in a way such that the basic allometric
@@ -403,42 +405,45 @@ do pft = 1,npft
     ! Distribute this year's production among leaves and fine roots according to leaf to rootmass ratio [eqn (33)] (see below)
     ! Relocation of C from one compartment to the other not allowed: negative increment in either compartment transferred to litter
     ! but the total negative amount cannot be more than the existing pool plus the increment
+        
+    if (perennial) then
 
-    lminc_ind = (bm_inc_ind - lm / lm2rm + rm) / (1. + 1. / lm2rm)
-
-    rminc_ind = bm_inc_ind - lminc_ind
+      lminc_ind = (bm_inc_ind - lm / lm2rm + rm) / (1. + 1. / lm2rm)
+      rminc_ind = bm_inc_ind - lminc_ind
     
-    if (lminc_ind > 0.) then
+      if (lminc_ind > 0.) then
  
-      if (rminc_ind < 0.) then  ! negative allocation to root mass
+        if (rminc_ind < 0.) then  ! negative allocation to root mass
 
-        if (rminc_ind + rm < 0.) rminc_ind = -rm  ! cannot be more than the root mass that is actually present
+          if (rminc_ind + rm < 0.) rminc_ind = -rm  ! cannot be more than the root mass that is actually present
 
-        ! Add killed roots to below-ground litter
+          ! Add killed roots to below-ground litter
 
-        litter_bg(pft,1) = litter_bg(pft,1) + abs(rminc_ind) * nind(pft)
+          litter_bg(pft,1) = litter_bg(pft,1) + abs(rminc_ind) * nind(pft)
+
+        end if
+
+      else
+
+        ! Negative allocation to leaf mass
+
+        rminc_ind = bm_inc_ind
+        lminc_ind = lm2rm * (rm + rminc_ind) - lm  ! from eqn (9)
+      
+        if (lminc_ind > 0.) lminc_ind = -lm  ! cannot be more than the leaf mass that is actually present
+
+        ! Add killed leaf mass to litter
+
+        litter_ag_fast(pft,1) = litter_ag_fast(pft,1) + abs(lminc_ind) * nind(pft)
 
       end if
 
-    else
+      ! Increment C compartments
 
-      ! Negative allocation to leaf mass
-
-      rminc_ind = bm_inc_ind
-      lminc_ind = lm2rm * (rm + rminc_ind) - lm  ! from eqn (9)
-      
-      if (lminc_ind > 0.) lminc_ind = -lm  ! cannot be more than the leaf mass that is actually present
-
-      ! Add killed leaf mass to litter
-
-      litter_ag_fast(pft,1) = litter_ag_fast(pft,1) + abs(lminc_ind) * nind(pft)
+      lm_ind(pft,1) = lm + lminc_ind
+      rm_ind(pft,1) = rm + rminc_ind
 
     end if
-
-    ! Increment C compartments
-
-    lm_ind(pft,1) = lm + lminc_ind
-    rm_ind(pft,1) = rm + rminc_ind
     
     ! end of grass allocation
     ! ---------------------------------------------
