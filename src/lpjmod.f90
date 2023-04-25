@@ -909,7 +909,7 @@ do i = 1,3 ! ntiles
   call allocation(pftpar,allom1,allom2,allom3,latosa,wooddens,reinickerp,pft%tree,sla,wscal,nind,bm_inc,lm_ind,sm_ind,     &
                   hm_ind,rm_ind,crownarea,fpc_grid,lai_ind,height,litter_ag_fast,litter_ag_slow,litter_bg,fpc_inc,present)
                   
-!  if(i==2)   write(stdout,'(a,i3,9f14.4)') 'after allocation',i, litter_ag_fast(:,1)                               
+  ! write(stdout,'(a,i3,9f14.4)') 'after allocation',i, lm_ind(:,1)                               
                   
   ! check validity of allocation and correct
   ! heartwood can be zero, but all other pools have to be positive to have valid allometry
@@ -925,7 +925,7 @@ do i = 1,3 ! ntiles
     if (any(treecarbon(1:3) <= 0.) .and. (sum(treecarbon) > 0. .or. nind(a) > 0.)) then
       
       write(stdout,*)'invalid allometry, resetting',year, present(a)
-      write(stdout,'(2f10.4,i4,5f16.7)')in%lon,in%lat,a,nind(a),lm_ind(a,1),sm_ind(a,1),hm_ind(a,1),rm_ind(a,1)
+      write(stdout,'(2i10,2f10.4,i4,5f16.7)')in%xpos,in%ypos,in%lon,in%lat,a,nind(a),lm_ind(a,1),sm_ind(a,1),hm_ind(a,1),rm_ind(a,1)
       
       ! read(*,*) 
       

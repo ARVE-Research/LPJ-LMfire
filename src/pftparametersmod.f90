@@ -328,8 +328,8 @@ do pft = 1,npft
 
   else ! grass PFT
 
-    ! lm_sapl(pft,1) = lai_sapl / sla(pft)
-    lm_sapl(pft,1) = 1. / sla(pft)
+    lm_sapl(pft,1) = lai_sapl / sla(pft)
+    ! lm_sapl(pft,1) = 1. / sla(pft)
 
     ! Set initial 13C values for saplings, grass
 

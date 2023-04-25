@@ -21,9 +21,17 @@
 ! pftparsdb = './share/pftparameters.sqlite3'
 /
 
+
+! Full western U.S. run (includes some neighboring parts of Canada and Mexico)
+! N boundary expanded to reach approximate northern boundary of great plains, S boundary is southermost Arizona/NM/Mexico border,
+! E boundary is easternmost Colorado, W boundary to Cape Mendocino
+! mpirun -np 31 src/lpj joboptions/NA_spinup_natural.namelist -2050000/-155000/-2035000/550000 output/NAwest.nc > output/NAwest.log
+
+
+! mpirun -np 2 src/lpj joboptions/NA_spinup_natural.namelist -1770000/-1760000/20000/30000 output/Forks.nc
 ! mpirun -np 2 src/lpj joboptions/NA_spinup_natural.namelist -1978000/-1918000/-1128000/-1043000 output/sfbay.nc
 ! mpirun -np 21 src/lpj joboptions/NA_spinup_natural.namelist -2050000/-1590000/-1400000/-480000 output/CAcentral.nc > output/CAcentral.log
-! mpirun -np 31 src/lpj joboptions/NA_spinup_natural.namelist -2050000/-155000/-2035000/490000 output/NAwest.nc > output/NAwest.log
+
 
 ! mpirun -np 2 src/lpj joboptions/NA_spinup_natural.namelist -1887500/-912500 output/test1pix.nc
 ! mpirun -np 2 src/lpj joboptions/NA_spinup_natural.namelist -1887500/-1882500/-920000/-910000 output/test4pix.nc

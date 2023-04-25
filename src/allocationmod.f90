@@ -147,23 +147,25 @@ do pft = 1,npft
 
     crownarea_max = pftpar(pft,18)
 
-    if (crownarea(pft) >= crownarea_max) then
-    
-      ! the average individual is as big as it can get
-      ! assume the biomass increment just goes into tissue maintenance (presupposes turnover)
-      ! so don't make any changes to the tree allometry here
-      ! and add to the litter pools an amount of biomass equivalent to the biomass increment 
-      ! partitioned as a function of the ratio of each living pool size to the total
-      
-      mtotal = lm + sm + hm + rm
-      
-      litter_ag_fast(pft,1) = litter_ag_fast(pft,1) + nind(pft) * bm_inc_ind * lm / mtotal
-      litter_ag_slow(pft,1) = litter_ag_slow(pft,1) + nind(pft) * bm_inc_ind * (hm + sm) / mtotal
-      litter_bg(pft,1)      = litter_bg(pft,1)      + nind(pft) * bm_inc_ind * rm / mtotal
-      
-      cycle    
-    
-    end if
+!     if (crownarea(pft) >= crownarea_max) then
+!     
+!       ! the average individual is as big as it can get
+!       ! assume the biomass increment just goes into tissue maintenance (presupposes turnover)
+!       ! so don't make any changes to the tree allometry here
+!       ! and add to the litter pools an amount of biomass equivalent to the biomass increment 
+!       ! partitioned as a function of the ratio of each living pool size to the total
+!       
+!       write(0,*)'max crownarea reached, cycling',pft,crownarea(pft)
+!       
+!       mtotal = lm + sm + hm + rm
+!       
+!       litter_ag_fast(pft,1) = litter_ag_fast(pft,1) + nind(pft) * bm_inc_ind * lm / mtotal
+!       litter_ag_slow(pft,1) = litter_ag_slow(pft,1) + nind(pft) * bm_inc_ind * (hm + sm) / mtotal
+!       litter_bg(pft,1)      = litter_bg(pft,1)      + nind(pft) * bm_inc_ind * rm / mtotal
+!       
+!       cycle    
+!     
+!     end if
     
     ! calculate the allometric leaf mass requirement
     ! in the turnover subroutine, leaf mass will be reduced as a function of longevity
@@ -382,6 +384,12 @@ do pft = 1,npft
 !       end if
 
     end if
+   
+!     if (lm_ind(pft,1) < 1.) then
+!     write(0,*)
+!       write(0,*)'zero leafmass',pft,1./nind(pft),crownarea(pft),bm_inc_ind,bm_inc(pft,1), &
+!                                 lm_ind(pft,1),rm_ind(pft,1),hm_ind(pft,1),sm_ind(pft,1)
+!     end if
     
 !     if (hm_ind(pft,1) > 1.e6) then
 !       write(0,*)'big trees',pft,1./nind(pft),crownarea(pft),bm_inc_ind,bm_inc(pft,1), &
