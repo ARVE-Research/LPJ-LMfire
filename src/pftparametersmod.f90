@@ -17,7 +17,7 @@ subroutine pftparameters(pftparsfile,pftpar,sla,tree,evergreen,summergreen,raing
 ! Definition of initial sapling and grass mass structure
 ! Calculation of maximum crown area for woody PFTs
 
-use parametersmod, only : sp,npft,npftpar,ncvar,pi,reinickerp
+use parametersmod, only : sp,npft,npftpar,ncvar,pi,reinickerp,k_lasa
    
 implicit none
 
@@ -29,7 +29,7 @@ character(*) :: pftparsfile
 
 real(sp), dimension(npft,npftpar), intent(out) :: pftpar
 
-real(sp), intent(in) :: latosa
+real(sp), intent(out) :: latosa
 real(sp), intent(in) :: wooddens
 real(sp), intent(in) :: allom1
 real(sp), intent(in) :: allom2
@@ -247,6 +247,8 @@ do pft = 1,npft
   lai_sapl = pftpar(pft,19)
 
   if (tree(pft)) then ! woody PFTs
+  
+    latosa = k_lasa  ! initial value set, should be PFT-specific
 
     ! Calculate leafmass for a sapling individual
     !  (1) lai = leafmass * sla / (crown area)

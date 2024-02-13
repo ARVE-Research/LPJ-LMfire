@@ -214,6 +214,7 @@ type statevars
   real(sp), dimension(climbuf) :: gdd_buf        ! buffer to store 'climbuf' years of GDD totals (20 elements each)
   real(sp), dimension(climbuf) :: mtemp_min_buf  ! buffer to store 'climbuf' years of coldest month temperatures
   real(sp), dimension(climbuf,npft) :: wscal_buf      ! buffer to store 'climbuf' years of annual mean water scalar
+  real(sp), dimension(climbuf,npft) :: wiltd_buf      ! buffer to store 'climbuf' years of annual mean water scalar
 
   type(subgrid), dimension(3) :: tile
 
@@ -329,6 +330,7 @@ do i = 1,climbuf
   
   do j = 1,npft
     sv%wscal_buf(i,j)   = -9999.
+    sv%wiltd_buf(i,j)   = -9999.
   end do
   
 end do

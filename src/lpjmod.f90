@@ -12,9 +12,9 @@ contains
 
 subroutine lpjcore(in,osv)
 
-use parametersmod,      only : sp,dp,npft,ncvar,ndaymonth,midday,pftpar,pft, &
-                               lm_sapl,sm_sapl,rm_sapl,hm_sapl,sla,          &
-                               allom1,allom2,allom3,latosa,wooddens,reinickerp,lutype,climbuf,nhclass
+use parametersmod,      only : sp,dp,npft,ncvar,ndaymonth,midday,pftpar,pft,     &
+                               lm_sapl,sm_sapl,rm_sapl,hm_sapl,sla,latosa,       &
+                               allom1,allom2,allom3,wooddens,reinickerp,lutype,climbuf,nhclass
 use mpistatevarsmod,    only : inputdata,statevars
 use weathergenmod,      only : metvars_in,metvars_out,rmsmooth,weathergen_driver,daily
 use radiationmod,       only : elev_corr,calcPjj,radpet
@@ -108,8 +108,6 @@ real(sp), dimension(365) :: dwind
 real(sp), dimension(365) :: dpet
 ! real(sp), dimension(365) :: dswrad
 
-real(sp), parameter :: fpc_tree_max = 0.95
-
 logical, parameter :: dospitfire = .true.
 
 ! ---------------------------------------------------------------
@@ -120,7 +118,7 @@ real(sp) :: treefrac
 
 real(sp), dimension(7) :: soilpar
 
-real(sp), dimension(2,2) :: soilprop    ! porosity and field capacity for each soil layer (m3 m-3)
+real(sp), dimension(2,5) :: soilprop    ! Tsat, T33, T1500, Psat, and Bexp for each soil layer
 ! real, dimension(npft) :: gpp_temp
 ! real, dimension(npft) :: npp_temp
 
@@ -163,6 +161,7 @@ real(sp), dimension(npft,ncvar) :: bm_inc  ! annual biomass increment (gC/m2)
 real(sp), dimension(npft,ncvar) :: alresp  ! annual gridcell leaf respiration (gC/m2)
 
 real(sp), dimension(npft) :: wscal8  ! 8-year moving average of water scalar, per PFT
+real(sp), dimension(npft) :: wiltdays8  ! 8-year moving average of water scalar < 0.35, per PFT
 
 ! height class variables
 
@@ -178,6 +177,7 @@ real(sp), dimension(365,npft) :: dphen_w  ! daily leaf-on fraction due to drough
 
 real(sp), dimension(365,npft) :: wscal_v  ! daily supply/demand ratio
 
+real(sp), dimension(npft) :: wscal_a      ! mean annual wscal by pft
 real(sp), dimension(npft) :: wiltdays     ! count of days with wscal_v < 0.35 (leaf off wscal)
 
 ! monthly gridcell state variables
@@ -238,6 +238,7 @@ real(sp), pointer, dimension(:) :: mat_buf
 real(sp), pointer, dimension(:) :: gdd_buf
 real(sp), pointer, dimension(:) :: mtemp_min_buf
 real(sp), pointer, dimension(:,:) :: wscal_buf
+real(sp), pointer, dimension(:,:) :: wiltd_buf
 
 ! soil layer
 
@@ -511,6 +512,7 @@ gdd20         => osv%gdd20
 mtemp_min_buf => osv%mtemp_min_buf
 gdd_buf       => osv%gdd_buf
 wscal_buf     => osv%wscal_buf
+wiltd_buf     => osv%wiltd_buf
 coverfrac     => osv%tile%coverfrac
 
 if (year == 1) then
@@ -757,10 +759,10 @@ do i = 1,3 ! ntiles
     
 !  write(stdout,*) 'reset after establishment', present    
 
-  ! light competition among trees and between trees and grasses
+  ! light competition among trees and between trees and grasses (light 1)
 
   call light(present,pft%tree,lm_ind,sm_ind,hm_ind,rm_ind,crownarea,fpc_grid,fpc_inc,nind,  &
-             litter_ag_fast,litter_ag_slow,litter_bg,sla,fpc_tree_max,in%cellarea)
+             litter_ag_fast,litter_ag_slow,litter_bg,sla,in%cellarea)
   
 !  if(i==2)   write(stdout,'(a,i3,9f14.4)') 'after light1',i, litter_ag_fast(:,1) 
 
@@ -815,8 +817,20 @@ do i = 1,3 ! ntiles
 
   call calcgpp(present,[co2,-8.,0.],soilpar,pftpar,lai_ind,fpc_grid,mdayl,temp,mpar_day,dphen_t,w,dpet,dprec,dmelt,   &
                sla,agpp,alresp,arunoff_surf,arunoff_drain,arunoff,mrunoff,dwscal365,dphen_w,dphen,wscal,mgpp,mlresp,  &
-               mw1,dw1,aaet,leafondays,leafoffdays,leafon,pft%tree,pft%raingreen,year,mat20,wscal_v,in%idx)           
+               mw1,dw1,aaet,leafondays,leafoffdays,leafon,pft%tree,pft%raingreen,year,mat20,wscal_v, &
+               dtemp,lm_ind(:,1),sm_ind(:,1),rm_ind(:,1),soilprop,latosa)           
+
+  wscal_a = sum(wscal_v,dim=1) / 365.
+
+  call wscal_mean(wscal_a,wscal_buf,wscal8)
+
+  wiltdays = real(count(wscal_v > 0.35,dim=1))
+
+  call wscal_mean(wiltdays,wiltd_buf,wiltdays8)
   
+!   write(0,*)'wscal   ',wscal8
+!   write(0,*)'wiltdays',wiltdays8
+
 !   write(stderr,*)year
 !   do a = 1,npft
 !    if (present(a)) then
@@ -906,9 +920,13 @@ do i = 1,3 ! ntiles
   ! write(stdout,*)'flag D3a',hm_ind(:,1)
   ! write(stdout,*)'flag D2b',lm_ind(:,1)
   
-  call allocation(pftpar,allom1,allom2,allom3,latosa,wooddens,reinickerp,pft%tree,sla,wscal,nind,bm_inc,lm_ind,sm_ind,     &
+  call allocation(pftpar,allom1,allom2,allom3,latosa,wooddens,reinickerp,pft%tree,sla,wscal,wscal8,nind,bm_inc,lm_ind,sm_ind,     &
                   hm_ind,rm_ind,crownarea,fpc_grid,lai_ind,height,litter_ag_fast,litter_ag_slow,litter_bg,fpc_inc,present)
-                  
+
+!   if (any(crownarea > 100.)) then
+!     write(0,*)'crownarea >100m2 1',crownarea
+!   end if
+
   ! write(stdout,'(a,i3,9f14.4)') 'after allocation',i, lm_ind(:,1)                               
                   
   ! check validity of allocation and correct
@@ -978,10 +996,10 @@ do i = 1,3 ! ntiles
 
 
 
-  ! light competition between trees and grasses
+  ! light competition between trees and grasses (light 2)
 
   call light(present,pft%tree,lm_ind,sm_ind,hm_ind,rm_ind,crownarea,fpc_grid,fpc_inc,nind,  &
-             litter_ag_fast,litter_ag_slow,litter_bg,sla,fpc_tree_max,in%cellarea)
+             litter_ag_fast,litter_ag_slow,litter_bg,sla,in%cellarea)
   
 !  if(i==2)   write(stdout,'(a,i3,9f14.4)') 'after light2',i, litter_ag_fast(:,1) 
 
@@ -1178,16 +1196,12 @@ do i = 1,3 ! ntiles
   ! that to control establishment
   ! limiting woody establishment to well-watered periods results in more realistic tree:grass
   ! mixtures in seasonally arid environments
-
-  wiltdays = real(count(wscal_v > 0.35,dim=1))
-  
-  call wscal_mean(wiltdays,wscal_buf,wscal8)
-  
+    
   pftalbiomass = crownarea
 
   ! need average 140 or more days of wscal > 0.35 for sapling recruitment  
          
-  if (wscal8(8) < 140. .or. year < 10) estab(1:7) = .false.
+  if (wiltdays8(8) < 140. .or. year < 10) estab(1:7) = .false.
   
   call establishment(pftpar,present,survive,estab,nind,lm_ind,sm_ind,rm_ind,hm_ind,lm_sapl,sm_sapl,rm_sapl,hm_sapl,pft%tree,       &
                    crownarea,fpc_grid,lai_ind,height,sla,wooddens,latosa,prec,reinickerp,litter_ag_fast,litter_ag_slow,litter_bg,  &
@@ -1195,10 +1209,10 @@ do i = 1,3 ! ntiles
                    osv%tile(i)%soil%sand,in%cellarea)
     
   ! ----------------------------------------------------------------------------
-  ! light competition once again, following establishment
+  ! light competition once again, following establishment (light 3)
 
   call light(present,pft%tree,lm_ind,sm_ind,hm_ind,rm_ind,crownarea,fpc_grid,fpc_inc,nind,  &
-             litter_ag_fast,litter_ag_slow,litter_bg,sla,fpc_tree_max,in%cellarea)
+             litter_ag_fast,litter_ag_slow,litter_bg,sla,in%cellarea)
   
   !  if(i==2)   write(stdout,'(a,i3,9f14.4)') 'after light3',i, litter_ag_fast(:,1) 
   
@@ -1206,6 +1220,10 @@ do i = 1,3 ! ntiles
     write(stdout,*)'light2',in%lon,in%lat,fpc_grid  ! '(a,2f10.2,9f14.7)'
     stop
   end if
+  
+!   if (any(crownarea > 100.)) then
+!     write(0,*)'crownarea >100m2 2',crownarea
+!   end if
   
   !  write(stdout,'(a,i4,10f8.3)')'after light',year,fpc_grid,sum(fpc_grid)
   !  write(stdout,*) 

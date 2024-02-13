@@ -20,13 +20,14 @@ use iovariablesmod,  only : cfile_spinup,cfile_transient,soilfile,              
                             lu_turn_yrs,popdfile,poppfile,maxmem,bounds,                                                  &
                             outputfile,srtx,srty,cntx,cnty,endx,endy,inputlonlen,inputlatlen,                             &
                             lucc,cellindex,lonvect,latvect,co2vect,nolanduse,nclimv,calcforagers,projgrid,geolon,geolat,  &
-                            startyr_foragers,pftparsfile,dosoilco2
+                            startyr_foragers,pftparsfile,dosoilco2,timeunit_climate,timeunit_baseyr
 use coordsmod,       only : parsecoords
 use initsoilmod,     only : initsoil
 use initclimatemod,  only : initclimate
 use getyrdatamod,    only : getco2
 use mpistatevarsmod, only : in_master,sv_master,initstatevars
 use netcdfsetupmod,  only : netcdf_create
+use utilitiesmod,    only : tunit2year
 
 use typesizes
 use netcdf
@@ -57,6 +58,9 @@ integer  :: i,j
 integer  :: a,b
 integer  :: tyears
 logical  :: newsave
+
+integer :: cfid1
+integer :: cfid2
 
 logical  :: ismaster = .true.
 
@@ -171,24 +175,36 @@ call getarg(3,outputfile)
   
 !climate
 
-!  status = nf90_open(cfile_spinup,nf90_nowrite,cfid1)
-!  if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
-!
+ncstat = nf90_open(cfile_spinup,nf90_nowrite,cfid1)
+if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+ncstat = nf90_inq_varid(cfid1,'time',varid)
+if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+ncstat = nf90_get_att(cfid1,varid,'units',timeunit_climate)
+if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+ncstat = nf90_close(cfid1)
+if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+timeunit_baseyr = tunit2year(timeunit_climate)
+
 !  status = nf90_inq_dimid(cfid1,'lon',dimid)
 !  if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
-!
+
 !  status = nf90_inquire_dimension(cfid1,dimid,len=xlen)
-!
+! 
 !  status = nf90_inq_varid(cfid1,'lon',varid)
-!
+! 
 !  status = nf90_get_var(cfid1,varid,minlon,start=[1])
-!
+! 
 !  status = nf90_get_var(cfid1,varid,maxlon,start=[xlen])
-!
+
 !  if (cfile_transient /= '') then
 !    status = nf90_open(cfile_transient,nf90_nowrite,cfid2)
 !    if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 !  end if
+
 
 !soil
 !topography

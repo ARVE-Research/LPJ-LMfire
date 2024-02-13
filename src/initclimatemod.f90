@@ -18,7 +18,7 @@ use netcdf
 use typesizes
 use errormod,       only : netcdf_err,ncstat
 use iovariablesmod, only : cfid,cntx,cnty,srtx,srty,climatemonths,climateyears,ibuf,varinfo,nclimv, &
-                           maxmem,input_sp,input_i2,timebuflen,geolon,geolat,projgrid
+                           maxmem,input_sp,input_i2,timebuflen,geolon,geolat,projgrid,timeunit_climate
 implicit none
 
 !parameters

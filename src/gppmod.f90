@@ -8,7 +8,8 @@ contains
 
 subroutine calcgpp(present,co2,soilpar,pftpar,lai_ind,fpc_grid,mdayl,mtemp,mpar_day,dphen_t,w,dpet,dprec,dmelt,sla,   &
                    agpp,alresp,arunoff_surf,arunoff_drain,arunoff,mrunoff,dwscal365,dphen_w,dphen,wscal,mgpp,mlresp,  &
-                   mw1,dw1,aaet,leafondays,leafoffdays,leafon,tree,raingreen,year,mat20,wscal_v,idx)
+                   mw1,dw1,aaet,leafondays,leafoffdays,leafon,tree,raingreen,year,mat20,wscal_v,  &
+                   dtemp,lm_ind,sm_ind,rm_ind,soilprop,latosa)
 
 ! Calculation of GPP, explicitly linking photosynthesis and water balance through canopy conductance feedback
 
@@ -18,8 +19,6 @@ use weathergenmod,     only : rmsmooth,daily
 use photosynthesismod, only : photosynthesis
 
 implicit none
-
-integer(i8) :: idx
 
 ! parameters
 
@@ -71,8 +70,16 @@ real(sp), dimension(:),   intent(inout) :: dwscal365
 real(sp), dimension(:,:), intent(inout) :: dphen_w
 real(sp), dimension(:,:), intent(inout) :: dphen_t
 real(sp), dimension(:,:), intent(inout) :: dphen
-real(sp), dimension(:,:), intent(out) :: wscal_v
+real(sp), dimension(:,:), intent(out)   :: wscal_v
 
+! passthrough variables for hydraulics
+
+real(sp), dimension(:),   intent(in) :: dtemp
+real(sp), dimension(:,:), intent(in) :: soilprop
+real(sp), dimension(:),   intent(in) :: lm_ind
+real(sp), dimension(:),   intent(in) :: sm_ind
+real(sp), dimension(:),   intent(in) :: rm_ind
+real(sp), intent(in) :: latosa
 ! local variables
 
 integer  :: m
@@ -100,7 +107,6 @@ real(sp) :: adt1
 real(sp) :: adt2
 real(sp) :: adtmm
 real(sp) :: daet
-real(sp) :: fpc_ind
 
 real(sp), dimension(2)    :: ksat
 real(sp), dimension(2)    :: awc
@@ -123,6 +129,7 @@ real(sp), dimension(npft) :: inhibx1
 real(sp), dimension(npft) :: inhibx2
 real(sp), dimension(npft) :: inhibx3
 real(sp), dimension(npft) :: inhibx4
+real(sp), dimension(npft) :: fpc_ind
 
 real(sp), dimension(2,npft)   :: rootprop
 real(sp), dimension(12,npft)  :: meanfpc
@@ -186,7 +193,7 @@ do pft = 1,npft
     
       fpc_ind = 1. - exp(-0.5 * lai_ind(pft))
     
-      gminp(pft) = pftpar(pft,4) * fpc_ind
+      gminp(pft) = pftpar(pft,4) * fpc_ind(pft)
       
     else
 
@@ -216,9 +223,9 @@ do pft = 1,npft
 
     if (tree(pft)) then
           
-      fpc_ind = 1. - exp(-0.5 * lai_ind(pft))
+      fpc_ind(pft) = 1. - exp(-0.5 * lai_ind(pft))
 
-      fpar = fpc_ind
+      fpar = fpc_ind(pft)
     
     else
 
@@ -341,7 +348,8 @@ do m = 1,12
     end do  ! pft
 
     call waterbalance(d,present,rootprop,w,dgp,dpet,dphen,dgc,dmelt,dprec,ksat,awc,  &
-                      drunoff_drain,drunoff_surf,dwscal,daet,fpc_grid,mat20,idx)
+                      drunoff_drain,drunoff_surf,dwscal,daet,fpc_grid,mat20,         &
+                      dtemp,soilprop,lm_ind,sm_ind,rm_ind,fpc_ind,sla,latosa,tree)
 
     ! Store today's water content in soil layer 1
 
@@ -381,7 +389,7 @@ do m = 1,12
 
           fpc_ind = 1. - exp(-0.5 * lai_ind(pft))
 
-          meanfpc(m,pft) = meanfpc(m,pft) + fpc_ind * dphen(d,pft) / real(ndaymonth(m))
+          meanfpc(m,pft) = meanfpc(m,pft) + fpc_ind(pft) * dphen(d,pft) / real(ndaymonth(m))
           
         else
 
@@ -468,7 +476,7 @@ do m = 1,12
 
 
           ! Evaluate fmid at the point lambda = xmid fmid will be an increasing function with xmid,
-          ! with a solution (fmid=0) between x1 and x2
+          ! with a solution (fmid = 0) between x1 and x2
         
           fmid = adt2 - adt1
 

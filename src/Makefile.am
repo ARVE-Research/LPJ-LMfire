@@ -4,6 +4,7 @@ lpj_SOURCES =               \
   parametersmod.f90         \
   randomdistmod.f90         \
   utilitiesmod.f90          \
+  calendarmod.f90           \
   newsplinemod.f90          \
   weathergenmod.f90         \
   orbitmod.f90              \

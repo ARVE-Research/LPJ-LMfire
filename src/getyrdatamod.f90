@@ -2,7 +2,7 @@ module getyrdatamod
 
 use parametersmod, only : stdout,stderr
 
-!get all data that changes on a yearly basis
+! get all data that changes on a yearly basis
 
 implicit none
 
@@ -14,22 +14,24 @@ private :: gettopo
 
 contains
 
-!------------------------------------------------------------------------------------------------------------
+! ------------------------------------------------------------------------------------------------------------
 
 subroutine getco2(cal_year,transientyears)
 
 use netcdf
 use typesizes
+use parametersmod,  only : dp
 use errormod,       only : netcdf_err,ncstat
 use iovariablesmod, only : co2file,co2vect
+use calendarmod,    only : timestruct,ymdt2jd
 
 implicit none
 
-!arguments
+! arguments
 integer, intent(in) :: cal_year
 integer, intent(in) :: transientyears
 
-!local variables
+! local variables
 
 integer :: ncid
 integer :: varid
@@ -37,10 +39,22 @@ integer :: dimid
 
 integer :: tlen
 
-integer, dimension(1) :: srt
-integer, allocatable, dimension(:) :: times
+integer, dimension(1) :: tloc
+integer :: srtt
+real(dp), allocatable, dimension(:) :: ghgtime
 
-!--------------------
+integer :: yearCE
+
+type(timestruct) :: baseyear
+type(timestruct) :: thisyear
+
+character(80) :: basetimestring
+
+real(dp) :: dt
+
+integer :: i,t
+
+! --------------------
 
 ncstat = nf90_open(co2file,nf90_nowrite,ncid)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
@@ -51,42 +65,89 @@ if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 ncstat = nf90_inquire_dimension(ncid,dimid,len=tlen)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
-allocate(times(tlen))
+allocate(ghgtime(tlen))
 
 ncstat = nf90_inq_varid(ncid,'time',varid)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
-ncstat = nf90_get_var(ncid,varid,times)
+ncstat = nf90_get_var(ncid,varid,ghgtime)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
-!check to make sure the requested calendar year for the beginning of the run is available in the dataset
+ncstat = nf90_get_att(ncid,varid,'units',basetimestring)
+if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
-if (cal_year > times(1)) then
-  write(stdout,*)'ERROR: the requested starting year for the run is earlier than the first year of data in the CO2 file'
-  write(stdout,*)cal_year,times(1)
-  stop
-end if
+! ----
+! calculate Julian day for base year 
+! (this should read from the units in the file and be done only once in the init subroutine)
 
-!scan the time vector to figure out where to start getting the co2 vector from  
+baseyear = timestruct(1950,1,1)
 
-srt = minloc(abs(times - cal_year))
+! calculate Julian day for base year
+
+call ymdt2jd(baseyear)
+
+! ----
+! calculate Julian day for current year 
+
+! convert yr BP (cal_year) to year CE
+
+yearCE = 1950 - cal_year
+
+if (yearCE <= 0) yearCE = yearCE - 1
+
+thisyear = timestruct(yearCE,1,1)
+
+call ymdt2jd(thisyear)
+
+! get position in GHG file time dimension
+
+dt = thisyear%jd - baseyear%jd
+
+tloc = minloc(abs(ghgtime - dt))
+
+srtt = tloc(1)
+
+write(0,*)'getting CO2',cal_year,yearCE,srtt
+
+! ! check to make sure the requested calendar year for the beginning of the run is available in the dataset
+! 
+! if (cal_year > times(1)) then
+!   write(stdout,*)'ERROR: the requested starting year for the run is earlier than the first year of data in the CO2 file'
+!   write(stdout,*)cal_year,times(1)
+!   stop
+! end if
+! 
+! ! scan the time vector to figure out where to start getting the co2 vector from  
+! 
+! srt = minloc(abs(times - cal_year))
 
 allocate(co2vect(transientyears))
 
 ncstat = nf90_inq_varid(ncid,'co2',varid)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
   
-ncstat = nf90_get_var(ncid,varid,co2vect,start=[srt],count=[transientyears])
+ncstat = nf90_get_var(ncid,varid,co2vect,start=[srtt],count=[transientyears])
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
 ncstat = nf90_close(ncid)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
-!write(stdout,*)'co2',srt,transientyears,cal_year
+! write(stdout,*)'co2',srtt,transientyears,cal_year
+
+! i = srtt
+! do t = 1,transientyears
+!   
+!   write(0,*)t,i,ghgtime(i),co2vect(t)
+!   
+!   i = i + 1
+!   
+! end do
+! 
+! stop
 
 end subroutine getco2
 
-!------------------------------------------------------------------------------------------------------------
+! ------------------------------------------------------------------------------------------------------------
 
 subroutine getdata(ncells,year,cal_year,firstyear,time0,in_master)
 
@@ -97,7 +158,7 @@ use parametersmod,  only : sp
 
 implicit none
 
-!arguments
+! arguments
 
 integer, intent(in) :: ncells
 integer, intent(in) :: year
@@ -108,7 +169,7 @@ integer, intent(inout) :: time0
 
 type(inputdata), dimension(:), intent(inout) :: in_master
 
-!local variables
+! local variables
 
 integer :: i
 integer :: x
@@ -119,7 +180,7 @@ integer :: nl
 
 type(orbitpars) :: orbit
 
-!------------------------------
+! ------------------------------
 
 lyear = mod(year,climateyears)
 
@@ -129,7 +190,7 @@ itime = 1 + 12 * (lyear - 1)
 
 call calcorbitpars(cal_year,orbit)
 
-if (year == 1 .or..not.in_master(1)%spinup) then  !we need to get annual topo data
+if (year == 1 .or..not.in_master(1)%spinup) then  ! we need to get annual topo data
   call gettopo(year,cal_year)
 
   if (calcforagers) then
@@ -140,7 +201,7 @@ if (year == 1 .or..not.in_master(1)%spinup) then  !we need to get annual topo da
   else if (lucc) then
     call getlucc(cal_year)
 
-  else  !run without people
+  else  ! run without people
 
     do i = 1,3
       in_master%human%popd(i)  = 0.
@@ -158,9 +219,9 @@ end if
 
 call getclimate(itime,time0)
 
-!fill the values of in_master here
+! fill the values of in_master here
 
-in_master%dosoilco2 = dosoilco2 !FLAG: added by AK
+in_master%dosoilco2 = dosoilco2 ! FLAG: added by AK
 
 if (year == 1) then
   do i = 1,ncells
@@ -169,10 +230,10 @@ if (year == 1) then
     y = in_master(i)%ypos
     
     in_master(i)%elev      = soil(x,y)%elv
-    in_master(i)%slope     = soil(x,y)%slopeangle  !FLAG: added by MP, 13.12.2011
-    in_master(i)%landf     = soil(x,y)%landf       !FLAG: added by MP, 09.08.2012
+    in_master(i)%slope     = soil(x,y)%slopeangle  ! FLAG: added by MP, 13.12.2011
+    in_master(i)%landf     = soil(x,y)%landf       ! FLAG: added by MP, 09.08.2012
     
-    ! in_master expects two layers of soil. if soil has more layers, take an average of the top 30 cm (two layers) and the rest
+    !  in_master expects two layers of soil. if soil has more layers, take an average of the top 30 cm (two layers) and the rest
     
     nl = size(soil(x,y)%zpos)
     
@@ -199,18 +260,20 @@ if (year == 1) then
 
     end if
     
-!     write(stdout,*)'SETTING OUTPUT SOIL' 
-!     write(stdout,*)in_master(i)%soil%sand
-!         write(stdout,*)in_master(i)%soil%clay
-!         write(stdout,*)in_master(i)%soil%orgm
-!         write(stdout,*)in_master(i)%soil%zpos
+!      write(stdout,*)'SETTING OUTPUT SOIL' 
+!      write(stdout,*)in_master(i)%soil%sand
+!          write(stdout,*)in_master(i)%soil%clay
+!          write(stdout,*)in_master(i)%soil%orgm
+!          write(stdout,*)in_master(i)%soil%zpos
 
-    !FLAGFLAGFLAG
+    ! FLAGFLAGFLAG
     
-!    if(in_master(i)%slope /= in_master(i)%slope) in_master(i)%slope = 0.
+!     if(in_master(i)%slope /= in_master(i)%slope) in_master(i)%slope = 0.
 
   end do
 end if
+
+! write(0,*)'FLAG',firstyear,cal_year,1+firstyear-cal_year,co2vect(1+firstyear-cal_year)
 
 do i = 1,ncells
 
@@ -223,8 +286,8 @@ do i = 1,ncells
   in_master(i)%climate%cldp = ibuf(x,y)%cldp
   in_master(i)%climate%wetd = ibuf(x,y)%wetd
   in_master(i)%climate%trng = ibuf(x,y)%trng
-  in_master(i)%climate%lght = max(ibuf(x,y)%lght,0.)  ! also correct issue with incorrect unpacking, for canada simulations was = 10**(ibuf(x,y)%lght) ! Pour la premier simulation on a mis: exp(ibuf(x,y)%lght)
   in_master(i)%climate%wind = ibuf(x,y)%wind
+  in_master(i)%climate%lght = ibuf(x,y)%lght
   in_master(i)%orbit%ecc    = orbit%ecc
   in_master(i)%orbit%pre    = orbit%pre
   in_master(i)%orbit%perh   = orbit%perh
@@ -238,14 +301,14 @@ do i = 1,ncells
   
   if (lucc) then
     in_master(i)%human%lu_turnover   = ibuf(x,y)%lu_turnover
-    in_master(i)%human%popd          = ibuf(x,y)%popd          !NB this is an array
+    in_master(i)%human%popd          = ibuf(x,y)%popd          ! NB this is an array
     in_master(i)%human%landuse(1:2)  = ibuf(x,y)%cropfrac(1:2)
-    in_master(i)%human%landuse(3:)   =-1.                      !all other types, set to missing for now
+    in_master(i)%human%landuse(3:)   =-1.                      ! all other types, set to imissing for now
     
-    !write(stdout,*)'input landuse',in_master(i)%human%landuse(1:2)
+    ! write(stdout,*)'input landuse',in_master(i)%human%landuse(1:2)
   else
-    in_master(i)%human%popd        =  0          !NB this is an array
-    in_master(i)%human%landuse(1)  =  1  !only natural landuse without lucc file
+    in_master(i)%human%popd        =  0          ! NB this is an array
+    in_master(i)%human%landuse(1)  =  1  ! only natural landuse without lucc file
     in_master(i)%human%landuse(2:) = -1 
     
   end if
@@ -254,7 +317,7 @@ end do
 
 end subroutine getdata
 
-!------------------------------------------------------------------------------------------------------------
+! ------------------------------------------------------------------------------------------------------------
 
 subroutine getclimate(itime,time0)
 
@@ -279,15 +342,15 @@ integer :: t1
 integer :: remainmon
 integer :: tlen
 
-integer(i2), parameter :: missing  = -32768
+integer(i2), parameter :: imissing = -32768
 real(sp),    parameter :: rmissing =  -9999.
 
-!-------------------------------------
-!check if we need to read in data from the climate data file
+! -------------------------------------
+! check if we need to read in data from the climate data file
 
 t0 = mod(itime,timebuflen)
 
-!write(stdout,*)'getyrdata',timebuflen,climatemonths,itime,time0,t0,t0+11
+! write(stdout,*)'getyrdata',timebuflen,climatemonths,itime,time0,t0,t0+11
 
 if (t0 == 1 .and. itime /= time0 .and. time0+11 /= climatemonths) then
   
@@ -296,25 +359,25 @@ if (t0 == 1 .and. itime /= time0 .and. time0+11 /= climatemonths) then
 
   write(stdout,*)'read more data',itime,time0,remainmon,tlen
   
-  !---
-  !read data from file
+  ! ---
+  ! read data from file
   
   do i = 1,nclimv
     
     ncstat = nf90_get_var(cfid,varinfo(i)%varid,input_i2,start=[srtx,srty,itime],count=[cntx,cnty,tlen])
     if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
-    where (input_i2 /= missing) input_sp(:,:,:,i) = real(input_i2) * varinfo(i)%scale_factor + varinfo(i)%add_offset
+    where (input_i2 /= imissing) input_sp(:,:,:,i) = real(input_i2) * varinfo(i)%scale_factor + varinfo(i)%add_offset
 
   end do
 
-  !---
+  ! ---
   
 end if
 
 t1 = t0 + 11
 
-!transfer one year of climate data from ivals to ibuf
+! transfer one year of climate data from ivals to ibuf
 
 do y = 1,cnty
   do x = 1,cntx
@@ -333,9 +396,9 @@ do y = 1,cnty
       cellmask(x,y) = .true.
     end if
 
-!     write(stdout,*)x,y,soil(x,y)%landf,cellmask(x,y)
+!      write(stdout,*)x,y,soil(x,y)%landf,cellmask(x,y)
     
-    !if (ibuf(x,y)%temp(1) /= rmissing .and. soil(x,y)%sand(1) >= 0. .and. soil(x,y)%landf > 0.) cellmask(x,y) = .true.  
+    ! if (ibuf(x,y)%temp(1) /= rmissing .and. soil(x,y)%sand(1) >= 0. .and. soil(x,y)%landf > 0.) cellmask(x,y) = .true.  
     
   end do
 end do
@@ -344,29 +407,32 @@ time0 = itime
 
 end subroutine getclimate
 
-!------------------------------------------------------------------------------------------------------------
+! ------------------------------------------------------------------------------------------------------------
 
 subroutine getlucc(cal_year)
 
-!this subroutine now modified to work only with integer(2) input files
+! this subroutine now modified to work only with integer(2) input files
 
 use netcdf
 use typesizes
-use parametersmod,  only : i2
+use parametersmod,  only : i2,sp,dp
 use errormod,       only : netcdf_err,ncstat
 use iovariablesmod, only : ibuf,srtx,cntx,srty,cnty,lucctime,popfid,popdtime,nolanduse
+use calendarmod,    only : timestruct,ymdt2jd
 
 implicit none
 
-integer, intent(in) :: cal_year   !should be calendar year in yr BP (1950)
+integer, intent(in) :: cal_year   ! should be calendar year in yr BP (1950)
 
 integer :: x,y
 
-real,                     dimension(cntx,cnty) :: rvals
+real(sp),           dimension(cntx,cnty) :: rvals
 integer(i2), allocatable, dimension(:,:) :: svals
 
-real :: scale_factor
-real :: add_offset
+real(sp) :: scale_factor
+real(sp) :: add_offset
+
+integer(i2) :: imissing
 
 integer :: varid
 
@@ -378,51 +444,166 @@ real :: lu_turnover
 
 integer :: xtype
 
-!-------------------------------------------------------------------------------------
-!this part removed because now we use a consolidate population and land use file
+integer :: yearCE
 
-!tloc = minloc(abs(lucctime - cal_year))
+type(timestruct) :: baseyear
+type(timestruct) :: thisyear
 
-!srtt = tloc(1)
+real(dp) :: dt
 
-! if (nolanduse) then
-!
-!   do y = 1,cnty
-!     do x = 1,cntx
-!       ibuf(x,y)%cropfrac = 0.
-!     end do
-!   end do
-!
-! else
-!
-! !-----------------
-! !unusable fraction
-!
-! ncstat = nf90_inq_varid(luccfid,'unusable',varid)
-! if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
-!
-! ncstat = nf90_get_var(luccfid,varid,svals,start=[srtx,srty,srtt],count=[cntx,cnty,1])
-! if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
-!
-! ncstat = nf90_get_att(luccfid,varid,'scale_factor',scale_factor)
-! if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
-!
-! do y = 1,cnty
-!   do x = 1,cntx
-!     ibuf(x,y)%cropfrac(1) = scale_factor * real(svals(x,y))
-!   end do
-! end do
-!end if
-!-------------------------------------------------------------------------------------
+! -------------------------------------------------------------------------------------
+! this part removed because now we use a consolidate population and land use file
 
-tloc = minloc(abs(popdtime - cal_year))
+! tloc = minloc(abs(lucctime - cal_year))
+
+! srtt = tloc(1)
+
+!  if (nolanduse) then
+! 
+!    do y = 1,cnty
+!      do x = 1,cntx
+!        ibuf(x,y)%cropfrac = 0.
+!      end do
+!    end do
+! 
+!  else
+! 
+!  ! -----------------
+!  ! unusable fraction
+! 
+!  ncstat = nf90_inq_varid(luccfid,'unusable',varid)
+!  if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+! 
+!  ncstat = nf90_get_var(luccfid,varid,svals,start=[srtx,srty,srtt],count=[cntx,cnty,1])
+!  if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+! 
+!  ncstat = nf90_get_att(luccfid,varid,'scale_factor',scale_factor)
+!  if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+! 
+!  do y = 1,cnty
+!    do x = 1,cntx
+!      ibuf(x,y)%cropfrac(1) = scale_factor * real(svals(x,y))
+!    end do
+!  end do
+! end if
+! -------------------------------------------------------------------------------------
+
+! new version 02.2024, the time coordinate in the land use file is in days since a base time
+
+! ----
+! calculate Julian day for base year (this should be done only once in the init subroutine)
+
+baseyear = timestruct(1950,1,1)
+
+! calculate Julian day for base year
+
+call ymdt2jd(baseyear)
+
+! ----
+! calculate Julian day for current year 
+
+! convert yr BP (cal_year) to year CE
+
+yearCE = 1950 - cal_year
+
+if (yearCE <= 0) yearCE = yearCE - 1
+
+thisyear = timestruct(yearCE,1,1)
+
+call ymdt2jd(thisyear)
+
+! get position in land use file time dimension
+
+dt = thisyear%jd - baseyear%jd
+
+tloc = minloc(abs(popdtime - dt))
 
 srtt = tloc(1)
 
-!-----------------
-!intensive land use
+! -----------------
+! intensive land use
 
-ncstat = nf90_inq_varid(popfid,'land_use',varid)
+rvals = 0.
+
+! cropland
+
+ncstat = nf90_inq_varid(popfid,'cropland',varid)
+if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+ncstat = nf90_inquire_variable(popfid,varid,xtype=xtype)
+if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+if (xtype == nf90_short) then
+  
+  ncstat = nf90_get_att(popfid,varid,'scale_factor',scale_factor)
+  if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+  ncstat = nf90_get_att(popfid,varid,'add_offset',add_offset)
+  if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+  allocate(svals(cntx,cnty))
+  
+  ncstat = nf90_get_var(popfid,varid,svals,start=[srtx,srty,srtt],count=[cntx,cnty,1])
+  if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+  
+  where (svals /= imissing) rvals = real(svals) * scale_factor + add_offset
+  
+  deallocate(svals)
+  
+else if (xtype == nf90_float) then
+  
+  ncstat = nf90_get_var(popfid,varid,rvals,start=[srtx,srty,srtt],count=[cntx,cnty,1])
+  if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+else  ! 
+
+  write(stdout,*)'error, the landuse variable is in an invalid type!  ',xtype
+  stop
+
+end if
+
+! ---
+! pasture
+
+ncstat = nf90_inq_varid(popfid,'pasture',varid)
+if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+ncstat = nf90_inquire_variable(popfid,varid,xtype=xtype)
+if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+if (xtype == nf90_short) then
+  
+  ncstat = nf90_get_att(popfid,varid,'scale_factor',scale_factor)
+  if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+  ncstat = nf90_get_att(popfid,varid,'add_offset',add_offset)
+  if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+  allocate(svals(cntx,cnty))
+  
+  ncstat = nf90_get_var(popfid,varid,svals,start=[srtx,srty,srtt],count=[cntx,cnty,1])
+  if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+  
+  where (svals /= imissing) rvals = rvals + real(svals) * scale_factor + add_offset
+  
+  deallocate(svals)
+  
+else if (xtype == nf90_float) then
+  
+  ncstat = nf90_get_var(popfid,varid,rvals,start=[srtx,srty,srtt],count=[cntx,cnty,1])
+  if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+else  ! 
+
+  write(stdout,*)'error, the landuse variable is in an invalid type!  ',xtype
+  stop
+
+end if
+
+! ---
+! rangeland
+
+ncstat = nf90_inq_varid(popfid,'rangeland',varid)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
 ncstat = nf90_inquire_variable(popfid,varid,xtype=xtype)
@@ -441,7 +622,7 @@ if (xtype == nf90_short) then
   ncstat = nf90_get_var(popfid,varid,svals,start=[srtx,srty,srtt],count=[cntx,cnty,1])
   if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
     
-  rvals = real(svals) * scale_factor + add_offset
+  where (svals /= imissing) rvals = rvals + real(svals) * scale_factor + add_offset
   
   deallocate(svals)
   
@@ -450,25 +631,27 @@ else if (xtype == nf90_float) then
   ncstat = nf90_get_var(popfid,varid,rvals,start=[srtx,srty,srtt],count=[cntx,cnty,1])
   if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
-else  !
+else  ! 
 
-  write(stdout,*)'error, the landuse variable is in an invalid type! ',xtype
+  write(stdout,*)'error, the landuse variable is in an invalid type!  ',xtype
   stop
 
 end if
 
+! -----------------
+
 do y = 1,cnty
   do x = 1,cntx
-    ibuf(x,y)%cropfrac(1) = 0.          !unusable fraction set to zero for now
-    ibuf(x,y)%cropfrac(2) = rvals(x,y)  !intensive land use
+    ibuf(x,y)%cropfrac(1) = 0.          ! unusable fraction set to zero for now
+    ibuf(x,y)%cropfrac(2) = rvals(x,y)  ! intensive land use
   end do
 end do
 
-!write(stdout,'(a,2i5,5f10.4)')'getlucc',cal_year,srtt,ibuf(1,1)%cropfrac,ibuf(1,1)%popd
-!write(stdout,*)'getlucc',cal_year,srtt
+! write(stdout,'(a,2i5,5f10.4)')'getlucc',cal_year,srtt,ibuf(1,1)%cropfrac,ibuf(1,1)%popd
+! write(stdout,*)'getlucc',cal_year,srtt
 
-!-----------------
-!land use turnover
+! -----------------
+! land use turnover
 
 lu_turn_yrs = 0.
 
@@ -484,22 +667,22 @@ do y = 1,cnty
   end do
 end do
 
-!-----------------
-!population density
+! -----------------
+! population density
 
 ncstat = nf90_inq_varid(popfid,'hunter_gatherers',varid)
 
-if (ncstat == -49) then  !no population data in the input dataset, ignore the rest of this routine
+if (ncstat == -49) then  ! no population data in the input dataset, ignore the rest of this routine
 
   return
 
 else if (ncstat /= nf90_noerr) then 
 
-  call netcdf_err(ncstat)  !write the error message and abort
+  call netcdf_err(ncstat)  ! write the error message and abort
 
 end if
 
-!otherwise, retrieve the data
+! otherwise, retrieve the data
 
 ncstat = nf90_get_var(popfid,varid,rvals,start=[srtx,srty,srtt],count=[cntx,cnty,1])
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
@@ -534,13 +717,9 @@ do y = 1,cnty
   end do
 end do
 
-
-
-
-
 end subroutine getlucc
 
-!------------------------------------------------------------------------------------------------------------
+! ------------------------------------------------------------------------------------------------------------
 
 subroutine getforg(cal_year)
 
@@ -552,7 +731,7 @@ use iovariablesmod, only : ibuf,srtx,cntx,srty,cnty,popfid,popdtime
 
 implicit none
 
-integer, intent(in) :: cal_year   !should be calendar year in yr BP (1950)
+integer, intent(in) :: cal_year   ! should be calendar year in yr BP (1950)
 
 integer :: varid
 
@@ -561,13 +740,13 @@ integer, dimension(1) :: tloc
 
 real(sp), dimension(cntx,cnty) :: rvar
 
-!-------------------------------------------------------------------------------------
-!potential density of hunter-gatherers (based on archaeological site density)
+! -------------------------------------------------------------------------------------
+! potential density of hunter-gatherers (based on archaeological site density)
 
 tloc = minloc(abs(popdtime - cal_year))
 
 srtt = tloc(1)
-!write (*,*) "getforg(), srtt: ", srtt
+! write (*,*) "getforg(), srtt: ", srtt
 ncstat = nf90_inq_varid(popfid,'foragerPD',varid)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
@@ -575,10 +754,10 @@ ncstat = nf90_get_var(popfid,varid,rvar,start=[srtx,srty,srtt],count=[cntx,cnty,
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
 ibuf%popd(1) = rvar
-!write (*,*) "getforg() minmaxpopd1: ", minval(ibuf%popd(1)), maxval(ibuf%popd(1))
+! write (*,*) "getforg() minmaxpopd1: ", minval(ibuf%popd(1)), maxval(ibuf%popd(1))
 end subroutine getforg
 
-!------------------------------------------------------------------------------------------------------------
+! ------------------------------------------------------------------------------------------------------------
 
 subroutine gettopo(year,cal_year)
 
@@ -591,8 +770,8 @@ use parametersmod,  only : i2,sp
 
 implicit none
 
-integer, intent(in) :: year       !year counter for run years
-integer, intent(in) :: cal_year   !should be calendar year in yr BP (1950)
+integer, intent(in) :: year       ! year counter for run years
+integer, intent(in) :: cal_year   ! should be calendar year in yr BP (1950)
 
 integer(i2), dimension(cntx,cnty) :: ivals
 real(sp),    dimension(cntx,cnty) :: rvals
@@ -600,16 +779,16 @@ real(sp),    dimension(cntx,cnty) :: rvals
 integer :: srtt
 integer, dimension(1) :: tloc
 
-! -------------------------
-! get elevation, slope, and land fraction
+!  -------------------------
+!  get elevation, slope, and land fraction
 
-!slope does not change from year to year, so only get it once
+! slope does not change from year to year, so only get it once
 if (year == 1) then
   ncstat = nf90_get_var(topofid,slopeid,soil%slopeangle,start=[srtx,srty],count=[cntx,cnty])
   if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 end if
 
-!check to make sure the requested calendar year for the beginning of the run is available in the dataset
+! check to make sure the requested calendar year for the beginning of the run is available in the dataset
 
 if (cal_year > topotime(1)) then
   write(stdout,*)'WARNING: the requested starting year for the run is earlier than the first year of data in the topofile'
@@ -617,13 +796,13 @@ if (cal_year > topotime(1)) then
   write(stdout,*)'using topo data from nearest year available in data set'
 end if  
 
-!scan the time vector to figure out where to start getting the elevation- and landf- vector from 
+! scan the time vector to figure out where to start getting the elevation- and landf- vector from 
 
 tloc = minloc(abs(topotime - cal_year),1)
 
 srtt = tloc(1)
 
-!write(stdout,*)'reading topo data',srtx,srty,srtt,cntx,cnty
+! write(stdout,*)'reading topo data',srtx,srty,srtt,cntx,cnty
 
 ncstat = nf90_get_var(topofid,elvid,ivals,start=[srtx,srty,srtt],count=[cntx,cnty,1])
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
@@ -637,10 +816,10 @@ where (ieee_is_nan(rvals)) rvals = -9999.
 
 soil%landf = rvals
 
-! write(stdout,*) 'end of gettopo',soil%landf
+!  write(stdout,*) 'end of gettopo',soil%landf
 
 end subroutine gettopo
 
-!------------------------------------------------------------------------------------------------------------
+! ------------------------------------------------------------------------------------------------------------
 
 end module getyrdatamod

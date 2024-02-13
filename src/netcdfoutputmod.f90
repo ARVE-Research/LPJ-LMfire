@@ -16,21 +16,22 @@ contains
 
 !----------------------------------------------------------------------------------------------------------------------------
 
-subroutine netcdf_output(ncells,tpos,year,sv,in_master)
+subroutine netcdf_output(ncells,tpos,yearBP,sv,in_master)
 
 use typesizes
 use netcdf
-use errormod, only : ncstat,netcdf_err
+use errormod, only    : ncstat,netcdf_err
+use calendarmod, only : timestruct,ymdt2jd
 
-use iovariablesmod,  only : cntx,cnty,ofid,cellmask,calcforagers,dosoilco2
-use parametersmod,   only : npft
+use iovariablesmod,  only : cntx,cnty,ofid,cellmask,calcforagers,dosoilco2,timeunit_baseyr
+use parametersmod,   only : sp,dp,npft
 use mpistatevarsmod, only : statevars,inputdata
 
 implicit none
 
 integer, intent(in)    :: ncells
-integer, intent(inout) :: tpos
-integer, intent(in)    :: year
+integer, intent(in) :: tpos
+integer, intent(in)    :: yearBP
 type(statevars), dimension(:), intent(inout) :: sv
 type(inputdata), dimension(:), intent(in) :: in_master
 
@@ -49,13 +50,44 @@ real(sp), allocatable, dimension(:,:,:,:) :: rvar4d
 
 real(sp), dimension(3) :: NBP
 
+integer :: yearCE
+
+type(timestruct) :: baseyear
+type(timestruct) :: thisyear
+
+real(dp) :: dt
+
 !----------------------------
 !write the time variable
 
-tval = year
+! ----
+! calculate Julian day for base year (this should be done only once in the init subroutine)
+
+baseyear = timestruct(timeunit_baseyr,1,1)
+
+! calculate Julian day for base year
+
+call ymdt2jd(baseyear)
+
+! ----
+! calculate Julian day for current year 
+
+! convert yr BP (cal_year) to year CE
+
+yearCE = 1950 - yearBP
+
+if (yearCE <= 0) yearCE = yearCE - 1
+
+thisyear = timestruct(yearCE,12,31)
+
+call ymdt2jd(thisyear)
+
+! calculate days since base time
+
+dt = thisyear%jd - baseyear%jd
 
 ncstat = nf90_inq_varid(ofid,'time',varid)
-ncstat = nf90_put_var(ofid,varid,tval,start=[tpos],count=[1])
+ncstat = nf90_put_var(ofid,varid,dt,start=[tpos])
 if (ncstat/=nf90_noerr) call netcdf_err(ncstat)
 
 !-----------------------------------------------------
@@ -371,8 +403,8 @@ allocate(rvar2d(ncells,y))
 
 do i = 1,ncells
   do j = 1,npft
-    rvar2d(i,j) = sv(i)%tile(1)%pftalbiomass(j) ! 
-    ! rvar2d(i,j) = sv(i)%tile(1)%crownarea(j) ! 
+    ! rvar2d(i,j) = sv(i)%tile(1)%pftalbiomass(j) ! 
+    rvar2d(i,j) = sv(i)%tile(1)%crownarea(j) ! 
   end do
 end do
 
@@ -510,8 +542,6 @@ deallocate(rvar4d)
 
 if (mod(tpos,30) == 0) ncstat = nf90_sync(ofid)
 if (ncstat/=nf90_noerr) call netcdf_err(ncstat)
-
-tpos = tpos + 1
 
 end subroutine netcdf_output
 

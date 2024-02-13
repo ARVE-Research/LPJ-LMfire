@@ -11,18 +11,17 @@ contains
 ! ------------------------------------------------------------------------------------------
 
 subroutine light(present,tree,lm_ind,sm_ind,hm_ind,rm_ind,crownarea,fpc_grid,fpc_inc,  &
-                 nind,litter_ag_fast,litter_ag_slow,litter_bg,sla,fpc_tree_max,cellarea)
+                 nind,litter_ag_fast,litter_ag_slow,litter_bg,sla,cellarea)
 
 ! recoded in f90 by Jed Kaplan, 04/2010. Should give the same result as the original code if 
 ! tree competition section is not commented out.
 
-use parametersmod, only : sp,npft,stdout
+use parametersmod, only : sp,npft,stdout,fpc_tree_max
 
 implicit none
 
 ! arguments
 
-real(sp), intent(in) :: fpc_tree_max
 real(sp), intent(in) :: cellarea        ! gridcell area in m2
 
 logical,  dimension(:),   intent(in)    :: tree
@@ -96,7 +95,7 @@ fpc_grass_total = sum(fpc_grid,  mask = present .and. .not. tree)
 
 pft_excess = 0.
 
-! write(stdout,*)'light',fpc_tree_total,fpc_tree_max
+! write(stdout,*)'light: ',fpc_grid,fpc_tree_total
 
 if (fpc_tree_total > fpc_tree_max) then  ! reduce tree cover
 
@@ -116,7 +115,7 @@ if (fpc_tree_total > fpc_tree_max) then  ! reduce tree cover
       ! else
       !   pft_excess(pft) = min(fpc_grid(pft),excess / real(ntree))
       ! end if
-
+      
     else
       pft_excess(pft) = 0.
     end if
@@ -126,6 +125,8 @@ if (fpc_tree_total > fpc_tree_max) then  ! reduce tree cover
   do pft = 1,npft
 
     if (pft_excess(pft) > 0.) then
+    
+      ! write(0,'(a,i5,2f8.3)')'light: PFT excess detected, reducing nind:',pft,fpc_grid(pft),pft_excess(pft)
       
       ! Reduce individual density (and thereby gridcell-level biomass) so that total tree FPC reduced to 'fpc_tree_max'
 

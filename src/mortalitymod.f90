@@ -112,7 +112,11 @@ do pft = 1,npft
 
     mort      = min(1.,mort + heatstress)
     nind_kill = nind(pft) * mort
-    nind(pft) = max(0., nind(pft) - nind_kill)   
+
+!     if (pft == 3) write(0,*)'mortality',nind(pft),mort,heatstress,nind_kill
+
+    nind(pft) = max(0., nind(pft) - nind_kill)
+    
 
     ! Transfer lost biomass to litter
 

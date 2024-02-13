@@ -35,7 +35,7 @@ use errormod, only : ncstat,netcdf_err
 
 use parametersmod,  only : npft,lutype,dp
 use iovariablesmod, only : ofid,lonvect,latvect,srtx,cntx,endx,srty,cnty,endy,outputfile,outputvar,cellindex,cellmask,  &
-                           calcforagers,gridres,projgrid
+                           calcforagers,gridres,projgrid,timeunit_climate
 
 implicit none
 
@@ -220,14 +220,25 @@ if (ncstat/=nf90_noerr) call netcdf_err(ncstat)
 ncstat = nf90_def_dim(ofid,'time',nf90_unlimited,dimid)
 if (ncstat/=nf90_noerr) call netcdf_err(ncstat)
 
-ncstat = nf90_def_var(ofid,'time',nf90_int,dimid,varid)
+ncstat = nf90_def_var(ofid,'time',nf90_double,dimid,varid)
 if (ncstat/=nf90_noerr) call netcdf_err(ncstat)
 
 ncstat = nf90_put_att(ofid,varid,'long_name','time')
 if (ncstat/=nf90_noerr) call netcdf_err(ncstat)
 
-ncstat = nf90_put_att(ofid,varid,'units','years since 1950-00-00 00:00')
+ncstat = nf90_put_att(ofid,varid,'units',trim(timeunit_climate))
 if (ncstat/=nf90_noerr) call netcdf_err(ncstat)
+
+ncstat = nf90_put_att(ofid,varid,'calendar','proleptic_gregorian')
+if (ncstat/=nf90_noerr) call netcdf_err(ncstat)
+
+ncstat = nf90_put_att(ofid,varid,'coordinate_defines','end')
+if (ncstat/=nf90_noerr) call netcdf_err(ncstat)
+
+ncstat = nf90_put_att(ofid,varid,'delta_t','0001-00-00 00:00:00')
+if (ncstat/=nf90_noerr) call netcdf_err(ncstat)
+
+write(0,*)'output time unit: ',trim(timeunit_climate)
 
 !---------------------------------------------------------------------------
 !regular variables

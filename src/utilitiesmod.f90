@@ -11,6 +11,31 @@ contains
 
 ! ------------------------------------------------------------------------------------------------------------------
 
+integer(i4) function tunit2year(timeunit) result(yr)
+
+! extract the year from a netCDF-compliant time unit string
+
+implicit none
+
+character(*), intent(in) :: timeunit
+
+integer(i4) :: i
+
+if (timeunit(1:11) /= 'days since ') then
+
+  write(0,*)'malformed unit for time in climate input file, must be in format days since YYYY-MM-DD HH:MM:SS'
+  stop
+
+end if
+
+i = verify(timeunit,'days since ')
+
+read(timeunit(i:i+3),*)yr
+
+end function tunit2year
+
+! ------------------------------------------------------------------------------------------------------------------
+
 subroutine matsol(mat,sol)
 
 ! Provides matrix solution to X matrix in a A * X = B system using LU decomposition

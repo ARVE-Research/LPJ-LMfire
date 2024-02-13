@@ -44,6 +44,8 @@ real :: tsecs
 integer :: thour
 integer :: tmins
 
+integer :: yrBP
+
 integer :: firstyrout
 
 character(100) :: status_msg
@@ -82,13 +84,15 @@ call cpu_time(time_begin)
 
 if (dospinup) then
 
-  write(stdout,'(a,i6,a,f8.2)')'running spinup at calendar year: ',firstyear,' BP. CO2: ',in_master(1)%co2
+  write(stdout,'(a,i6,a,f8.2)')'starting spinup at calendar year: ',firstyear,' BP. CO2: ',in_master(1)%co2
   
   firstyrout = spinupyears - nspinyrsout
   
   do year = 1,spinupyears
+  
+    yrBP = cal_year + spinupyears - (year - 1) 
 
-    write(stdout,'(a18,2i8,f8.2)')' working on year: ',year,cal_year,in_master(1)%co2 !,year,lyear,co2(1)  !a,3i8,f8.2
+    write(stdout,'(a18,3i8,f8.2)')' working on year: ',year,cal_year,yrBP,in_master(1)%co2  !,lyear,co2(1)  !a,3i8,f8.2
     write(status_msg,'(a,i6,a,i6)')' working on year',year,' out of',spinupyears
     call overprint(status_msg)
 
@@ -109,7 +113,9 @@ if (dospinup) then
     
     if(year > firstyrout) then
 
-       call netcdf_output(ncells,tpos,year-spinupyears,sv_master,in_master)
+       call netcdf_output(ncells,tpos,yrBP,sv_master,in_master)
+       
+       tpos = tpos + 1
 
     end if   
 
@@ -132,11 +138,9 @@ if (dotransient) then
   time0 = 0
 
   do year = 1,transientyears
-
-    write(stdout,'(a18,2i8,f8.2)')' working on year: ',year,cal_year,in_master(1)%co2 !,year,lyear,co2(1)  !a,3i8,f8.2
-    write(status_msg,'(a,i6,a,i6)')' working on year',year,' out of',transientyears
-    call overprint(status_msg)
-
+  
+    yrBP = cal_year
+  
     in_master%spinup = .false.
     in_master%year = year
 
@@ -147,10 +151,16 @@ if (dotransient) then
     if (year == transientyears) lastyear = .true.
 
     call getdata(ncells,year,cal_year,firstyear,time0,in_master)  !returns gs filled with model input for this year
-    
+
+    write(stdout,'(a18,2i8,f8.2)')' working on year: ',year,cal_year,in_master(1)%co2 !,year,lyear,co2(1)  !a,3i8,f8.2
+    write(status_msg,'(a,i6,a,i6)')' working on year',year,' out of',transientyears
+    call overprint(status_msg)
+
     call master(lastyear,ncells,in_master,sv_master)        !sends out and returns filled with model output
 
-    call netcdf_output(ncells,tpos,year,sv_master,in_master)
+    call netcdf_output(ncells,tpos,yrBP,sv_master,in_master)
+    
+    tpos = tpos + 1
     
     cal_year = cal_year - 1
 

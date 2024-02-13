@@ -30,6 +30,9 @@ integer, parameter :: maxoutvars = 100   !maximum number of variables for output
 
 character(40), dimension(maxoutvars) :: outputvar = 'null'
 
+character(80) :: timeunit_climate
+integer :: timeunit_baseyr
+
 integer  :: cfid
 integer  :: cfid1
 integer  :: cfid2

@@ -99,7 +99,7 @@ real(sp), dimension(npft), intent(inout) :: pftCflux
 
 acflux_fire = 0.
 
-afire_frac = 0.2   ! 20% of agricultural tile
+afire_frac = 0.   ! have disabled for the moment 0.2   ! 20% of agricultural tile
 
 pftCflux   = litter_ag_fast * afire_frac    ! 100% of the crop remains are burned on the burned fraction of managed land
 

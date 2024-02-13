@@ -21,7 +21,7 @@ subroutine establishment(pftpar,present,survive,estab,nind,lm_ind,sm_ind,rm_ind,
 ! Establishment of new individuals (saplings) of woody PFTs, grass establishment,
 ! removal of PFTs not adapted to current climate, update of individual structure and FPC.
 
-use parametersmod, only : sp
+use parametersmod, only : sp,fpc_tree_max
 
 implicit none
 
@@ -161,6 +161,8 @@ npft_estab     = count(present .and. estab .and. tree)
 fpc_total      = sum(fpc_grid)
 fpc_tree_total = sum(fpc_grid,mask = tree)
 
+! write(0,*)'estab beg',fpc_grid,fpc_tree_total
+
 acflux_estab = 0.
 
 if (aprec >= aprec_min_estab .and. npft_estab > 0) then
@@ -169,15 +171,15 @@ if (aprec >= aprec_min_estab .and. npft_estab > 0) then
   ! Maximum establishment rate reduced by shading as tree FPC approaches 1
   ! Total establishment rate partitioned equally among regenerating woody PFTs
 
-  estab_rate = estab_max * (1. - exp(5. * (fpc_tree_total - 1.))) / real(npft_estab) 
+  estab_rate = estab_max * (1. - exp(5. * (fpc_tree_total - fpc_tree_max))) / real(npft_estab) 
 
   ! Calculate grid-level establishment rate per woody PFT
   ! Space available for woody PFT establishment is proportion of grid cell
   ! not currently occupied by woody PFTs and not affected by fire in this year
 
-  estab_grid = max(estab_rate * (1. - fpc_tree_total),0.)
+  estab_grid = max(estab_rate * (fpc_tree_max - fpc_tree_total),0.)
   
-  ! write(stdout,*)'estab rate',estab_rate,fpc_tree_total, burnedf,estab_grid,npft_estab
+!   write(0,*)'estab rate',estab_rate,fpc_tree_total, burnedf,estab_grid,npft_estab
 
 else  ! unsuitable climate for establishment
 
@@ -279,6 +281,8 @@ do pft = 1,npft
   end if
   
 end do  ! PFT loop
+
+! write(0,*)'estab end',fpc_grid,sum(fpc_grid(1:7))
 
 end subroutine establishment
 
