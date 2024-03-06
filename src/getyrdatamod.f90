@@ -16,7 +16,7 @@ contains
 
 ! ------------------------------------------------------------------------------------------------------------
 
-subroutine getco2(cal_year,transientyears)
+subroutine getco2(cal_year,years)
 
 use netcdf
 use typesizes
@@ -29,7 +29,7 @@ implicit none
 
 ! arguments
 integer, intent(in) :: cal_year
-integer, intent(in) :: transientyears
+integer, intent(in) :: years
 
 ! local variables
 
@@ -121,12 +121,12 @@ write(0,*)'getting CO2',cal_year,yearCE,srtt
 ! 
 ! srt = minloc(abs(times - cal_year))
 
-allocate(co2vect(transientyears))
+allocate(co2vect(years))
 
 ncstat = nf90_inq_varid(ncid,'co2',varid)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
   
-ncstat = nf90_get_var(ncid,varid,co2vect,start=[srtt],count=[transientyears])
+ncstat = nf90_get_var(ncid,varid,co2vect,start=[srtt],count=[years])
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
 ncstat = nf90_close(ncid)
@@ -190,7 +190,7 @@ itime = 1 + 12 * (lyear - 1)
 
 call calcorbitpars(cal_year,orbit)
 
-if (year == 1 .or..not.in_master(1)%spinup) then  ! we need to get annual topo data
+! if (year == 1 .or..not.in_master(1)%spinup) then  ! we need to get annual topo data
   call gettopo(year,cal_year)
 
   if (calcforagers) then
@@ -215,7 +215,7 @@ if (year == 1 .or..not.in_master(1)%spinup) then  ! we need to get annual topo d
 
   end if
 
-end if
+! end if
 
 call getclimate(itime,time0)
 
@@ -302,8 +302,8 @@ do i = 1,ncells
   if (lucc) then
     in_master(i)%human%lu_turnover   = ibuf(x,y)%lu_turnover
     in_master(i)%human%popd          = ibuf(x,y)%popd          ! NB this is an array
-    in_master(i)%human%landuse(1:2)  = ibuf(x,y)%cropfrac(1:2)
-    in_master(i)%human%landuse(3:)   =-1.                      ! all other types, set to imissing for now
+    in_master(i)%human%landuse       =-1.                      ! initialize to missing
+    in_master(i)%human%landuse(2:5)  = ibuf(x,y)%landuse(2:5)  ! cropland, pasture, rangeland, urban
     
     ! write(stdout,*)'input landuse',in_master(i)%human%landuse(1:2)
   else
@@ -417,8 +417,9 @@ use netcdf
 use typesizes
 use parametersmod,  only : i2,sp,dp
 use errormod,       only : netcdf_err,ncstat
-use iovariablesmod, only : ibuf,srtx,cntx,srty,cnty,lucctime,popfid,popdtime,nolanduse
+use iovariablesmod, only : ibuf,srtx,cntx,srty,cnty,popfid,popdtime,nolanduse
 use calendarmod,    only : timestruct,ymdt2jd
+use utilitiesmod,   only : pos
 
 implicit none
 
@@ -452,42 +453,6 @@ type(timestruct) :: thisyear
 real(dp) :: dt
 
 ! -------------------------------------------------------------------------------------
-! this part removed because now we use a consolidate population and land use file
-
-! tloc = minloc(abs(lucctime - cal_year))
-
-! srtt = tloc(1)
-
-!  if (nolanduse) then
-! 
-!    do y = 1,cnty
-!      do x = 1,cntx
-!        ibuf(x,y)%cropfrac = 0.
-!      end do
-!    end do
-! 
-!  else
-! 
-!  ! -----------------
-!  ! unusable fraction
-! 
-!  ncstat = nf90_inq_varid(luccfid,'unusable',varid)
-!  if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
-! 
-!  ncstat = nf90_get_var(luccfid,varid,svals,start=[srtx,srty,srtt],count=[cntx,cnty,1])
-!  if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
-! 
-!  ncstat = nf90_get_att(luccfid,varid,'scale_factor',scale_factor)
-!  if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
-! 
-!  do y = 1,cnty
-!    do x = 1,cntx
-!      ibuf(x,y)%cropfrac(1) = scale_factor * real(svals(x,y))
-!    end do
-!  end do
-! end if
-! -------------------------------------------------------------------------------------
-
 ! new version 02.2024, the time coordinate in the land use file is in days since a base time
 
 ! ----
@@ -496,6 +461,7 @@ real(dp) :: dt
 baseyear = timestruct(1950,1,1)
 
 ! calculate Julian day for base year
+! subroutine populates the data structure with the Julian day corresponding to the YMD date
 
 call ymdt2jd(baseyear)
 
@@ -516,15 +482,20 @@ call ymdt2jd(thisyear)
 
 dt = thisyear%jd - baseyear%jd
 
-tloc = minloc(abs(popdtime - dt))
+! tloc = minloc(abs(popdtime - dt))
+! 
+! srtt = tloc(1)
 
-srtt = tloc(1)
+srtt = pos(popdtime,dt)
+
+! write(0,*)'landuse tpos: ',cal_year,yearCE,dt,srtt
 
 ! -----------------
-! intensive land use
+! intensive land use: includes crops, pasture, rangeland, and urban
 
 rvals = 0.
 
+! ---------
 ! cropland
 
 ncstat = nf90_inq_varid(popfid,'cropland',varid)
@@ -539,6 +510,9 @@ if (xtype == nf90_short) then
   if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
   ncstat = nf90_get_att(popfid,varid,'add_offset',add_offset)
+  if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+  ncstat = nf90_get_att(popfid,varid,'missing_value',imissing)
   if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
   allocate(svals(cntx,cnty))
@@ -562,7 +536,13 @@ else  !
 
 end if
 
-! ---
+do y = 1,cnty
+ do x = 1,cntx
+   ibuf(x,y)%landuse(2) = rvals(x,y)
+ end do
+end do
+
+! ---------
 ! pasture
 
 ncstat = nf90_inq_varid(popfid,'pasture',varid)
@@ -600,7 +580,13 @@ else  !
 
 end if
 
-! ---
+do y = 1,cnty
+ do x = 1,cntx
+   ibuf(x,y)%landuse(3) = rvals(x,y)
+ end do
+end do
+
+! ---------
 ! rangeland
 
 ncstat = nf90_inq_varid(popfid,'rangeland',varid)
@@ -638,17 +624,55 @@ else  !
 
 end if
 
-! -----------------
-
 do y = 1,cnty
-  do x = 1,cntx
-    ibuf(x,y)%cropfrac(1) = 0.          ! unusable fraction set to zero for now
-    ibuf(x,y)%cropfrac(2) = rvals(x,y)  ! intensive land use
-  end do
+ do x = 1,cntx
+   ibuf(x,y)%landuse(4) = rvals(x,y)
+ end do
 end do
 
-! write(stdout,'(a,2i5,5f10.4)')'getlucc',cal_year,srtt,ibuf(1,1)%cropfrac,ibuf(1,1)%popd
-! write(stdout,*)'getlucc',cal_year,srtt
+! ---------
+! urban
+
+ncstat = nf90_inq_varid(popfid,'urban',varid)
+if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+ncstat = nf90_inquire_variable(popfid,varid,xtype=xtype)
+if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+if (xtype == nf90_short) then
+  
+  ncstat = nf90_get_att(popfid,varid,'scale_factor',scale_factor)
+  if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+  ncstat = nf90_get_att(popfid,varid,'add_offset',add_offset)
+  if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+  allocate(svals(cntx,cnty))
+  
+  ncstat = nf90_get_var(popfid,varid,svals,start=[srtx,srty,srtt],count=[cntx,cnty,1])
+  if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+    
+  where (svals /= imissing) rvals = rvals + real(svals) * scale_factor + add_offset
+  
+  deallocate(svals)
+  
+else if (xtype == nf90_float) then
+  
+  ncstat = nf90_get_var(popfid,varid,rvals,start=[srtx,srty,srtt],count=[cntx,cnty,1])
+  if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+else  ! 
+
+  write(stdout,*)'error, the landuse variable is in an invalid type!  ',xtype
+  stop
+
+end if
+
+do y = 1,cnty
+ do x = 1,cntx
+   ibuf(x,y)%landuse(5) = rvals(x,y)
+ end do
+end do
 
 ! -----------------
 ! land use turnover

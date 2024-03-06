@@ -77,6 +77,7 @@ real(sp), parameter :: crownarea_max = pi * (45. / 2.)**2
 ! scaling parameters for the dynamic calculation of latosa based on wscal and height
 ! based on eqn. 12 of the supplementary materials of Hickler et al (Glob. Ecol. Biogeog., 2006)
 ! I have guessed these parameters because they are not included in the paper (JOK 05/2023)
+
 real(sp), parameter :: a      =    0.008
 real(sp), parameter :: b      =  100.
 
@@ -158,6 +159,15 @@ do pft = 1,npft
     fpc_ind = 1. - exp(-0.5 * lai_ind(pft))
 
     bm_inc_ind = bm_inc(pft,1) * crownarea(pft) * fpc_ind
+    
+    ! sometimes bm_inc_ind ends up being really small. for computational reasons it makes sense to skip allocation completely in these cases
+    
+    if (bm_inc_ind < 0.1) cycle  ! in grams per individual
+ 
+!     then
+!       write(0,*)'low bm inc, skipping this PFT',pft,bm_inc(pft,1),bm_inc_ind,crownarea(pft),fpc_ind
+!       cycle  ! in grams per individual
+!     end if
 
 !     if (pft == 3) then
 !       write(0,'(a,2f8.4,3f12.2)')'allocate0 ',nind(pft),crownarea(pft),bm_inc(pft,1),bm_inc_ind,lm_ind(pft,1) ! (pft,1) * crownarea(pft),bm_inc(pft,1) / nind(pft)
@@ -224,11 +234,13 @@ do pft = 1,npft
       
       dx = x2 - x1
       
-      if (dx < 0.01) then
+      if (dx < 1. .or. dx < 0.01 * x1) then
 
-        ! there seems to be rare cases where lminc_ind_min (x1) is almost equal to x2. In this case,
+        ! there seems to be frequent cases where lminc_ind_min (x1) is almost equal to x2. In this case,
         ! assume that the leafmass increment is equal to the midpoint between the values and skip 
         ! the root finding procedure
+        
+        ! write(stdout,*)'NB dx is small relative to x1, exiting with simple allocation',x1,x2
 
         lminc_ind = x1 + 0.5 * dx
 
@@ -486,6 +498,15 @@ do pft = 1,npft
     ! ---------------------------------------------
 
   end if  ! tree/grass
+  
+  ! if (pft == 5) write(0,*)'ALLOC',pft,bm_inc(pft,1),bm_inc_ind,lm_ind(pft,1),rm_ind(pft,1)
+    
+  
+  if (pft < 8 .and. (lm_ind(pft,1) <= 0. .or. rm_ind(pft,1) <= 0. .or. sm_ind(pft,1) <= 0.)) then
+  
+    write(0,*)'Alloc flag: empty pool',pft,bm_inc(pft,1),bm_inc_ind,lm_ind(pft,1),rm_ind(pft,1)
+    
+  end if
 
   ! Update LAI and FPC
 
@@ -526,7 +547,7 @@ real(sp), parameter :: a3  = allom2**a1
 ! arguments
 
 real(sp), intent(in) :: sla    ! specific leaf area
-real(sp), intent(in) :: latosa ! specific leaf area
+real(sp), intent(in) :: latosa ! leaf area to sapwood area ratio
 real(sp), intent(in) :: lm2rm  ! leaf mass to root mass ratio
 real(sp), intent(in) :: lm     ! individual leaf mass
 real(sp), intent(in) :: sm     ! individual sapwood mass

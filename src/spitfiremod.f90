@@ -365,9 +365,9 @@ calchumanfire = .false.
 
 ! PD    = input%human%popd 
 
-PD = 0.
+! PD = 0.
 
-! PD(1) = forager_pd20
+PD(1) = forager_pd20
 
 ! write(stdout,*) 'Forager PD spitfire: ', year, PD 
 
@@ -653,12 +653,6 @@ latscale = 1.   ! FLAG: we are now already using a climate file that holds the t
 
 ! number of people on the gridcell who are most active in maintaining the fire regime
 
-! FLAG=====================
-
-! PD(1) = 0.01
-
-! FLAG=====================
-
 if (PD(1) > 0.) then
   people = int(PD(1) * area * 1.e-6)  ! hunter-gatherers
   group  = 1
@@ -674,16 +668,14 @@ if (people > 0) people = max(people / 10, 1)   ! only every 10th person lights f
 
 if (people > 0) then
   if((input%spinup .and. year >= input%startyr_foragers) .or. .not. input%spinup) then
-
-        calchumanfire = .true.
-        annburntarget = osv%annburntarget
-
-    end if   
+    calchumanfire = .true.
+    annburntarget = osv%annburntarget
+ end if   
 else
   calchumanfire = .false.
 end if
 
-if(input%spinup .and. year < 800) then
+if(input%spinup .and. year < 20) then
   calchumanfire = .false.
 end if
 
@@ -1011,10 +1003,15 @@ end if
   ! ---
   ! calculate weighted average surface rate of spread on tree and grass fractions
   
+  ! in calculating the rate of spread, it should not be a simple weighted average of land cover
+  ! type but rather we should use a logistic mixing model recognizing that ROS is much slower in
+  ! trees and shrub and even small patches of woody vegetation will greatly reduce the aggregate ROS
+  ! having issues where 100% of a 25km2 gridcell is regularly burned in a single day
+  
   ROSfsurface = (ROSfsurface_w * treecover + ROSfsurface_g * grascover) / (treecover + grascover)
   
 !   if (ROSfsurface_g > 40.) then
-!     write(0,*)ROSfsurface_w,treecover,ROSfsurface_g,grascover,ROSfsurface
+!     write(0,*)'rate of spread: ',ROSfsurface_w,treecover,ROSfsurface_g,grascover,ROSfsurface
 !   end if
   
   ! choose max from above calculations
@@ -1086,10 +1083,8 @@ cont_area = max(avg_cont_area * 1.e-4,10.)
 abarf = (pi / (4. * LB) * DT**2) * 0.0001 * slopefact  ! average size of an individual fire (eqn. 11) (ha)
 
 ! if (abarf > 0.75 * area_ha) then
-!   ! write(stdout,*)year,i,d,area_ha,Ab,unburneda
-! 
-!   write(stdout,*) 'abarf', abarf, LB, DT, ROSfsurface,ROSbsurface,tfire
-! 
+!   write(stdout,*)'abarf',year,i,d,area_ha,Ab,unburneda,cont_area
+!   write(stdout,*)abarf,LB,DT,ROSfsurface,ROSbsurface,tfire
 ! end if
 
 ! the size of an individual fire is not allowed to be greater than the average contiguous patch size
@@ -1133,7 +1128,7 @@ if (calchumanfire .and. abarf > 0. .and. abarf < 100.) then  ! avoid starting ve
   
   ! number of human ignitions is the lesser of the burn target and the number of fires people can cause
   
-  if (people * humfire1 >= dayburntarget) then
+  if (people * humfire1 >= dayburntarget .and. uniquefires > 0.) then
 
     ! there are more than enough people around to start enough fires large enough to reach the burn target
 
@@ -1213,7 +1208,7 @@ Abfrac = Ab / area_ha
 
 if (Abfrac > 1. .or. Abfrac < 0. .or. unburneda < 0.) then
   write(stdout,*)'ABfrac problem'
-  write(stdout,*)FDI,abarf,Abfrac,Ab,unburneda,numfires,totburn,area_ha,input%lon,input%lat
+  write(stdout,*)FDI,abarf,Abfrac,Ab,unburneda,numfires,totburn,area_ha,cumfires,abarf,input%lon,input%lat
   stop
 end if
 

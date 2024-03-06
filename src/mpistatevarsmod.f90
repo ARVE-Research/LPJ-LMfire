@@ -62,7 +62,7 @@ type inputdata
   real(dp)          :: lon              ! longitude of gridcell center
   real(dp)          :: lat              ! latitude of gridcell center
   real(sp)          :: elev             ! elevation of gridcell center (m.a.s.l.)
-  real(sp)          :: slope            ! mean gridcell slope (degrees)
+  real(sp)          :: slope            ! median gridcell slope (degrees)
   real(sp)          :: cellarea         ! area of the gridcell (m2)
   real(sp)          :: landf            ! fraction of grid cell that is land
   logical           :: spinup           ! are we in the model spinup
@@ -259,14 +259,15 @@ integer :: ntiles
 
 if (ismaster) then
 
-   ! write(*,*)'seeding random state with',in%lon,in%lat,geohash(in%lon,in%lat)
 
    call ran_seed(geohash(in%lon,in%lat),sv%met%rndst)
    ! call ran_seed(-1477228702,sv%met%rndst)
+
+   ! write(*,*)'seeding random state with',in%lon,in%lat,geohash(in%lon,in%lat)
+   ! write(*,*)'random seed',sv%met%rndst
   
 end if
   
-! write(*,*)'random seed',sv%met%rndst
 ! write(*,*)
 
 

@@ -92,7 +92,9 @@ if test "x$enable_debug" = xyes; then
   elif test "x$FC_REALNAME" = xgfortran; then
   
     CPPFLAGS="$CPPFLAGS -Dgfortran"
-    FCFLAGS="$FCFLAGS -O0 -ffree-line-length-none -fcheck=all,no-array-temps -finit-derived -finit-real=nan -ffpe-trap=invalid,zero,overflow -g -fbacktrace -Wall -Wextra -pedantic"
+    FCFLAGS="$FCFLAGS -O0 -ffree-line-length-none -fbounds-check -fsanitize=address -fcheck=all,no-array-temps -finit-derived -finit-real=nan -ffpe-trap=invalid,zero,overflow -g -fbacktrace -Wall -Wextra -pedantic"
+    LDFLAGS="-fsanitize=address $LDFLAGS"
+
   else 
 
     dnl  generic debug flags

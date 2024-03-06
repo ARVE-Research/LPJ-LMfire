@@ -156,7 +156,7 @@ if (.not.allocated(ibuf)) then
       allocate(ibuf(i,j)%temp0(timelen))
       allocate(ibuf(i,j)%lght(timelen))
       allocate(ibuf(i,j)%wind(timelen))
-      allocate(ibuf(i,j)%cropfrac(2))
+      allocate(ibuf(i,j)%landuse(5))      ! 5 types of land use: forage, crop, pasture, rangeland, urban
     end do
   end do
 

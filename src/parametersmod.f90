@@ -4,18 +4,15 @@ use iso_fortran_env, only : int8,int16,int32,int64,real32,real64,input_unit,outp
 
 implicit none
 
-public :: area
-
 ! -----------------------------------------------------------------------------------------------
-
-! type
+! kind
 
 integer, parameter :: i1 = int8    ! 1 byte integer
 integer, parameter :: i2 = int16   ! 2 byte integer
 integer, parameter :: i4 = int32   ! 4 byte integer
 integer, parameter :: i8 = int64   ! 8 byte integer
 integer, parameter :: sp = real32  ! 4 byte real
-integer, parameter :: dp = real32  ! 8 byte real
+integer, parameter :: dp = real64  ! 8 byte real
 
 ! size
 
@@ -102,38 +99,38 @@ real(sp), parameter :: dt    = 86400._dp  ! number of seconds in 24hrs
 
 real(dp), parameter :: pi    = 3.14159265358979323846_dp ! 26433 83279 50288 41971 69399 37510 (unitless)
 real(sp), parameter :: grav  = 9.80616       ! Gravitational acceleration  (m s-2) AMS definition for 45° latitude and mean sea level
-real(dp), parameter :: Pstd  = 101325._dp     ! Standard pressure           (Pa)
+real(dp), parameter :: Pstd  = 101325._dp    ! Standard pressure           (Pa)
 real(dp), parameter :: sigsb = 5.67e-8       ! Stefan-Boltzmann constant   (W m-2 K-4)
 real(dp), parameter :: kbz   = 1.38065e-23   ! Boltzmann constant          (J K-1 molecule-1)
 real(dp), parameter :: avo   = 6.0221415e26  ! Avogadro's number           (molecule kmol-1)
 real(dp), parameter :: Rgas  = avo * kbz     ! Universal gas constant      (J K-1 kmol-1)
-real(dp), parameter :: MWda  = 28.966_dp      ! Molecular weight of dry air (kg kmol-1)
+real(dp), parameter :: MWda  = 28.966_dp     ! Molecular weight of dry air (kg kmol-1)
 real(dp), parameter :: Rda   = Rgas / MWda   ! Dry air gas constant        (J K-1 kg-1)
-real(dp), parameter :: MWwv  = 18.016_dp      ! Mol. weight of water vapor  (kg kmol-1)
+real(dp), parameter :: MWwv  = 18.016_dp     ! Mol. weight of water vapor  (kg kmol-1)
 real(dp), parameter :: Rwv   = Rgas / MWwv   ! Water vapor gas constant    (J K-1 kg-1)
-real(dp), parameter :: vkarm = 0.4_dp         ! von Karman constant (unitless)
+real(dp), parameter :: vkarm = 0.4_dp        ! von Karman constant (unitless)
 
 real(sp), parameter :: Tfreeze = 273.15      ! freezing temperature of freshwater (K)
 
-real(dp), parameter :: pliq  = 1000._dp     ! density of water (kg m-3)
-real(dp), parameter :: pice  =  917._dp     ! density of ice (kg m-3)
+real(dp), parameter :: pliq  = 1000._dp      ! density of water (kg m-3)
+real(dp), parameter :: pice  =  917._dp      ! density of ice (kg m-3)
 
-real(dp), parameter :: Cair   =     1.00464e3  ! Heat capacity of dry air (J kg-1 K-1) (CLM parameterization)
-real(dp), parameter :: Cliq   =     4.18800e3  ! Heat capacity of liquid water  (J kg-1 K-1)
-real(dp), parameter :: Cice   =     2.11727e3  ! Heat capacity of ice (typical) (J kg-1 K-1)
+real(dp), parameter :: Cair   = 1.00464e3    ! Heat capacity of dry air (J kg-1 K-1) (CLM parameterization)
+real(dp), parameter :: Cliq   = 4.18800e3    ! Heat capacity of liquid water  (J kg-1 K-1)
+real(dp), parameter :: Cice   = 2.11727e3    ! Heat capacity of ice (typical) (J kg-1 K-1)
 
 real(dp), parameter :: lvap  = 2.501e6       ! Latent heat of vaporization (J kg-1)
 real(dp), parameter :: Lf    = 3.337e5       ! Water latent heat of fusion (J kg-1)
 real(dp), parameter :: lsub  = lvap + Lf     ! Latent heat of sublimation  (J kg-1)
 
-real(dp), parameter :: Kliq   =     0.57_dp   ! Thermal conductivity of liquid water (typical) (W m-1 K-1)
-real(dp), parameter :: Kice   =     2.29_dp   ! Thermal conductivity of ice (typical) (W m-1 K-1)
-real(dp), parameter :: Kair   =     0.0243_dp ! Thermal conductivity of dry air (W m-1 K-1)
+real(dp), parameter :: Kliq   =    0.57_dp   ! Thermal conductivity of liquid water (typical) (W m-1 K-1)
+real(dp), parameter :: Kice   =    2.29_dp   ! Thermal conductivity of ice (typical) (W m-1 K-1)
+real(dp), parameter :: Kair   =    0.0243_dp ! Thermal conductivity of dry air (W m-1 K-1)
 
 ! derived CLM parameters
 
 real(dp), parameter :: Timp = 0.05_dp  ! volumetric liquid water content at which the soil is impermeable (fraction)
-real(dp), parameter :: Pmax =-1.e8    ! maximum allowed value for soil matric potential
+real(dp), parameter :: Pmax =-1.e8     ! maximum allowed value for soil matric potential
 
 real(dp), parameter :: Esoil  = 0.96_dp ! thermal emissivity of bare soil (fraction)
 real(dp), parameter :: Ewater = 0.96_dp ! thermal emissivity of water (fraction)
@@ -144,7 +141,7 @@ real(dp), parameter :: CNfac  = 0.5_dp     ! Crank Nicholson factor between 0 an
 
 real(dp), parameter :: pdrysnow =  50.00000_dp ! density of dry snow falling at under -15 deg C (kg m-3)
 real(dp), parameter :: pwetsnow = 169.15775_dp ! density of wet snow falling at over 2 deg C (kg m-3) (50._dp + 1.7_dp * 17._dp**1.5, CLM eqn 7.18)
-real(dp), parameter :: Tc = 2.5_dp ! critical threshold temperature separating rain from snow (deg C)
+real(dp), parameter :: Tc = 2.5_dp             ! critical threshold temperature separating rain from snow (deg C)
 
 real(dp), parameter :: lb = 1.e-5  ! baseflow parameter (mm s-1) CLM eqn. 7.117
 real(dp), parameter :: kd = 0.04_dp ! saturated soil hydraulic cond. contributing to baseflow (mm s-1) CLM eqn. 7.118
@@ -161,54 +158,17 @@ real(dp), parameter :: porg   =  1300._dp  ! density of soil organic matter (typ
 real(dp), parameter :: pmine  =  2660._dp  ! density of mineral soil (typical) (kg m-3)
 
 real(dp), parameter :: Korg   =     0.25_dp   ! Thermal conductivity of soil organic matter (typical) (W m-1 K-1)
-real(dp), parameter :: Corg   =     2.496e6  ! Heat capacity of soil organic matter (typical) (J m-3 K-1)
+real(dp), parameter :: Corg   =     2.496e6   ! Heat capacity of soil organic matter (typical) (J m-3 K-1)
 
 real(dp), parameter :: Kmine  =     5.85_dp   ! Thermal conductivity of soil minerals (typical) (W m-1 K-1) NB average bet. quartz and other minerals, from Hillel
-real(dp), parameter :: Cmine  =     2.000e6  ! Heat capacity of soil minerals (typical) (J m-3 K-1)
+real(dp), parameter :: Cmine  =     2.000e6   ! Heat capacity of soil minerals (typical) (J m-3 K-1)
 
 real(dp), parameter :: pir     = pi / 180.0_dp
 real(dp), parameter :: piri    = 180._dp / pi
 
 real(sp), parameter :: fpc_tree_max = 0.99  ! maximum gridcell tree cover fraction
 
-contains
-
 ! -----------------------------------------------------------------------------------------------
-
-real(sp) function area(lat,minutes)
-
-  ! this function returns the size of a regular grid cell in square meters.
-
-  implicit none
-
-  real(dp), intent(in) :: lat
-  real(sp), intent(in), dimension(2) :: minutes
-
-  real(dp), parameter :: pi      =    3.14159265359_dp
-  real(dp), parameter :: radius  = 6378.137_dp ! km, WGS-84 spherical approximation
-  real(dp), parameter :: deg2rad = pi / 180._dp
-
-  real(dp) :: cellarea
-  real(dp) :: deltalat
-  real(dp) :: deltalon
-  real(dp) :: elevation
-  real(dp), dimension(2) :: resolution
-
-  resolution = minutes / 60._dp
-
-  elevation = deg2rad * (lat + 0.5_dp * resolution(2))
-
-  deltalat = deg2rad * resolution(1)
-  deltalon = deg2rad * resolution(2)
-
-  cellarea = 2._dp * radius**2 * deltalon * cos(elevation) * sin(0.5_dp * deltalat)
-
-  area = real(cellarea * 1.e6)
-
-end function area
-
-! -----------------------------------------------------------------------------------------------
-
 ! note from wikipedia: air conductivity 0.024, snow (typical) 0.11, soil (typical) 0.17-1.13
 
 ! 1.9e6 J m-3 K-1 = 0.45 cal cm-3 degC-1

@@ -32,7 +32,7 @@ use establishmentmod,   only : establishment
 use allocationmod,      only : allocation
 use turnovermod,        only : turnover
 use killplantmod,       only : killplant
-use foragersmod,        only : foragers,popgrowth,simpleforagers
+use foragersmod,        only : mtrm,popgrowth,simpleforagers
 use individualmod,      only : sizeind,allomind
 use soilco2mod,         only : soilco2
 use soiltemperaturemod, only : soiltemp
@@ -135,7 +135,12 @@ real(sp) :: apet          ! annual potential evapotranspiration (mm/year)
 
 ! real(sp), dimension(npft) :: aresp  ! annual maintenance + growth respiration (g m-2)
 
-real(sp) :: cropfrac
+real(sp) :: foragers
+real(sp) :: cropland
+real(sp) :: pasture
+real(sp) :: rangeland
+real(sp) :: agriculture
+real(sp) :: urban
 real(sp) :: unusable
 
 ! instantaneous gridcell state variables
@@ -560,12 +565,19 @@ call bioclim(mtemp_min20,gdd,mtemp_max,survive,estab_lim)
 ! --------------------------------------------------------------------------------------
 if (lucc) then
 
-  unusable = in%human%landuse(1)
-  cropfrac = in%human%landuse(2)
+  foragers  = in%human%landuse(1)
+  cropland  = in%human%landuse(2)
+  pasture   = in%human%landuse(3)
+  rangeland = in%human%landuse(4)
+  urban     = in%human%landuse(5)
   
-  call alcc(j,in,osv,cropfrac,unusable,coverfrac,recoverf)
+  agriculture = cropland + pasture + rangeland + urban
   
-  ! write(stdout,*)'alcc',unusable,cropfrac,coverfrac
+  unusable = 0.
+  
+  call alcc(j,in,osv,agriculture,unusable,coverfrac,recoverf)
+  
+  ! write(stdout,*)'alcc',unusable,agriculture,coverfrac
 
 else
 
@@ -915,10 +927,11 @@ do i = 1,3 ! ntiles
 
   ! allocation of annual carbon increment to leaf, stem and fine root compartments
   
-!  write(stdout,*)'flag D3a',present
-  ! write(stdout,*)'flag D3b',lm_ind(:,1)
-  ! write(stdout,*)'flag D3a',hm_ind(:,1)
-  ! write(stdout,*)'flag D2b',lm_ind(:,1)
+!   write(stdout,*)'present  ',present
+!   write(stdout,*)'leafmass ',lm_ind(5,1)
+!   write(stdout,*)'sapwood  ',sm_ind(5,1)
+!   write(stdout,*)'heartwood',hm_ind(5,1)
+!   write(stdout,*)'rootmass ',rm_ind(5,1)
   
   call allocation(pftpar,allom1,allom2,allom3,latosa,wooddens,reinickerp,pft%tree,sla,wscal,wscal8,nind,bm_inc,lm_ind,sm_ind,     &
                   hm_ind,rm_ind,crownarea,fpc_grid,lai_ind,height,litter_ag_fast,litter_ag_slow,litter_bg,fpc_inc,present)
@@ -927,7 +940,7 @@ do i = 1,3 ! ntiles
 !     write(0,*)'crownarea >100m2 1',crownarea
 !   end if
 
-  ! write(stdout,'(a,i3,9f14.4)') 'after allocation',i, lm_ind(:,1)                               
+!   write(stdout,'(a,i3,9f14.4)') 'after allocation',i,lm_ind(5,1)
                   
   ! check validity of allocation and correct
   ! heartwood can be zero, but all other pools have to be positive to have valid allometry
@@ -942,8 +955,8 @@ do i = 1,3 ! ntiles
     
     if (any(treecarbon(1:3) <= 0.) .and. (sum(treecarbon) > 0. .or. nind(a) > 0.)) then
       
-      write(stdout,*)'invalid allometry, resetting',year, present(a)
-      write(stdout,'(2i10,2f10.4,i4,5f16.7)')in%xpos,in%ypos,in%lon,in%lat,a,nind(a),lm_ind(a,1),sm_ind(a,1),hm_ind(a,1),rm_ind(a,1)
+!       write(stdout,*)'invalid allometry, resetting',year, present(a)
+!       write(stdout,'(2i10,2f10.4,i4,5f16.7)')in%xpos,in%ypos,in%lon,in%lat,a,nind(a),lm_ind(a,1),sm_ind(a,1),hm_ind(a,1),rm_ind(a,1)
       
       ! read(*,*) 
       
@@ -1038,28 +1051,30 @@ do i = 1,3 ! ntiles
   
   if (lutype(i) == 2) then   ! harvest of agricultural crops and reset of agricultural biomass on used land
     
-!    write(stdout,'(a,i3,9f14.4)') 'before harvest',i, litter_ag_fast(:,1)    
+    ! write(stdout,'(a,i3,9f14.4)') 'before harvest',i, litter_ag_fast(:,1)    
 
     call harvest(i,j,osv)
     
-!    write(stdout,'(a,i3,9f14.4)') 'after harvest',i, litter_ag_fast(:,1)
+    ! write(stdout,'(a,i3,9f14.4)') 'after harvest',i, litter_ag_fast(:,1)
         
     call managedburn(i,j,acflux_fire(1),afire_frac,litter_ag_fast(:,1),pftCflux)
     
-!    write(stdout,'(a,13i5,f14.7)') 'after managedburn', nosnowdays, allnosnowdays, afire_frac
+    ! write(stdout,'(a,13i5,f14.7)') 'after managedburn', nosnowdays, allnosnowdays, afire_frac
     
     do m = 1, 12
     
-         mBBpft(:,m) = pftCflux(:) * real(nosnowdays(m))/real(allnosnowdays)  * 0.001 * 1./0.45  ! distribute the pftCflux equally on all days with a monthly temperature > 0. degrees Celsius
-                        ! convert from g C to kg dry matter, hence the multiplication factors
-         mburnedf(m) = afire_frac * real(nosnowdays(m))/real(allnosnowdays)       
+      ! distribute the pftCflux equally on all days with a monthly temperature > 0. degrees Celsius
+      ! convert from g C to kg dry matter, hence the multiplication factors
+      mBBpft(:,m) = pftCflux(:) * real(nosnowdays(m))/real(allnosnowdays)  * 0.001 * 1./0.45  
+
+      mburnedf(m) = afire_frac * real(nosnowdays(m))/real(allnosnowdays)       
                     
     end do     
       
-!    write(stdout,'(9f14.7)')  mpftCflux
-!    write(stdout,'(12f14.7)')  temp
+	! write(stdout,'(9f14.7)')  mpftCflux
+	! write(stdout,'(12f14.7)')  temp
 
-  else     ! biomass destruction by wildfire
+  else     ! non-agricultural and urban land: calculate biomass destruction by wildfire
 
     afire_frac = 0.
     
@@ -1069,15 +1084,23 @@ do i = 1,3 ! ntiles
       
       burnedf20 = sum(osv%tile(i)%burnedf_buf) / real(climbuf)
       
-      forager_pd20 = sum(osv%tile(i)%forager_pd_buf) / real(climbuf) 
-    
-!      write(stdout,*) 'Forager density: ', year, forager_pd20
+      forager_pd20 = sum(osv%tile(i)%forager_pd_buf) / real(climbuf)
+      
+      if (i == 1 .and. avg_cont_area > 21.e6) then
+        forager_pd20 = 0.01
+      else
+        forager_pd20 = 0.
+      end if
+
+      ! if (i == 1) then
+      !   write(stdout,*)'Forager density: ',year,forager_pd20,avg_cont_area
+      ! end if
 
       ! calculate annual burn target
 
 !      write(stdout,*)osv%annburntarget(1),grasscover,dgrassdt
       
-      if (year > 800) then
+      if (year > 50) then
 !        if (grasscover < 0.5 .and. abs(dgrassdt) > 0.01) then
 !          osv%annburntarget(1) = min(osv%annburntarget(1) + 0.05,1.)
 !        else
@@ -1271,9 +1294,9 @@ do i = 1,3 ! ntiles
 
   if (i /= 2 .and. ((spinup .and. year > 100) .or. .not. spinup) .and. in%human%foragerPD > 0.) then 
     
-!    call foragers(apet,aaet,in%elev,in%lat,grid_npp(1),livebiomass,soilpar(3),temp,prec,mw1,forager_ppd)
+!    call mtrm(apet,aaet,in%elev,in%lat,grid_npp(1),livebiomass,soilpar(3),temp,prec,mw1,forager_ppd)
     
-!    write(stdout,*) 'after call to foragers: ', forager_ppd
+!    write(stdout,*) 'after call to MTRM: ', forager_ppd
     
 !    call popgrowth(forager_ppd,forager_pd,forager_fin,forager_fout)
     

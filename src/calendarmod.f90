@@ -74,7 +74,6 @@ integer(i4) :: y_prime
 real(dp)    :: timefrac
 
 ! -----------------
-
 ! Check if the time is provided, if not fall back to default of 00:00:00.0
 
 timefrac = 0.
@@ -116,8 +115,6 @@ subroutine jd2ymdt(dt)
 ! Retrieve a (proleptic) Gregorian year-month-day-[time] combination based on a Julian date
 ! Based on routines in calpak.f90 by John Burkardt
 
-! NB time functionality currently not implemented
-
 implicit none
 
 ! argument
@@ -134,6 +131,9 @@ integer(i4) :: m_prime
 integer(i4) :: d_prime
 integer(i4) :: t_prime
 real(sp)    :: f
+real(dp)    :: fpart
+real(dp)    :: hr
+real(dp)    :: mr
 
 ! Determine the computational date (Y'/M'/D').
 
@@ -154,6 +154,28 @@ d_prime = mod(5 * t_prime + 2, 153) / 5
 dt%d = d_prime + 1
 dt%m = mod(m_prime + 2,12) + 1
 dt%y = y_prime - 4716 + (14 - dt%m) / 12
+
+! If there is a remainder calculate the time - 
+! NB this algorithm resolves to noon on the selected computational date
+
+fpart = dt%jd - floor(dt%jd)
+
+if (fpart > 0.) then
+
+  hr = 24. * fpart
+  mr = 60. * (hr - floor(hr))
+  dt%sec = 60. * (mr - floor(mr))
+
+  dt%hr  = int(hr)
+  dt%min = int(mr)
+
+else
+
+  dt%hr  = 0
+  dt%min = 0
+  dt%sec = 0.
+
+end if
 
 ! Any year before 1 AD must be moved one year further back, since
 ! this calendar does not include a year 0.

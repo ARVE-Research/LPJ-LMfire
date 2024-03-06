@@ -90,9 +90,10 @@ if (dospinup) then
   
   do year = 1,spinupyears
   
-    yrBP = cal_year + spinupyears - (year - 1) 
+    yrBP = cal_year ! + spinupyears - (year - 1) 
 
-    write(stdout,'(a18,3i8,f8.2)')' working on year: ',year,cal_year,yrBP,in_master(1)%co2  !,lyear,co2(1)  !a,3i8,f8.2
+!    write(stdout,'(a18,3i8,f8.2)')' working on year: ',year,cal_year,yrBP,in_master(1)%co2  !,lyear,co2(1)  !a,3i8,f8.2
+    write(stdout,'(a18,2i8,f8.2)')' working on year: ',year,cal_year,in_master(1)%co2 !,year,lyear,co2(1)  !a,3i8,f8.2
     write(status_msg,'(a,i6,a,i6)')' working on year',year,' out of',spinupyears
     call overprint(status_msg)
 
@@ -116,6 +117,8 @@ if (dospinup) then
        call netcdf_output(ncells,tpos,yrBP,sv_master,in_master)
        
        tpos = tpos + 1
+       
+       cal_year = cal_year - 1
 
     end if   
 

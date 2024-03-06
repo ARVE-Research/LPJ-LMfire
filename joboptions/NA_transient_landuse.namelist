@@ -1,7 +1,7 @@
 &joboptions
  dospinup         = .true.
  dotransient      = .true.
- spinupyears      = 10 ! 1020 = 34 30-year cycles
+ spinupyears      = 1020 ! 1020 = 34 30-year cycles
  transientyears   = 180
  cfile_spinup     = '/home/terraces/datasets/climate/NorthAm_hybrid/makeclimate/NAclimate_spinup.nc'
  cfile_transient  = '/home/terraces/datasets/climate/NorthAm_hybrid/makeclimate/NAclimate_transient.nc'
@@ -24,7 +24,6 @@
 
 ! cal_year         = 114   ! 1836 CE - this value should be read from the spinup climate: must be in units cal yr BP (1950)
 
-
 ! Full western U.S. run (includes some neighboring parts of Canada and Mexico)
 ! N boundary expanded to reach approximate northern boundary of great plains, S boundary is southermost Arizona/NM/Mexico border,
 ! E boundary is easternmost Colorado, W boundary to Cape Mendocino
@@ -32,7 +31,7 @@
 
 
 ! mpirun -np 2 src/lpj joboptions/NA_spinup_natural.namelist -1770000/-1760000/20000/30000 output/Forks.nc
-! mpirun -np 2 src/lpj joboptions/NA_spinup_natural.namelist -1978000/-1918000/-1128000/-1043000 output/sfbay.nc
+! mpirun -np 2 src/lpj joboptions/NA_transient_landuse.namelist -1978000/-1918000/-1128000/-1043000 output/sfbay_landuse.nc
 ! mpirun -np 21 src/lpj joboptions/NA_spinup_natural.namelist -2050000/-1590000/-1400000/-480000 output/CAcentral.nc > output/CAcentral.log
 
 

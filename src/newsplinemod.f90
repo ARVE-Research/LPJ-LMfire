@@ -5,7 +5,7 @@ module newsplinemod
 ! 2021
 
 use parametersmod, only : i4,sp
-use utilitiesmod,  only : matsol,findloc
+use utilitiesmod,  only : matsol
 
 implicit none
 
@@ -164,7 +164,7 @@ end do
 
 ! -------------------------------------------------------------------------------
 ! Solve linear system to get final mid control points
-call matsol(mat, solution)
+call matsol(mat,solution)
 
 
 ! -------------------------------------------------------------------------------

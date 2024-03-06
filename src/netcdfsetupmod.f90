@@ -334,7 +334,7 @@ implicit none
 
 namelist / varinfolist / varinfo
 
-open(87,file='outvarsinfo.namelist',status='old')
+open(87,file='share/outvarsinfo.namelist',status='old')
 
 read(87,varinfolist)
 

@@ -9,11 +9,11 @@ public :: initlucc
 
 contains
 
-!-----------------------------------------------------------------------------------------------------------------
+! -----------------------------------------------------------------------------------------------------------------
 
 subroutine initjob(ncells,ntiles,nlayers,spinupyears,transientyears)
 
-use parametersmod,   only : sp,dp,i8,area
+use parametersmod,   only : sp,dp,i8
 use iovariablesmod,  only : cfile_spinup,cfile_transient,soilfile,                                                        &
                             dospinup,dotransient,co2file,topofile,topofid,elvid,slopeid,landfid,topotime,                 &
                             fixedco2,ocean_uptake,cal_year,nspinyrsout,outputvar,                                         &
@@ -27,7 +27,8 @@ use initclimatemod,  only : initclimate
 use getyrdatamod,    only : getco2
 use mpistatevarsmod, only : in_master,sv_master,initstatevars
 use netcdfsetupmod,  only : netcdf_create
-use utilitiesmod,    only : tunit2year
+use utilitiesmod,    only : tunit2year,area
+use calendarmod,     only : timestruct,ymdt2jd,jd2ymdt
 
 use typesizes
 use netcdf
@@ -35,15 +36,15 @@ use errormod,       only : ncstat,netcdf_err
 
 implicit none
 
-!arguments
+! arguments
 
 integer, intent(out) :: ncells
 integer, intent(out) :: ntiles
-integer, intent(out) :: nlayers !number of soil layers present in the input data
+integer, intent(out) :: nlayers ! number of soil layers present in the input data
 integer, intent(out) :: spinupyears
 integer, intent(out) :: transientyears
 
-!local variables
+! local variables
 
 integer :: dimid
 integer :: varid
@@ -64,6 +65,10 @@ integer :: cfid2
 
 logical  :: ismaster = .true.
 
+real(dp) :: day0
+
+real(dp), allocatable, dimension(:) :: time
+
 integer :: tlen
 
 integer(i8) :: idx
@@ -76,9 +81,13 @@ character(200) :: jobfile
 
 integer, dimension(8) :: ts
 
-character(8)  :: date
-character(10) :: time
-character(5)  :: zone
+! character(8)  :: date
+! character(10) :: time
+! character(5)  :: zone
+
+type(timestruct) :: basedate
+type(timestruct) :: spinstartd
+
 
 namelist /joboptions/ &
   cfile_spinup,       &
@@ -95,7 +104,6 @@ namelist /joboptions/ &
   dotransient,        &
   fixedco2,           &
   ocean_uptake,       &
-  cal_year,           &
   nspinyrsout,        &
   outputvar,          &
   lu_turn_yrs,        &
@@ -103,7 +111,9 @@ namelist /joboptions/ &
   nolanduse,          &
   startyr_foragers
 
-!-------------------------
+!   cal_year,           &  removed
+
+! -------------------------
 
 call date_and_time(values=ts)
 
@@ -116,16 +126,16 @@ write(stderr,10)' Timestamp: ',ts(1),'-',ts(2),'-',ts(3),'T',ts(5),':',ts(6),':'
 
 10 format(a,i4,a,i2.2,a,i2.2,a,i2.2,a,i2.2,a,i2.2)
 
-!initialize variables with a default value if they are not specified in the namelist
+! initialize variables with a default value if they are not specified in the namelist
 
-spinupyears    = -9999
+spinupyears    = 10
 transientyears = 1
 nspinyrsout    = -9999
-nolanduse      = .false.
+! nolanduse      = .false.  ! not used
 startyr_foragers = 1000
 dosoilco2 = .false.
 
-!read the joboptions
+! read the joboptions
 
 call getarg(1,jobfile)
 
@@ -138,47 +148,49 @@ close(10)
 write(stdout,'(a,a)')' pftpars file: ',pftparsfile
 
 if (spinupyears <= 0) then
-  write(stdout,*)'no years indicated for spinup!'
+  write(stdout,*)'no years indicated for spinup! '
   stop
 end if
 
 if (nspinyrsout < 0) then
-  nspinyrsout = spinupyears  !if not specified, write out all years of the spinup
+  nspinyrsout = spinupyears  ! if not specified, write out all years of the spinup
 end if
 
-!-------------------------
-!read the grid boundary coordinates for the run
+! -------------------------
+! read the grid boundary coordinates for the run
 
 call getarg(2,coords)
 
 call parsecoords(coords,bounds)
 
-!-------------------------
-!get the name of the output file
+! -------------------------
+! get the name of the output file
 
 call getarg(3,outputfile)
 
-!-------------------------
-!initialize the run
+! -------------------------
+! initialize the run
 
-! !CO2
-!
-! if (co2file /= '') then
-!   write(stdout,'(a,a)')'using co2file: ',trim(co2file)
-!   call getco2(cal_year,transientyears)             !externally prescribed CO2 concentrations
-! else
-!   co2vect = fixedco2
-! end if
-
-!gridded input data
-!open all of the specified input files and make sure the grids cover the same area
+! gridded input data
+! open all of the specified input files and make sure the grids cover the same area
   
-!climate
+! climate
 
 ncstat = nf90_open(cfile_spinup,nf90_nowrite,cfid1)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
+ncstat = nf90_inq_dimid(cfid1,'time',dimid)
+if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+ncstat = nf90_inquire_dimension(cfid1,dimid,len=tlen)
+if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+allocate(time(tlen))
+
 ncstat = nf90_inq_varid(cfid1,'time',varid)
+if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+ncstat = nf90_get_var(cfid1,varid,time)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
 ncstat = nf90_get_att(cfid1,varid,'units',timeunit_climate)
@@ -189,31 +201,28 @@ if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
 timeunit_baseyr = tunit2year(timeunit_climate)
 
-!  status = nf90_inq_dimid(cfid1,'lon',dimid)
-!  if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+! return the Julian day of the basedate
 
-!  status = nf90_inquire_dimension(cfid1,dimid,len=xlen)
-! 
-!  status = nf90_inq_varid(cfid1,'lon',varid)
-! 
-!  status = nf90_get_var(cfid1,varid,minlon,start=[1])
-! 
-!  status = nf90_get_var(cfid1,varid,maxlon,start=[xlen])
+basedate = timestruct(timeunit_baseyr,1,1,0,0,0.)
 
-!  if (cfile_transient /= '') then
-!    status = nf90_open(cfile_transient,nf90_nowrite,cfid2)
-!    if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
-!  end if
+call ymdt2jd(basedate)
 
+! calc Julian day of first day of spinup
 
-!soil
-!topography
-!slope
-!land fraction
+day0 = time(1 + tlen - 12 * spinupyears)
 
+spinstartd%jd = basedate%jd + day0
 
-!open the soil initial conditions files and allocate the soils input matrix (and lat and lon vect).
-!allocates lonvect, latvect and soil%
+call jd2ymdt(spinstartd)
+
+! calculate the year CE and year BP of the first year of the spinup based on the number of years of spinup requested
+
+cal_year = 1950 - spinstartd%y
+
+write(stdout,'(a,i0,a,i0,a)')' spinup starts at ',spinstartd%y,' CE = ',cal_year,' BP'
+
+! open the soil initial conditions files and allocate the soils input matrix (and lat and lon vect).
+! allocates lonvect, latvect and soil%
 
 call initsoil(cal_year,nlayers)
 
@@ -228,16 +237,16 @@ endy = srty + cnty - 1
 
 ncells = cntx * cnty
 
-!-------------------------------
-!topo file
+! -------------------------------
+! topo file
 
 ncstat = nf90_open(topofile,nf90_nowrite,topofid)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
-!check for a time dimension. if there isn't one, set tlen to 1 and don't read the variable
+! check for a time dimension. if there isn't one, set tlen to 1 and don't read the variable
 
 ncstat = nf90_inq_dimid(topofid,'time',dimid)
-if (ncstat /= nf90_noerr) then  !there isn't a time dimension
+if (ncstat /= nf90_noerr) then  ! there isn't a time dimension
   
   tlen = 1
   
@@ -270,28 +279,24 @@ if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
   
 write(stdout,*) 'Done reading topofile'  
 
-!-------------------------------
-!externally prescribed CO2 concentrations
+! -------------------------------
+! externally prescribed CO2 concentrations
 
 if (co2file /= '') then
   write(stdout,'(a,a)')'using co2file: ',trim(co2file)
   write(stdout,*)cal_year,transientyears
-  call getco2(cal_year,transientyears)
+  call getco2(cal_year,spinupyears + transientyears)
 else
   co2vect = fixedco2
 end if
 
-!FLAGFLAGFLAG
-
-!co2vect = 295.5638
-
 write(stdout,*)'done with CO2'
 
-!-------------------------------
-!externally prescribed land use (ALCC)
+! -------------------------------
+! externally prescribed land use (ALCC)
 
 if (poppfile /= '' .and. popdfile /= '') then
-  write(stdout,*)'you cannot specify both a pop_p and pop_d file!'
+  write(stdout,*)'you cannot specify both a pop_p and pop_d file! '
   stop
 end if
 
@@ -305,7 +310,7 @@ else if (popdfile /= '') then
   lucc = .true.
   calcforagers = .false.
   ntiles = 3
-  call initlucc()        !open the LUCC file here
+  call initlucc()        ! open the LUCC file here
 
 else
   calcforagers = .false.
@@ -315,11 +320,11 @@ end if
 
 write(stdout,'(a,i3)')'WARNING number of land use tiles used in this run: ',ntiles,lucc
 
-!-------------------
+! -------------------
 
-allocate(cellindex(ncells,3))  !this is a potential maximum. we will check for valid cells below
+allocate(cellindex(ncells,3))  ! this is a potential maximum. we will check for valid cells below
 
-!-------------------
+! -------------------
 
 write(stdout,'(a,i5,a,i5,a,i5)')'input files have:  ',inputlonlen,' columns and',inputlatlen,' rows'
 write(stdout,'(a,i5,a,i5,a,i8)')'cells to calculate:',cntx,' x',cnty,' =',ncells
@@ -327,12 +332,12 @@ write(stdout,'(a,i0,a,i0,a,f0.4,a,f0.4)')  'starting at:       ',srtx,' ',srty,'
 
 write(stdout,'(a,2f8.4)')'landuse turnover: ',lu_turn_yrs
 
-!-------------------
-!allocate the input variable array (all cells for one year) and initialize with some data
+! -------------------
+! allocate the input variable array (all cells for one year) and initialize with some data
 
 allocate(in_master(ncells))
 
-!allocate the soil layer elements
+! allocate the soil layer elements
 
 ! write(0,*)'soil layers in_master',nlayers
 
@@ -377,7 +382,7 @@ do y = 1,cnty
   
       in_master(idx)%lon  = lonvect(a)
       in_master(idx)%lat  = latvect(b)
-      in_master(idx)%cellarea = area(latvect(b),[30.,30.])  !NB this should be changed to allow geographic input grids of arbitrary resolution
+      in_master(idx)%cellarea = area(latvect(b),[30.,30.])  ! NB this should be changed to allow geographic input grids of arbitrary resolution
 
     end if
 
@@ -386,8 +391,8 @@ do y = 1,cnty
   end do
 end do
 
-!---
-!allocate the state variable array (all cells for one year) and initialize
+! ---
+! allocate the state variable array (all cells for one year) and initialize
 
 allocate(sv_master(ncells))
 
@@ -395,21 +400,21 @@ do i = 1,ncells
   call initstatevars(in_master(i),sv_master(i),ismaster,nlayers)
 end do
 
-!---
+! ---
 
 call netcdf_create(ncells)
 
-!---
+! ---
 
 end subroutine initjob
 
-!-----------------------------------------------------------------------------------------------------------------
+! -----------------------------------------------------------------------------------------------------------------
 
 subroutine initlucc()
 
 use netcdf
 use typesizes
-use iovariablesmod, only : lucctime,popdfile,popfid,popdtime
+use iovariablesmod, only : popdfile,popfid,popdtime
 use errormod,       only : ncstat,netcdf_err
 
 implicit none
@@ -418,8 +423,8 @@ integer :: dimid
 integer :: varid
 integer :: tlen
 
-!-------
-!open the population density file
+! -------
+! open the population density file
 
 ncstat = nf90_open(popdfile,nf90_nowrite,popfid)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
@@ -440,15 +445,15 @@ if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
   
 end subroutine initlucc
 
-!-----------------------------------------------------------------------------------------------------------------
+! -----------------------------------------------------------------------------------------------------------------
 
 subroutine initpopp()
 
-!since you can only have either a popd or a popp file but not both, we recycle variables
+! since you can only have either a popd or a popp file but not both, we recycle variables
 
 use netcdf
 use typesizes
-use iovariablesmod, only : lucctime,poppfile,popfid,popdtime
+use iovariablesmod, only : poppfile,popfid,popdtime
 use errormod,       only : ncstat,netcdf_err
 
 implicit none
@@ -457,8 +462,8 @@ integer :: dimid
 integer :: varid
 integer :: tlen
 
-!-------
-!open the forager potential population density file
+! -------
+! open the forager potential population density file
   
 ncstat = nf90_open(poppfile,nf90_nowrite,popfid)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
@@ -479,6 +484,6 @@ if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
 end subroutine initpopp
 
-!-----------------------------------------------------------------------------------------------------------------
+! -----------------------------------------------------------------------------------------------------------------
 
 end module initjobmod
