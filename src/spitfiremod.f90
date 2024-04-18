@@ -158,6 +158,8 @@ real(sp), parameter :: min2sec = 1. / 60.
 
 ! real(sp), parameter, dimension(3) :: annburntarget = [ 0.25, 0.05, 0.2 ]  ! desired fraction of the gridcell to burn: foragers, farmers, pastoralists
 
+real(sp), parameter :: minslope = tan(0.03)  ! minimum slope (m m-1) to have an influence on fire area
+
 ! state variables (scalars)
 
 real(sp), dimension(3) :: PD           ! population density (individuals km-2)  (1=hunter gatherers, 2=farmers, 3=pastoralists)
@@ -341,6 +343,7 @@ real(sp) :: humfire1     ! area one person can burn in one day (ha)
 integer, save :: arsonists
 integer :: group
 
+
 ! ------------------
 ! assignment
 
@@ -377,12 +380,24 @@ area  = input%cellarea   ! m2
 
 area_ha = 1.e-4 * area    ! convert m2 to ha
 
-if(input%slope >= 1.72) then   ! 0.03 for radians
-!   slopefact = 1. / (100. * input%slope - 2.)                ! slope > 0.03, for slope coming in as radians
-   slopefact = 1. / (5. / 9. * pi * input%slope - 2)       ! this one for slope coming in in degrees
-else 
-   slopefact = 1.
-end if 
+
+! NOTE 2024.04: in current versions of LPJ input files, slope is provided in units of m m-1
+! convert to radians for the calculation
+
+if (input%slope > minslope) then ! units in m m-1
+  slopefact = 1. / (100. * atan(input%slope) - 2.)
+else
+  slopefact = 1.
+end if
+
+! write(0,*)'slopefact',slopefact
+
+! if (input%slope >= 1.72) then   ! 0.03 for radians
+!   slopefact = 1. / (100. * input%slope - 2.)              ! slope > 0.03, for slope coming in as radians
+!   slopefact = 1. / (5. / 9. * pi * input%slope - 2)       ! this one for slope coming in in degrees
+! else 
+!    slopefact = 1.
+! end if 
 
 light = met%lght * 0.01 ! convert from km-2 to ha-1
 Ustar = met%wind
@@ -557,7 +572,9 @@ woi(2) = sum(deadfuel(:,2))  ! 10-h fuel class summed across all PFTs (g dry bio
 woi(3) = sum(deadfuel(:,3))  ! 100-h fuel class summed across all PFTs (g dry biomass m-2)
 woi(4) = sum(deadfuel(:,4))  ! 1000-h fuel class summed across all PFTs (g dry biomass m-2)
 
-! ===============================    This distinction only for calculation of ROSfsurface, separately calculate it in grassland and woodland, then weight it a posteriori using fpc_grid
+! ===============================    
+! This distinction only for calculation of ROSfsurface, separately calculate it in grassland and woodland, 
+! then weight it a posteriori using fpc_grid
 
 woi_g = sum(deadfuel(8:9,1:3),dim=1)
 woi_w = sum(deadfuel(1:7,1:3),dim=1)
@@ -692,7 +709,7 @@ end if
 ! omega = exp(-alpha * NI)
 
 ! ------------------------------------------------
-! =====new water balance approach=====
+! ===== new water balance approach =====
 
 wet =  min(met%prec / 50.,1.)
 
@@ -1083,7 +1100,7 @@ cont_area = max(avg_cont_area * 1.e-4,10.)
 abarf = (pi / (4. * LB) * DT**2) * 0.0001 * slopefact  ! average size of an individual fire (eqn. 11) (ha)
 
 ! if (abarf > 0.75 * area_ha) then
-!   write(stdout,*)'abarf',year,i,d,area_ha,Ab,unburneda,cont_area
+!   write(stdout,*)'abarf',year,i,d,area_ha,Ab,unburneda,cont_area,slopefact
 !   write(stdout,*)abarf,LB,DT,ROSfsurface,ROSbsurface,tfire
 ! end if
 
@@ -1146,7 +1163,7 @@ if (calchumanfire .and. abarf > 0. .and. abarf < 100.) then  ! avoid starting ve
   
   if (nhig == 0) arsonists = 0
   
-  ! write(stdout,'(3i12,3f12.4)')people,uniquefires,nhig,abarf,burnedf20,afire_frac
+!   write(stdout,'(3i12,3f12.4)')people,uniquefires,nhig,abarf,burnedf20,afire_frac
   
 else
 
@@ -1216,6 +1233,7 @@ end if
 
 ! Ab = Abfrac * area_ha        ! eqn. 2
 
+
 if (Ab == 0.) then 
   if(bavard) write(*,'(a16,4i6,16f14.4)')'Area_burned_zero ', year, i,d,cumfires,Ab,abarf,afire_frac,light*area_ha,nlig,FDI, &
                                             met%prec, NI, grascover, omega_o, me_avg, omega_nl, me_nl, PD
@@ -1224,7 +1242,8 @@ if (Ab == 0.) then
   return
 end if 
 
-! write(stdout,*)'area burned',abfrac,ab
+! write(stdout,*)'area burned',year,i,d,cumfires,abfrac,ab,slopefact,input%slope
+
 
 ! ----------------------------------------------
 ! part 2.2.4, fractional combustion of dead fuel

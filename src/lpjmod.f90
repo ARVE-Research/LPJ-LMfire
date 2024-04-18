@@ -37,7 +37,7 @@ use individualmod,      only : sizeind,allomind
 use soilco2mod,         only : soilco2
 use soiltemperaturemod, only : soiltemp
 use newsplinemod,       only : newspline
-use landscape_geometrymod, only : landscape_fractality
+use landscape_geometrymod, only : fragmentation
 
 ! use lpjstatevarsmod,  only : gsv,sv,ov  ! TEMPORARY
 
@@ -71,6 +71,8 @@ integer :: dyr
 ! local variables
 ! integer :: dry
 ! integer :: maxdry
+
+integer :: yrBP
 
 ! type(metvars_in)  :: met_in
 type(metvars_out), dimension(365) :: met_out
@@ -305,11 +307,13 @@ integer, dimension(12) :: nosnowdays    ! number of days in a month with temp > 
 ! additional local variables
 real(sp) :: avg_cont_area  ! average size of a natural patch at a given landuse fraction of the gridcell, in m2
 ! real(sp) :: nolanduse_frac  ! 1. - coverfrac(2)
-real(sp) :: totnat_area    ! total natural area of a gridcell at a given landuse fraction, in m2
-real(sp) :: avg_patch_number   ! average number of natural patches per gridcell at a given landuse fraction
-real(sp) :: median_distance  ! auxiliary for median distance to the edge of a natural patch, in (m)
-real(sp) :: nbl      ! normalized boundary length; for boundary between natural and used part; normalized to 
-                                ! the max. possible boundary length when having a chessboard-type distribution of kernels
+
+! none of these variables are currently used 
+real(sp) :: totnat_area       ! total natural area of a gridcell at a given landuse fraction, in m2
+real(sp) :: avg_patch_number  ! average number of natural patches per gridcell at a given landuse fraction
+real(sp) :: median_distance   ! auxiliary for median distance to the edge of a natural patch, in (m)
+real(sp) :: nbl               ! normalized boundary length; for boundary between natural and used part; normalized to 
+                              ! the max. possible boundary length when having a chessboard-type distribution of kernels
 integer(sp) :: allnosnowdays                                  
 
 real(sp) :: forager_ppd
@@ -340,12 +344,17 @@ logical :: dosoilco2
 
 ! write(stdout,*) 'working on gridcell ', in%year, in%lon, in%lat !, in%human%foragerPD, in%slope ! 0,'(a,i5,3f14.2)'
 
-ntiles = count(in%human%landuse >= 0.)
+if (count(in%human%landuse > 0.) > 1) then
+  ntiles = 3
+else
+  ntiles = 1
+end if
 
 spinup = in%spinup
 year   = in%year
+yrBP   = in%orbit%yrBP
 
-! write(stdout,*)'start',in%lon,in%lat,year
+! write(stdout,*)'LPJcore start',in%lon,in%lat,year,yrBP
 
 co2 = in%co2
 
@@ -406,7 +415,7 @@ dosoilco2 = in%dosoilco2
 !  write(stdout,'(a,12f9.2)')'WIND',in%climate%wind
 
 
-! write(stdout,*)'initializing soil state'
+! write(stdout,*)'initializing soil state, NTILES',ntiles
 ! write(stdout,*)in%soil%sand
 ! write(stdout,*)in%soil%clay
 ! write(stdout,*)in%soil%orgm
@@ -1041,9 +1050,9 @@ do i = 1,3 ! ntiles
   osv%carbon%crop_harvest = 0.
   
   ! ----------------------------------------------------------------------------
-  ! landscape fractioning, based on assumption that subgrid-kernels will be randomely distributed; calculations based on a testgrid of 10000 sub-kernels
+  ! landscape fragmentation, based on assumption that subgrid-kernels will be randomly distributed; calculations based on a testgrid of 10000 sub-kernels
 
-  call landscape_fractality(coverfrac,in%cellarea,avg_cont_area,totnat_area,avg_patch_number,median_distance,nbl) 
+  call fragmentation(in%landf,coverfrac,in%cellarea,avg_cont_area,totnat_area,avg_patch_number,median_distance,nbl) 
   
   ! ---------------------------------------------------------------------------- 
   
@@ -1080,21 +1089,23 @@ do i = 1,3 ! ntiles
     
 !    goto 20
 
-    if (dospitfire .and. ((spinup .and. year > 0) .or. .not. spinup)) then
+    if (dospitfire .and. ((spinup .and. year > 50) .or. .not. spinup)) then
       
       burnedf20 = sum(osv%tile(i)%burnedf_buf) / real(climbuf)
       
       forager_pd20 = sum(osv%tile(i)%forager_pd_buf) / real(climbuf)
       
-      if (i == 1 .and. avg_cont_area > 21.e6) then
-        forager_pd20 = 0.01
-      else
-        forager_pd20 = 0.
-      end if
+!       if (i == 1 .and. avg_cont_area > 21.e6) then
+!         forager_pd20 = 0.01
+!       else
+!         forager_pd20 = 0.
+!       end if
+      
+      forager_pd20 = 0.
 
-      ! if (i == 1) then
-      !   write(stdout,*)'Forager density: ',year,forager_pd20,avg_cont_area
-      ! end if
+!       if (i == 1) then
+!         write(stdout,*)'Forager density: ',year,forager_pd20,avg_cont_area
+!       end if
 
       ! calculate annual burn target
 
@@ -1145,10 +1156,10 @@ do i = 1,3 ! ntiles
 
       ! if (i==1) write(*,'(f7.4)')burnedf20 ! osv%tile(i)%burnedf_buf
 
-    else         ! option to use old LPJ fire routine
+!    else         ! option to use old LPJ fire routine
 
-      call fire(pftpar,dtemp,litter_ag_fast,litter_ag_slow,acflux_fire,afire_frac,lm_ind,rm_ind,sm_ind,hm_ind,nind,dw1,  & 
-                present,pft%tree,year)
+!      call fire(pftpar,dtemp,litter_ag_fast,litter_ag_slow,acflux_fire,afire_frac,lm_ind,rm_ind,sm_ind,hm_ind,nind,dw1,  & 
+!                present,pft%tree,year)
 
     end if
   end if

@@ -8,10 +8,10 @@ use mpistatevarsmod, only : inputdata,statevars
 
 implicit none
 
-public :: initmpi
-public :: master
-public :: initworker
-public :: worker
+public  :: initmpi
+public  :: master
+public  :: initworker
+public  :: worker
 private :: checksum
 
 !module parameters

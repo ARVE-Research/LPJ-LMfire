@@ -288,6 +288,7 @@ do i = 1,ncells
   in_master(i)%climate%trng = ibuf(x,y)%trng
   in_master(i)%climate%wind = ibuf(x,y)%wind
   in_master(i)%climate%lght = ibuf(x,y)%lght
+  in_master(i)%orbit%yrBP   = orbit%yrBP
   in_master(i)%orbit%ecc    = orbit%ecc
   in_master(i)%orbit%pre    = orbit%pre
   in_master(i)%orbit%perh   = orbit%perh
@@ -816,7 +817,7 @@ end if
 
 if (cal_year > topotime(1)) then
   write(stdout,*)'WARNING: the requested starting year for the run is earlier than the first year of data in the topofile'
-  write(stdout,*)cal_year,topotime(1)
+  write(stdout,*)'cal_year, topotime: ',cal_year,topotime(1)
   write(stdout,*)'using topo data from nearest year available in data set'
 end if  
 

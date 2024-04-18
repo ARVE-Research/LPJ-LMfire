@@ -7,7 +7,7 @@
  cfile_transient  = '/home/terraces/datasets/climate/NorthAm_hybrid/makeclimate/NAclimate_transient.nc'
  soilfile         = '/home/terraces/datasets/soils/NA5km/NAsoil_extrapolated.nc'
  co2file          = '/home/terraces/datasets/dgvm_input/ghg/ghg3.nc'
- topofile         = '/home/terraces/datasets/topography/NA5km/NAtopo_new.nc'
+ topofile         = '/home/terraces/datasets/topography/NA5km/NAtopo_v2024.nc'
  pftparsfile      = '/home/terraces/projects/fire_deficit/LPJ-LMfire/share/pftpars_global.csv'
  popdfile         = '/home/terraces/datasets/ALCC/HYDE/v3.3/NorthAm/HYDE33frac_0800-2023_annual_packed.nc'
  nspinyrsout      = 1020
@@ -33,7 +33,7 @@
 
 ! mpirun -np 2 src/lpj joboptions/NA_spinup_natural.namelist -1770000/-1760000/20000/30000 output/Forks.nc
 ! mpirun -np 2 src/lpj joboptions/NA_spinup_natural.namelist -1978000/-1918000/-1128000/-1043000 output/sfbay.nc
-! mpirun -np 21 src/lpj joboptions/NA_spinup_natural.namelist -2050000/-1590000/-1400000/-480000 output/CAcentral.nc > output/CAcentral.log
+! mpirun -np 21 src/lpj joboptions/NA_transient_landuse.namelist -2050000/-1590000/-1400000/-480000 output/CAcentral.nc > output/CAcentral.log
 
 
 ! mpirun -np 2 src/lpj joboptions/NA_spinup_natural.namelist -1887500/-912500 output/test1pix.nc

@@ -4,28 +4,29 @@ use parametersmod,   only : dp,pir
 
 implicit none
 
-!module subprograms
+! module subprograms
 
 public :: calcorbitpars
 public :: toa_insolation
 
-!module variables
+! module variables
 
 type orbitpars
-  real(dp) :: ecc   !eccentricity parameter
-  real(dp) :: pre   !precession parameter
-  real(dp) :: perh  !longitude of perhelion
-  real(dp) :: xob   !obliquity (tilt) (degrees)
+  integer  :: yrBP   ! year before 1950 CE (before present, negative for years after 1950)
+  real(dp) :: ecc    ! eccentricity parameter for this year BP
+  real(dp) :: pre    ! precession parameter for this year BP
+  real(dp) :: perh   ! longitude of perhelion for this year BP
+  real(dp) :: xob    ! obliquity (tilt) (degrees) for this year BP
 end type orbitpars
 
 type insolation
-  real(dp) :: ww      !total daily top of the atmosphere insolation (kJ m-2 d-1)
-  real(dp) :: dayl    !day length (hours)
-  real(dp) :: delta   !solar declination (degrees)
+  real(dp) :: ww     ! total daily top of the atmosphere insolation (kJ m-2 d-1)
+  real(dp) :: dayl   ! day length (hours)
+  real(dp) :: delta  ! solar declination (degrees)
 end type insolation
 
-!---------------------------------------------------------------------------------
-!parameters
+! ---------------------------------------------------------------------------------
+! parameters
 
 integer, parameter :: nef = 19
 integer, parameter :: nob = 47
@@ -34,7 +35,7 @@ integer, parameter :: nop = 78
 real(dp), parameter :: pirr = pir / 3600._dp
 
 !   1.earth orbital elements : eccentricity           ecc   table 1
-!***************************   precessional parameter pre
+! ***************************  precessional parameter pre
 !                              obliquity              xob   table 2     
 !                              general precession     prg
 !                              longitude perihelion   perh  table 3
@@ -129,52 +130,52 @@ real(dp), dimension(nop), parameter :: cip = [ &
 real(dp), dimension(nop), parameter :: bop = bip * pirr
 real(dp), dimension(nop), parameter :: cop = cip * pir
 
-!------------------------------------
+! ------------------------------------
 
 contains
 
-!--------------------------------------------------------------------------------------------
+! --------------------------------------------------------------------------------------------
 
 
 subroutine calcorbitpars(cal_year,orbit)
 
-!-----------------------------------------------------------------------------
-!This routine uses the orbital solutions of Berger (1978) and is valid only
-!for calculations within +- 1.000.000 yr centered on 1950 AD. 
-!For longer periods the Berger (1990) solution should be used.
-!(Contact Berger for this 1990 solution).
-!
-!Recoded by J.O. Kaplan in 2002.
-!
-!Please refer to :
+! -----------------------------------------------------------------------------
+! This routine uses the orbital solutions of Berger (1978) and is valid only
+! for calculations within +- 1.000.000 yr centered on 1950 AD. 
+! For longer periods the Berger (1990) solution should be used.
+! (Contact Berger for this 1990 solution).
+! 
+! Recoded by J.O. Kaplan in 2002.
+! 
+! Please refer to :
 !  Berger A., 1978. A simple algorithm to compute long term
 !                   variations of daily or monthly insolation.
 !                   Contr. 18  Inst. of Astronomy and Geophysics,
 !                   Universite Catholique de Louvain,
 !                   Louvain-la-Neuve, Belgium
-!
+! 
 !  Berger A., 1978. Long term variations of daily insolation and
 !                   Quaternary climatic changes.
 !                   J. of Atmospheric Sciences 35, 2362-2367
-!
-!The function value returned by atan is assumed to be a real(dp)
-!ranging from -pi/2 to pi/2
-!
-!Input parameters for the orbital solution are provided in a separate file.
-!
-!The read and write statements might have to be changed.
-!-----------------------------------------------------------------------------
+! 
+! The function value returned by atan is assumed to be a real(dp)
+! ranging from -pi/2 to pi/2
+! 
+! Input parameters for the orbital solution are provided above.
+! 
+! The read and write statements might have to be changed.
+! -----------------------------------------------------------------------------
 
 use parametersmod, only : pi,pir,piri
 
 implicit none
 
-!arguments
+! arguments
 
 integer,         intent(in)  :: cal_year
 type(orbitpars), intent(out) :: orbit
 
-!parameters
+! parameters
 
 real(dp), parameter :: step = 360._dp / 365.25d0
 
@@ -182,7 +183,7 @@ real(dp), parameter :: xod = 23.320556d0
 real(dp), parameter :: xop =  3.392506d0
 real(dp), parameter :: prm = 50.439273d0                                       
 
-!variables
+! variables
 
 integer :: i
 
@@ -194,24 +195,26 @@ real(dp) :: tra
 real(dp) :: rp
 real(dp) :: prg
 
-!final calculated variables
+! final calculated variables
 
-real(dp) :: ecc   !eccentricity parameter
-real(dp) :: pre   !precession parameter
-real(dp) :: perh  !longitude of perhelion
-real(dp) :: xob   !obliquity (tilt) (degrees)
+real(dp) :: ecc   ! eccentricity parameter
+real(dp) :: pre   ! precession parameter
+real(dp) :: perh  ! longitude of perhelion
+real(dp) :: xob   ! obliquity (tilt) (degrees)
 
 
-!*******************************************                            
+! -----------------------------------------------------------------
+
+! *******************************************                            
 !   daily insolation - long term variation *                            
-!*******************************************                            
-!
-!
-!This program computes the total daily irradiation received at the top
-!of the atmosphere for a given latitude and time in the ka (in kj m-2).
+! *******************************************                            
+! 
+! 
+! This program computes the total daily irradiation received at the top
+! of the atmosphere for a given latitude and time in the ka (in kj m-2).
 
 !   3.numerical value for ecc pre xob
-!************************************
+! ************************************
 !   t is negative for the past
 
 t   = real(-cal_year)
@@ -231,41 +234,41 @@ if (tra > 1.d-8) then
 
   rp = atan(xes / xec)
 
-  if(xec > 0._dp) then !line 12
+  if(xec > 0._dp) then ! line 12
 
-    if (xes > 0._dp) then !line 13
+    if (xes > 0._dp) then ! line 13
 
       perh = rp * piri
 
-    else if (xes < 0._dp) then !line 14
+    else if (xes < 0._dp) then ! line 14
 
       rp   = rp + 2._dp * pi
       perh = rp * piri
 
-    else !line 13
+    else ! line 13
 
       perh = rp * piri
 
     end if
 
-  else if (xec < 0._dp) then !line 11
+  else if (xec < 0._dp) then ! line 11
 
     rp   = rp + pi
     perh = rp * piri
 
-  else !line 10
+  else ! line 10
 
-    if (xes > 0._dp) then !line 17
+    if (xes > 0._dp) then ! line 17
 
       rp   = pi / 2._dp
       perh = rp * piri
 
-    else if (xes < 0._dp) then !line 15
+    else if (xes < 0._dp) then ! line 15
 
       rp   = 1.5d0 * pi
       perh = rp * piri
 
-    else !line 16
+    else ! line 16
 
       rp   = 0._dp
       perh = rp * piri
@@ -275,17 +278,17 @@ if (tra > 1.d-8) then
 
 else
 
-  if (xes > 0._dp) then !line 17
+  if (xes > 0._dp) then ! line 17
 
     rp   = pi / 2._dp
     perh = rp * piri
 
-  else if (xes < 0._dp) then !line 15
+  else if (xes < 0._dp) then ! line 15
 
     rp   = 1.5d0 * pi
     perh = rp * piri
 
-  else !line 16
+  else ! line 16
 
     rp   = 0._dp
     perh = rp * piri
@@ -305,7 +308,7 @@ end do
 prg = prg / 3600._dp + xop
 perh = perh + prg
 
-if (perh > 0._dp) then !line 53
+if (perh > 0._dp) then ! line 53
   if (perh > 360._dp) then
     perh = perh - 360._dp
   end if
@@ -322,47 +325,50 @@ do i = 1,nob
   xob = xob + aob(i) / 3600._dp * cos(arg)
 end do
 
+orbit%yrBP = cal_year
 orbit%ecc  = ecc
 orbit%pre  = pre
 orbit%perh = perh
 orbit%xob  = xob
 
+! write(0,*)'set yrbp ',orbit%yrBP
+
 end subroutine calcorbitpars
 
-!--------------------------------------------------------------------------------------------
+! --------------------------------------------------------------------------------------------
 
 subroutine toa_insolation(orbit,nd,phi,ww,dayl,delta)
 
-!calculates top-of-the-atmosphere insolation given day of the year and latitude
-!orbital parameters should be precalculated
+! calculates top-of-the-atmosphere insolation given day of the year and latitude
+! orbital parameters should be precalculated
 
 use parametersmod, only : sp,dp,pi,pir
 
 implicit none
 
-!arguments
+! arguments
 
-type(orbitpars), intent(in)  :: orbit  !orbital parameters for this year, calculated with calcorbitpars
-integer,         intent(in)  :: nd     !day of year
-real(dp),        intent(in)  :: phi    !latitude (degrees N)
+type(orbitpars), intent(in)  :: orbit  ! orbital parameters for this year, calculated with calcorbitpars
+integer,         intent(in)  :: nd     ! day of year
+real(dp),        intent(in)  :: phi    ! latitude (degrees N)
 
-real(sp),        intent(out) :: ww     !top of the atmosphere insolation (kJ m-2 d-1)
-real(sp),        intent(out) :: dayl   !day length (h)
-real(sp),        intent(out) :: delta  !solar declination (degrees)
+real(sp),        intent(out) :: ww     ! top of the atmosphere insolation (kJ m-2 d-1)
+real(sp),        intent(out) :: dayl   ! day length (h)
+real(sp),        intent(out) :: delta  ! solar declination (degrees)
 
-!parameters
+! parameters
 
-real(dp), parameter :: ss   = 1366.5d0    !solar constant (W m-2), updated with grab from NASA web site
+real(dp), parameter :: ss   = 1366.5d0    ! solar constant (W m-2), updated with grab from NASA web site
 real(dp), parameter :: tau  =   86.4d0
 real(dp), parameter :: test =    1.e-8
 real(dp), parameter :: step =  360._dp/365.25d0
 
-!variables
+! variables
 
-real(dp) :: ecc   !eccentricity parameter
-real(dp) :: pre   !precession parameter
-real(dp) :: perh  !longitude of perhelion
-real(dp) :: xob   !obliquity (tilt) (degrees)
+real(dp) :: ecc   ! eccentricity parameter
+real(dp) :: pre   ! precession parameter
+real(dp) :: perh  ! longitude of perhelion
+real(dp) :: xob   ! obliquity (tilt) (degrees)
 
 real(dp) :: xec
 real(dp) :: dlam
@@ -387,11 +393,11 @@ real(dp) :: s
 real(dp) :: rlam
 real(dp) :: sd
 real(dp) :: cd
-real(dp) :: rdelta  !declination in radians
+real(dp) :: rdelta  ! declination in radians
 real(dp) :: spa
 real(dp) :: cp
-real(dp) :: aphi    !absolute value of the latitude
-real(dp) :: adelta  !absolute value of the solar zenith angle
+real(dp) :: aphi    ! absolute value of the latitude
+real(dp) :: adelta  ! absolute value of the solar zenith angle
 real(dp) :: tt
 
 real(dp) :: at
@@ -400,7 +406,7 @@ real(dp) :: tp
 real(dp) :: stp
 real(dp) :: rdayl
 
-!----------------------------------------------------------------------
+! ----------------------------------------------------------------------
 
 if (phi < -90._dp .or. phi > 90._dp) then
   
@@ -420,7 +426,7 @@ pre  = orbit%pre
 perh = orbit%perh
 xob  = orbit%xob
 
-!---
+! ---
 
 sf  = tau * ss / pi
 so  = sin(xob * pir)
@@ -464,8 +470,8 @@ cp      =  cd * cos(rphi)
 aphi    =  abs(phi)
 adelta  =  abs(delta)
 
-!singularity for aphi = 90 and delta = 0
-!particular cases for lat = 0 or delta = 0
+! singularity for aphi = 90 and delta = 0
+! particular cases for lat = 0 or delta = 0
 
 tt = abs(aphi - 90._dp)
 
@@ -520,6 +526,6 @@ end if
 
 end subroutine toa_insolation
 
-!------------------------------------
+! ------------------------------------
 
 end module orbitmod

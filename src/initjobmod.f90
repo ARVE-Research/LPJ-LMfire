@@ -251,6 +251,8 @@ if (ncstat /= nf90_noerr) then  ! there isn't a time dimension
   tlen = 1
   
   allocate(topotime(tlen))
+  
+  topotime = 0
 
 else
 

@@ -98,7 +98,11 @@ allocate(rvar1d(ncells))
 
 !number of tiles used in that run
 
-ntiles = count(in_master(1)%human%landuse >=0.)
+if (count(in_master(1)%human%landuse >=0.) > 1) then
+  ntiles = 3
+else
+  ntiles = 1
+end if
 
 !---
 !land fraction
