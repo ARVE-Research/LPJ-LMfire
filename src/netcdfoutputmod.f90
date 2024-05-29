@@ -23,7 +23,7 @@ use netcdf
 use errormod, only    : ncstat,netcdf_err
 use calendarmod, only : timestruct,ymdt2jd
 
-use iovariablesmod,  only : cntx,cnty,ofid,cellmask,calcforagers,dosoilco2,timeunit_baseyr
+use iovariablesmod,  only : cntx,cnty,ofid,cellmask,calcforagers,dosoilco2,timeunit_basedate
 use parametersmod,   only : sp,dp,npft
 use mpistatevarsmod, only : statevars,inputdata
 
@@ -60,14 +60,14 @@ real(dp) :: dt
 !----------------------------
 !write the time variable
 
-! ----
-! calculate Julian day for base year (this should be done only once in the init subroutine)
-
-baseyear = timestruct(timeunit_baseyr,1,1)
-
-! calculate Julian day for base year
-
-call ymdt2jd(baseyear)
+! ! ----
+! ! calculate Julian day for base year (this should be done only once in the init subroutine)
+! 
+! baseyear = timestruct(timeunit_baseyr,1,1)
+! 
+! ! calculate Julian day for base year
+! 
+! call ymdt2jd(baseyear)
 
 ! ----
 ! calculate Julian day for current year 
@@ -78,13 +78,13 @@ yearCE = 1950 - yearBP
 
 if (yearCE <= 0) yearCE = yearCE - 1
 
-thisyear = timestruct(yearCE,12,31)
+thisyear = timestruct(yearCE,12,31,23,59,59.)
 
 call ymdt2jd(thisyear)
 
 ! calculate days since base time
 
-dt = thisyear%jd - baseyear%jd
+dt = thisyear%jd - timeunit_basedate%jd
 
 ncstat = nf90_inq_varid(ofid,'time',varid)
 ncstat = nf90_put_var(ofid,varid,dt,start=[tpos])

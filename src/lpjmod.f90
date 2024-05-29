@@ -1074,10 +1074,20 @@ do i = 1,3 ! ntiles
     
       ! distribute the pftCflux equally on all days with a monthly temperature > 0. degrees Celsius
       ! convert from g C to kg dry matter, hence the multiplication factors
-      mBBpft(:,m) = pftCflux(:) * real(nosnowdays(m))/real(allnosnowdays)  * 0.001 * 1./0.45  
+      
+      if (allnosnowdays > 0) then
+      
+				mBBpft(:,m) = pftCflux(:) * real(nosnowdays(m))/real(allnosnowdays)  * 0.001 * 1./0.45  
+	
+				mburnedf(m) = afire_frac * real(nosnowdays(m))/real(allnosnowdays)
+      
+      else
+      
+				mBBpft(:,m) = 0.
+				mburnedf(m) = 0.
 
-      mburnedf(m) = afire_frac * real(nosnowdays(m))/real(allnosnowdays)       
-                    
+			end if
+
     end do     
       
 	! write(stdout,'(9f14.7)')  mpftCflux

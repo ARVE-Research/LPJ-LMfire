@@ -1,6 +1,7 @@
 module iovariablesmod
 
 use parametersmod, only : sp,dp,i2,i4
+use calendarmod,   only : timestruct
 
 implicit none
 
@@ -31,7 +32,7 @@ integer, parameter :: maxoutvars = 100   ! maximum number of variables for outpu
 character(40), dimension(maxoutvars) :: outputvar = 'null'
 
 character(80) :: timeunit_climate
-integer :: timeunit_baseyr
+type(timestruct) :: timeunit_basedate
 
 integer  :: cfid
 integer  :: cfid1

@@ -10,7 +10,7 @@
  topofile         = '/home/terraces/datasets/topography/NA5km/NAtopo_v2024.nc'
  pftparsfile      = '/home/terraces/projects/fire_deficit/LPJ-LMfire/share/pftpars_global.csv'
  popdfile         = '/home/terraces/datasets/ALCC/HYDE/v3.3/NorthAm/HYDE33frac_0800-2023_annual_packed.nc'
- nspinyrsout      = 180
+ nspinyrsout      = 345  ! start in AD 1490
  maxmem           = 12288.
  lu_turn_yrs      = 0.
  outputvar     = 'cover','albiomass','livebiomass','litterC_fast','litterC_slow','litterC_bg','soilC_surf',

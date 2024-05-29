@@ -817,7 +817,7 @@ end if
 
 if (cal_year > topotime(1)) then
   write(stdout,*)'WARNING: the requested starting year for the run is earlier than the first year of data in the topofile'
-  write(stdout,*)'cal_year, topotime: ',cal_year,topotime(1)
+  write(stdout,*)'year cal BP, topotime: ',cal_year,topotime(1)
   write(stdout,*)'using topo data from nearest year available in data set'
 end if  
 

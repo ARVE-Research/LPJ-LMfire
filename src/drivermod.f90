@@ -117,10 +117,10 @@ if (dospinup) then
        call netcdf_output(ncells,tpos,yrBP,sv_master,in_master)
        
        tpos = tpos + 1
-       
-       cal_year = cal_year - 1
-
+ 
     end if   
+
+    cal_year = cal_year - 1
 
   end do
 

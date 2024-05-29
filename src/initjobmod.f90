@@ -20,7 +20,7 @@ use iovariablesmod,  only : cfile_spinup,cfile_transient,soilfile,              
                             lu_turn_yrs,popdfile,poppfile,maxmem,bounds,                                                  &
                             outputfile,srtx,srty,cntx,cnty,endx,endy,inputlonlen,inputlatlen,                             &
                             lucc,cellindex,lonvect,latvect,co2vect,nolanduse,nclimv,calcforagers,projgrid,geolon,geolat,  &
-                            startyr_foragers,pftparsfile,dosoilco2,timeunit_climate,timeunit_baseyr
+                            startyr_foragers,pftparsfile,dosoilco2,timeunit_climate,timeunit_basedate
 use coordsmod,       only : parsecoords
 use initsoilmod,     only : initsoil
 use initclimatemod,  only : initclimate
@@ -60,6 +60,8 @@ integer  :: a,b
 integer  :: tyears
 logical  :: newsave
 
+integer  :: transmons
+
 integer :: cfid1
 integer :: cfid2
 
@@ -85,7 +87,9 @@ integer, dimension(8) :: ts
 ! character(10) :: time
 ! character(5)  :: zone
 
-type(timestruct) :: basedate
+integer :: timeunit_baseyr
+
+! type(timestruct) :: basedate
 type(timestruct) :: spinstartd
 
 
@@ -129,7 +133,7 @@ write(stderr,10)' Timestamp: ',ts(1),'-',ts(2),'-',ts(3),'T',ts(5),':',ts(6),':'
 ! initialize variables with a default value if they are not specified in the namelist
 
 spinupyears    = 10
-transientyears = 1
+transientyears = -1
 nspinyrsout    = -9999
 ! nolanduse      = .false.  ! not used
 startyr_foragers = 1000
@@ -174,6 +178,7 @@ call getarg(3,outputfile)
 ! gridded input data
 ! open all of the specified input files and make sure the grids cover the same area
   
+! -------
 ! climate
 
 ncstat = nf90_open(cfile_spinup,nf90_nowrite,cfid1)
@@ -201,17 +206,43 @@ if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
 timeunit_baseyr = tunit2year(timeunit_climate)
 
+! -------
+
+if (dotransient .and. transientyears < 0) then
+
+  write(stdout,*)'running all years in transient climate file'
+
+  ncstat = nf90_open(cfile_transient,nf90_nowrite,cfid2)
+  if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+  
+  ncstat = nf90_inq_dimid(cfid2,'time',dimid)
+  if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+  
+  ncstat = nf90_inquire_dimension(cfid1,dimid,len=transmons)
+  if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+  
+  ncstat = nf90_close(cfid2)
+  if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+  
+  transientyears = transmons / 12
+
+  write(stdout,*)'there are ',transientyears,' years of climate in the file'
+
+end if
+
+! -------
 ! return the Julian day of the basedate
 
-basedate = timestruct(timeunit_baseyr,1,1,0,0,0.)
+timeunit_basedate = timestruct(timeunit_baseyr,1,1,0,0,0.)
 
-call ymdt2jd(basedate)
+call ymdt2jd(timeunit_basedate)
 
 ! calc Julian day of first day of spinup
 
-day0 = time(1 + tlen - 12 * spinupyears)
+! day0 = time(1 + tlen - 12 * spinupyears)
+day0 = time(1)  ! days since 1950-01-01
 
-spinstartd%jd = basedate%jd + day0
+spinstartd%jd = timeunit_basedate%jd + day0
 
 call jd2ymdt(spinstartd)
 
@@ -219,7 +250,11 @@ call jd2ymdt(spinstartd)
 
 cal_year = 1950 - spinstartd%y
 
+if (spinstartd%y < 0) cal_year = cal_year - 1  ! adjust if the start year is in BCE time
+
 write(stdout,'(a,i0,a,i0,a)')' spinup starts at ',spinstartd%y,' CE = ',cal_year,' BP'
+
+! write(stdout,*)'transient ends at ',spinupyears + transientyears + spinstartd%y,' CE'
 
 ! open the soil initial conditions files and allocate the soils input matrix (and lat and lon vect).
 ! allocates lonvect, latvect and soil%
@@ -239,6 +274,8 @@ ncells = cntx * cnty
 
 ! -------------------------------
 ! topo file
+
+write(stdout,*)'Read topofile'  
 
 ncstat = nf90_open(topofile,nf90_nowrite,topofid)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
@@ -277,6 +314,7 @@ ncstat = nf90_inq_varid(topofid,'slope',slopeid)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
 ncstat = nf90_inq_varid(topofid,'landf',landfid)
+if (ncstat == nf90_enotvar) ncstat = nf90_inq_varid(topofid,'areafrac',landfid)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
   
 write(stdout,*) 'Done reading topofile'  
@@ -287,7 +325,7 @@ write(stdout,*) 'Done reading topofile'
 if (co2file /= '') then
   write(stdout,'(a,a)')'using co2file: ',trim(co2file)
   write(stdout,*)cal_year,transientyears
-  call getco2(cal_year,spinupyears + transientyears)
+  call getco2(cal_year,spinupyears + max(transientyears,0))
 else
   co2vect = fixedco2
 end if

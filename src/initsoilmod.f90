@@ -318,6 +318,8 @@ end do
 deallocate(sand)
 deallocate(clay)
 
+write(stdout,*)'finished reading soil'
+
 end subroutine initsoil
 
 !----------------------------------------------------------------------
