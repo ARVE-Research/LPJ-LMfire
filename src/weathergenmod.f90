@@ -526,7 +526,7 @@ real(sp) :: cldf_cv
 
 tmax_mn = dmetvars%tmax_mn
 tmin_mn = dmetvars%tmin_mn
-cldf_mn = dmetvars%tmin_mn
+cldf_mn = dmetvars%cldf_mn
 tmax_cv = dmetvars%tmax_cv
 tmin_cv = dmetvars%tmin_cv
 cldf_cv = dmetvars%cldf_cv
