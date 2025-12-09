@@ -8,6 +8,7 @@ public :: tunit2year
 public :: matsol
 public :: pos
 public :: area
+public :: overprint
 
 interface pos
   module procedure pos_sp
@@ -217,6 +218,30 @@ real(sp) function area(lat,minutes)
   area = real(cellarea * 1.e6)
 
 end function area
+
+! ------------------------------------------------------------------------------------------------------------------
+
+subroutine overprint(message)
+
+use parametersmod, only : stderr
+
+implicit none
+
+! argument
+
+character(*), intent(in) :: message
+
+! parameter
+
+character, parameter :: cr = char(13)
+
+! ---
+
+write(stderr,'(a)',advance='no')message
+flush(0)
+write(0,'(a1)',advance='no')cr
+
+end subroutine overprint
 
 ! ------------------------------------------------------------------------------------------------------------------
 

@@ -1,6 +1,5 @@
 bin_PROGRAMS = lpj
 lpj_SOURCES =               \
-  overprint.c               \
   parametersmod.f90         \
   randomdistmod.f90         \
   utilitiesmod.f90          \

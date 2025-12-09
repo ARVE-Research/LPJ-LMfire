@@ -20,5 +20,7 @@ src/lpj
 .deps/
 .dirstamp
 .libs/
+.mod
+.o
 *.l[ao]
 *~
