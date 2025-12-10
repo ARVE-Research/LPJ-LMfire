@@ -107,7 +107,7 @@ tloc = minloc(abs(ghgtime - dt))
 
 srtt = tloc(1)
 
-write(0,*)'getting CO2',cal_year,yearCE,srtt
+write(0,*)'getting CO2',cal_year,yearCE,srtt,years
 
 ! ! check to make sure the requested calendar year for the beginning of the run is available in the dataset
 ! 

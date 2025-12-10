@@ -92,6 +92,7 @@ integer :: timeunit_baseyr
 ! type(timestruct) :: basedate
 type(timestruct) :: spinstartd
 
+integer :: runyears
 
 namelist /joboptions/ &
   cfile_spinup,       &
@@ -113,9 +114,8 @@ namelist /joboptions/ &
   lu_turn_yrs,        &
   maxmem,             &
   nolanduse,          &
+  cal_year,           &
   startyr_foragers
-
-!   cal_year,           &  removed
 
 ! -------------------------
 
@@ -138,6 +138,7 @@ nspinyrsout    = -9999
 ! nolanduse      = .false.  ! not used
 startyr_foragers = 1000
 dosoilco2 = .false.
+cal_year = -9999.
 
 ! read the joboptions
 
@@ -231,30 +232,41 @@ if (dotransient .and. transientyears < 0) then
 end if
 
 ! -------
-! return the Julian day of the basedate
 
-timeunit_basedate = timestruct(timeunit_baseyr,1,1,0,0,0.)
+if (cal_year == -9999.) then
 
-call ymdt2jd(timeunit_basedate)
+  ! return the Julian day of the basedate
+  
+  timeunit_basedate = timestruct(timeunit_baseyr,1,1,0,0,0.)
+  
+  call ymdt2jd(timeunit_basedate)
+  
+  ! calc Julian day of first day of spinup
+  
+  ! day0 = time(1 + tlen - 12 * spinupyears)
+  day0 = time(1)  ! days since 1950-01-01
+  
+  spinstartd%jd = timeunit_basedate%jd + day0
+  
+  call jd2ymdt(spinstartd)
+  
+  ! calculate the year CE and year BP of the first year of the spinup based on the number of years of spinup requested
+  
+  cal_year = 1950 - spinstartd%y
+  
+  if (spinstartd%y < 0) cal_year = cal_year - 1  ! adjust if the start year is in BCE time
+  
+  write(stdout,'(a,i0,a,i0,a)')' spinup starts at ',spinstartd%y,' CE = ',cal_year,' BP'
+  
+  ! write(stdout,*)'transient ends at ',spinupyears + transientyears + spinstartd%y,' CE'
 
-! calc Julian day of first day of spinup
+else
 
-! day0 = time(1 + tlen - 12 * spinupyears)
-day0 = time(1)  ! days since 1950-01-01
+  spinstartd%y = - (cal_year - 1950)
 
-spinstartd%jd = timeunit_basedate%jd + day0
+  write(stdout,'(a,i0,a,i0,a)')' spinup starts at ',spinstartd%y,' CE = ',cal_year,' BP'
 
-call jd2ymdt(spinstartd)
-
-! calculate the year CE and year BP of the first year of the spinup based on the number of years of spinup requested
-
-cal_year = 1950 - spinstartd%y
-
-if (spinstartd%y < 0) cal_year = cal_year - 1  ! adjust if the start year is in BCE time
-
-write(stdout,'(a,i0,a,i0,a)')' spinup starts at ',spinstartd%y,' CE = ',cal_year,' BP'
-
-! write(stdout,*)'transient ends at ',spinupyears + transientyears + spinstartd%y,' CE'
+end if
 
 ! open the soil initial conditions files and allocate the soils input matrix (and lat and lon vect).
 ! allocates lonvect, latvect and soil%
@@ -322,11 +334,15 @@ write(stdout,*) 'Done reading topofile'
 ! -------------------------------
 ! externally prescribed CO2 concentrations
 
+runyears = spinupyears + max(transientyears,0)
+
 if (co2file /= '') then
   write(stdout,'(a,a)')'using co2file: ',trim(co2file)
-  write(stdout,*)cal_year,transientyears
-  call getco2(cal_year,spinupyears + max(transientyears,0))
+  write(stdout,'(a,2i6)')'cal BP, transientyrs: ',cal_year,transientyears
+  call getco2(cal_year,runyears)
 else
+  write(stdout,'(a,f6.1)')'NB using fixed CO2 concentrations specified in job options: ',fixedco2
+  allocate(co2vect(runyears))
   co2vect = fixedco2
 end if
 

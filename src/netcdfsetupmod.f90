@@ -33,7 +33,7 @@ use typesizes
 use netcdf
 use errormod, only : ncstat,netcdf_err
 
-use parametersmod,  only : npft,lutype,dp
+use parametersmod,  only : npft,lutype,dp,stdout
 use iovariablesmod, only : ofid,lonvect,latvect,srtx,cntx,endx,srty,cnty,endy,outputfile,outputvar,cellindex,cellmask,  &
                            calcforagers,gridres,projgrid,timeunit_climate
 
@@ -238,7 +238,7 @@ if (ncstat/=nf90_noerr) call netcdf_err(ncstat)
 ncstat = nf90_put_att(ofid,varid,'delta_t','0001-00-00 00:00:00')
 if (ncstat/=nf90_noerr) call netcdf_err(ncstat)
 
-write(0,*)'output time unit: ',trim(timeunit_climate)
+write(stdout,*)'output time unit: ',trim(timeunit_climate)
 
 !---------------------------------------------------------------------------
 !regular variables
