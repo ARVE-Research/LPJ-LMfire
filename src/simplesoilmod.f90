@@ -26,7 +26,7 @@ integer :: it
 
 integer :: soiltype
 
-real(sp) :: sand
+real(sp) :: sand  ! expects %
 real(sp) :: clay
 real(sp) :: OM    ! organic matter (mass %)
 real(sp) :: OMf   ! organic matter (mass fraction)
@@ -61,6 +61,8 @@ real(sp) :: dzx       ! excess change in top layer thickness
 
 logical, allocatable, dimension(:) :: valid
 
+real(sp) :: scalef
+
 ! ----------
 
 nl = size(soil%sand)
@@ -81,9 +83,17 @@ dz = 0.2
 
 OrgM  = 0.
 
+if (maxval(soil%sand) <= 1. .and. maxval(soil%clay) <= 1.) then
+  scalef = 100.
+else
+  scalef = 1.
+end if
+
+! write(0,*)'soilmod',soil%sand(1),soil%clay(1),scalef  
+
 do l = 1,nl
-  sand  = soil%sand(l)
-  clay  = soil%clay(l)
+  sand  = soil%sand(l) * scalef
+  clay  = soil%clay(l) * scalef
   OM    = soil%orgm(l)
   
   silt = 100. - (sand + clay)

@@ -40,7 +40,7 @@ real(sp), parameter :: allom4 =   0.3
 
 real(sp), parameter :: reinickerp = 1.6
 
-! real(sp), parameter :: latosa     = 8.e3  ! this parameter is removed in favor of a dynamic calculation of latosa that is based on the maximum value given below
+real(sp), parameter :: latosa     = 8.e3  ! this parameter is removed in favor of a dynamic calculation of latosa that is based on the maximum value given below
 
 real(sp), parameter :: k_lasa = 8000.
 
@@ -69,7 +69,7 @@ type(pftflag), dimension(npft) :: pft
 
 real(sp), dimension(npft) :: sla          ! PFT specific leaf area (m2/gC)
 
-real(sp) :: latosa
+! real(sp) :: latosa
 
 ! type sapling_pars
   real(sp), dimension(npft,ncvar) :: lm_sapl  ! initial (sapling) leaf mass (gC/m2)

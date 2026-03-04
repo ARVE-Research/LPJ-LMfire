@@ -206,8 +206,8 @@ end if
 
 write(stdout,*)'reading soil data'
 
-ncstat = nf90_inq_dimid(soilfid,'layer',dimid)
-if (ncstat == nf90_ebaddim) ncstat = nf90_inq_dimid(soilfid,'zpos',dimid)
+ncstat = nf90_inq_dimid(soilfid,'depth',dimid)
+if (ncstat == nf90_ebaddim) ncstat = nf90_inq_dimid(soilfid,'layer',dimid)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
 ncstat = nf90_inquire_dimension(soilfid,dimid,len=layers)
@@ -220,7 +220,9 @@ allocate(depth(layers))
 allocate(sand(cntx,cnty,layers))
 allocate(clay(cntx,cnty,layers))
 
-ncstat = nf90_inq_varid(soilfid,'zpos',varid)
+
+ncstat = nf90_inq_varid(soilfid,'depth',varid)
+if (ncstat == nf90_enotvar) ncstat = nf90_inq_varid(soilfid,'zpos',varid)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
 ncstat = nf90_get_var(soilfid,varid,depth)

@@ -110,6 +110,8 @@ real(sp), dimension(365) :: dwind
 real(sp), dimension(365) :: dpet
 ! real(sp), dimension(365) :: dswrad
 
+real(sp), parameter :: fpc_tree_max = 0.95
+
 logical, parameter :: dospitfire = .true.
 
 ! ---------------------------------------------------------------
@@ -354,9 +356,9 @@ spinup = in%spinup
 year   = in%year
 yrBP   = in%orbit%yrBP
 
-! write(stdout,*)'LPJcore start',in%lon,in%lat,year,yrBP
-
 co2 = in%co2
+
+! write(stdout,*)'LPJcore start',in%lon,in%lat,year,yrBP,in%co2
 
 ! co2 = 324.
  
@@ -403,7 +405,7 @@ dosoilco2 = in%dosoilco2
 !   write(stdout,'(12f9.2)')in%climate%temp0
 !   write(stdout,'(12f9.2)')in%climate%prec
 !   write(stdout,'(12f9.2)')in%climate%cldp
-!   write(stdout,'(12f9.2)')in%climate%wetd
+!   write(stdout,'(12f9.2)')in%climate%wetd * ndaymonth
 !   write(stdout,'(12f9.2)')in%climate%trng
 !   write(stdout,'(12f9.2)')in%climate%wind
 !   write(stdout,'(12f9.5)')in%climate%lght
@@ -571,6 +573,10 @@ call climate20(temp,dtemp,gdd,mtemp_min_buf,gdd_buf,mtemp_min20,gdd20,mtemp_max,
 
 call bioclim(mtemp_min20,gdd,mtemp_max,survive,estab_lim)
 
+! write(0,*)'bioclim'
+! write(0,*)survive
+! write(0,*)estab_lim
+
 ! --------------------------------------------------------------------------------------
 if (lucc) then
 
@@ -678,13 +684,13 @@ do i = 1,3 ! ntiles
 
   ! write(stdout,*)osv%tile(i)%soil
   
- ! soilpar(1) =  19.060502
- ! soilpar(2) =   5.789572
- ! soilpar(3) =  30.
- ! soilpar(4) = 280.
- ! soilpar(5) = 0.2
- ! soilpar(6) = 0.65
- ! soilpar(7) = 0.4
+!  soilpar(1) =  19.060502
+!  soilpar(2) =   5.789572
+!  soilpar(3) =  30.
+!  soilpar(4) = 280.
+!  soilpar(5) = 0.2
+!  soilpar(6) = 0.65
+!  soilpar(7) = 0.4
   
   ! write(stdout,*)soilpar(1),soilpar(3)
   ! write(stdout,*)soilpar(2),soilpar(4)
@@ -746,17 +752,17 @@ do i = 1,3 ! ntiles
   ! first year establishment - after the first year, we will calculate establishment after 
   ! wscal has been calculated in gppmod, so we can have a water supply:demand limited establishment
   
-  if (year == 1) then
+!  if (year == 1) then
   
-    where (pft%tree) estab = .false.
+!    where (pft%tree) estab = .false.
   
     call establishment(pftpar,present,survive,estab,nind,lm_ind,sm_ind,rm_ind,hm_ind,lm_sapl,sm_sapl,rm_sapl,hm_sapl,pft%tree,  &
                        crownarea,fpc_grid,lai_ind,height,sla,wooddens,latosa,prec,reinickerp,                                   &
                        litter_ag_fast,litter_ag_slow,litter_bg,                                                                 &
                        allom1,allom2,allom3,acflux_estab,leafondays,leafoffdays,leafon,estab_pft,afire_frac,                    &
-                       osv%tile(i)%soil%clay,osv%tile(i)%soil%sand,in%cellarea)
+                       osv%tile(i)%soil%clay,osv%tile(i)%soil%sand) !,in%cellarea)
 
-  end if
+!  end if
 
 !  if(i==2) write(stdout,'(a,i3,9f14.4)') 'after establishment',i, litter_ag_fast(:,1)               
                      
@@ -782,8 +788,11 @@ do i = 1,3 ! ntiles
 
   ! light competition among trees and between trees and grasses (light 1)
 
+!   call light(present,pft%tree,lm_ind,sm_ind,hm_ind,rm_ind,crownarea,fpc_grid,fpc_inc,nind,  &
+!              litter_ag_fast,litter_ag_slow,litter_bg,sla,in%cellarea)
+  
   call light(present,pft%tree,lm_ind,sm_ind,hm_ind,rm_ind,crownarea,fpc_grid,fpc_inc,nind,  &
-             litter_ag_fast,litter_ag_slow,litter_bg,sla,in%cellarea)
+             litter_ag_fast,litter_ag_slow,litter_bg,sla,fpc_tree_max) 
   
 !  if(i==2)   write(stdout,'(a,i3,9f14.4)') 'after light1',i, litter_ag_fast(:,1) 
 
@@ -836,10 +845,15 @@ do i = 1,3 ! ntiles
 !     write(0,*)m,dpet(m),dprec(m)
 !   end do
 
+!   call calcgpp(present,[co2,-8.,0.],soilpar,pftpar,lai_ind,fpc_grid,mdayl,temp,mpar_day,dphen_t,w,dpet,dprec,dmelt,   &
+!                sla,agpp,alresp,arunoff_surf,arunoff_drain,arunoff,mrunoff,dwscal365,dphen_w,dphen,wscal,mgpp,mlresp,  &
+!                mw1,dw1,aaet,leafondays,leafoffdays,leafon,pft%tree,pft%raingreen,year,mat20,wscal_v, &
+!                dtemp,lm_ind(:,1),sm_ind(:,1),rm_ind(:,1),soilprop,latosa)           
+
   call calcgpp(present,[co2,-8.,0.],soilpar,pftpar,lai_ind,fpc_grid,mdayl,temp,mpar_day,dphen_t,w,dpet,dprec,dmelt,   &
                sla,agpp,alresp,arunoff_surf,arunoff_drain,arunoff,mrunoff,dwscal365,dphen_w,dphen,wscal,mgpp,mlresp,  &
-               mw1,dw1,aaet,leafondays,leafoffdays,leafon,pft%tree,pft%raingreen,year,mat20,wscal_v, &
-               dtemp,lm_ind(:,1),sm_ind(:,1),rm_ind(:,1),soilprop,latosa)           
+               mw1,dw1,aaet,leafondays,leafoffdays,leafon,pft%tree,pft%raingreen,year,mat20,wscal_v,in%idx)           
+
 
   wscal_a = sum(wscal_v,dim=1) / 365.
 
@@ -930,8 +944,9 @@ do i = 1,3 ! ntiles
 
   ! write(stdout,*)'killplant',bm_inc(8,1),present(8),lm_ind(8,1)
 
-  call killplant(bm_inc,present,pft%tree,crownarea,lm_ind,rm_ind,hm_ind,sm_ind,nind,litter_ag_fast,litter_ag_slow,litter_bg)
-  
+  ! call killplant(bm_inc,present,pft%tree,crownarea,lm_ind,rm_ind,hm_ind,sm_ind,nind,litter_ag_fast,litter_ag_slow,litter_bg)
+  call killplant(bm_inc,present,pft%tree,lm_ind,rm_ind,hm_ind,sm_ind,nind,litter_ag_fast,litter_ag_slow,litter_bg)
+
 !  if(i==2)   write(stdout,'(a,i3,9f14.4)') 'after killplant',i, litter_ag_fast(:,1) 
 
   ! allocation of annual carbon increment to leaf, stem and fine root compartments
@@ -942,7 +957,10 @@ do i = 1,3 ! ntiles
 !   write(stdout,*)'heartwood',hm_ind(5,1)
 !   write(stdout,*)'rootmass ',rm_ind(5,1)
   
-  call allocation(pftpar,allom1,allom2,allom3,latosa,wooddens,reinickerp,pft%tree,sla,wscal,wscal8,nind,bm_inc,lm_ind,sm_ind,     &
+  ! call allocation(pftpar,allom1,allom2,allom3,latosa,wooddens,reinickerp,pft%tree,sla,wscal,wscal8,nind,bm_inc,lm_ind,sm_ind,     &
+  !                hm_ind,rm_ind,crownarea,fpc_grid,lai_ind,height,litter_ag_fast,litter_ag_slow,litter_bg,fpc_inc,present)
+
+  call allocation(pftpar,allom1,allom2,allom3,latosa,wooddens,reinickerp,pft%tree,sla,wscal,nind,bm_inc,lm_ind,sm_ind,     &
                   hm_ind,rm_ind,crownarea,fpc_grid,lai_ind,height,litter_ag_fast,litter_ag_slow,litter_bg,fpc_inc,present)
 
 !   if (any(crownarea > 100.)) then
@@ -1020,8 +1038,12 @@ do i = 1,3 ! ntiles
 
   ! light competition between trees and grasses (light 2)
 
+!   call light(present,pft%tree,lm_ind,sm_ind,hm_ind,rm_ind,crownarea,fpc_grid,fpc_inc,nind,  &
+!              litter_ag_fast,litter_ag_slow,litter_bg,sla,in%cellarea)
+  
   call light(present,pft%tree,lm_ind,sm_ind,hm_ind,rm_ind,crownarea,fpc_grid,fpc_inc,nind,  &
-             litter_ag_fast,litter_ag_slow,litter_bg,sla,in%cellarea)
+             litter_ag_fast,litter_ag_slow,litter_bg,sla,fpc_tree_max)
+  
   
 !  if(i==2)   write(stdout,'(a,i3,9f14.4)') 'after light2',i, litter_ag_fast(:,1) 
 
@@ -1245,18 +1267,22 @@ do i = 1,3 ! ntiles
 
   ! need average 140 or more days of wscal > 0.35 for sapling recruitment  
          
-  if (wiltdays8(8) < 140. .or. year < 10) estab(1:7) = .false.
-  
-  call establishment(pftpar,present,survive,estab,nind,lm_ind,sm_ind,rm_ind,hm_ind,lm_sapl,sm_sapl,rm_sapl,hm_sapl,pft%tree,       &
-                   crownarea,fpc_grid,lai_ind,height,sla,wooddens,latosa,prec,reinickerp,litter_ag_fast,litter_ag_slow,litter_bg,  &
-                   allom1,allom2,allom3,acflux_estab,leafondays,leafoffdays,leafon,estab_pft,afire_frac,osv%tile(i)%soil%clay,     &
-                   osv%tile(i)%soil%sand,in%cellarea)
+!   if (wiltdays8(8) < 140. .or. year < 10) estab(1:7) = .false.
+!   if (year < 10) estab(1:7) = .false.
+!   
+!   call establishment(pftpar,present,survive,estab,nind,lm_ind,sm_ind,rm_ind,hm_ind,lm_sapl,sm_sapl,rm_sapl,hm_sapl,pft%tree,       &
+!                    crownarea,fpc_grid,lai_ind,height,sla,wooddens,latosa,prec,reinickerp,litter_ag_fast,litter_ag_slow,litter_bg,  &
+!                    allom1,allom2,allom3,acflux_estab,leafondays,leafoffdays,leafon,estab_pft,afire_frac,osv%tile(i)%soil%clay,     &
+!                    osv%tile(i)%soil%sand,in%cellarea)
     
   ! ----------------------------------------------------------------------------
   ! light competition once again, following establishment (light 3)
 
+!   call light(present,pft%tree,lm_ind,sm_ind,hm_ind,rm_ind,crownarea,fpc_grid,fpc_inc,nind,  &
+!              litter_ag_fast,litter_ag_slow,litter_bg,sla,in%cellarea)
+
   call light(present,pft%tree,lm_ind,sm_ind,hm_ind,rm_ind,crownarea,fpc_grid,fpc_inc,nind,  &
-             litter_ag_fast,litter_ag_slow,litter_bg,sla,in%cellarea)
+             litter_ag_fast,litter_ag_slow,litter_bg,sla,fpc_tree_max)
   
   !  if(i==2)   write(stdout,'(a,i3,9f14.4)') 'after light3',i, litter_ag_fast(:,1) 
   

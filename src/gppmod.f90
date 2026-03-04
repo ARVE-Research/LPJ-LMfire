@@ -8,8 +8,7 @@ contains
 
 subroutine calcgpp(present,co2,soilpar,pftpar,lai_ind,fpc_grid,mdayl,mtemp,mpar_day,dphen_t,w,dpet,dprec,dmelt,sla,   &
                    agpp,alresp,arunoff_surf,arunoff_drain,arunoff,mrunoff,dwscal365,dphen_w,dphen,wscal,mgpp,mlresp,  &
-                   mw1,dw1,aaet,leafondays,leafoffdays,leafon,tree,raingreen,year,mat20,wscal_v,  &
-                   dtemp,lm_ind,sm_ind,rm_ind,soilprop,latosa)
+                   mw1,dw1,aaet,leafondays,leafoffdays,leafon,tree,raingreen,year,mat20,wscal_v,idx)
 
 ! Calculation of GPP, explicitly linking photosynthesis and water balance through canopy conductance feedback
 
@@ -19,6 +18,8 @@ use weathergenmod,     only : rmsmooth,daily
 use photosynthesismod, only : photosynthesis
 
 implicit none
+
+integer(i8) :: idx
 
 ! parameters
 
@@ -70,16 +71,8 @@ real(sp), dimension(:),   intent(inout) :: dwscal365
 real(sp), dimension(:,:), intent(inout) :: dphen_w
 real(sp), dimension(:,:), intent(inout) :: dphen_t
 real(sp), dimension(:,:), intent(inout) :: dphen
-real(sp), dimension(:,:), intent(out)   :: wscal_v
+real(sp), dimension(:,:), intent(inout) :: wscal_v
 
-! passthrough variables for hydraulics
-
-real(sp), dimension(:),   intent(in) :: dtemp
-real(sp), dimension(:,:), intent(in) :: soilprop
-real(sp), dimension(:),   intent(in) :: lm_ind
-real(sp), dimension(:),   intent(in) :: sm_ind
-real(sp), dimension(:),   intent(in) :: rm_ind
-real(sp), intent(in) :: latosa
 ! local variables
 
 integer  :: m
@@ -129,7 +122,6 @@ real(sp), dimension(npft) :: inhibx1
 real(sp), dimension(npft) :: inhibx2
 real(sp), dimension(npft) :: inhibx3
 real(sp), dimension(npft) :: inhibx4
-real(sp), dimension(npft) :: fpc_ind
 
 real(sp), dimension(2,npft)   :: rootprop
 real(sp), dimension(12,npft)  :: meanfpc
@@ -161,7 +153,7 @@ arunoff_drain = 0.
 
 ! ------------------------------------------
 
-do pft = 1,npft
+do pft=1,npft
 
   lambdam(pft) = pftpar(pft,26)
       
@@ -189,17 +181,7 @@ do pft = 1,npft
 
     ! gminp = PFT-specific min canopy conductance scaled by fpc assuming full leaf cover
 
-    if (tree(pft)) then
-    
-      fpc_ind = 1. - exp(-0.5 * lai_ind(pft))
-    
-      gminp(pft) = pftpar(pft,4) * fpc_ind(pft)
-      
-    else
-
-      gminp(pft) = pftpar(pft,4) * fpc_grid(pft)
-
-    end if
+    gminp(pft) = pftpar(pft,4) * fpc_grid(pft)
 
     rootprop(1,pft) = pftpar(pft,1)
     rootprop(2,pft) = 1. - pftpar(pft,1)
@@ -221,20 +203,6 @@ do pft = 1,npft
 
     ! find the potential canopy conductance realisable under non-water-stressed conditions
 
-    if (tree(pft)) then
-          
-      fpc_ind(pft) = 1. - exp(-0.5 * lai_ind(pft))
-
-      fpar = fpc_ind(pft)
-    
-    else
-
-      fpar = fpc_grid(pft)  ! NB old formulation
-
-    end if
-
-    ! write(0,*)pft,lai_ind(pft),fpar
-
     do m = 1,12
 
       ! Initialisations
@@ -247,18 +215,21 @@ do pft = 1,npft
 
       ! Calculate non-water-stressed net daytime photosynthesis assuming full leaf cover
 
+      fpar = fpc_grid(pft)
+
 !       call photosynthesis(ca,mtemp(m),fpar,mpar_day(m),mdayl(m),c4(pft),sla(pft),nmax(pft),lambdam(pft), &
 !                           rd,agd,adtmm,inhibx1(pft),inhibx2(pft),inhibx3(pft),inhibx4(pft),pft)
 
       call photosynthesis(ca,mtemp(m),fpar,mpar_day(m),mdayl(m),c4(pft),lambdam(pft), &
                           rd,agd,adtmm,inhibx1(pft),inhibx2(pft),inhibx3(pft),inhibx4(pft),pft)
 
+
       if (tsecs(m) > 0.) then
 
         ! Calculate non-water-stressed canopy conductance (gp) mm/sec basis averaged over entire grid cell
         ! Eqn 21 Haxeltine & Prentice 1996
 
-        gp(m) = (((1.6 * adtmm) / (ca * (1. - lambdam(pft)))) / tsecs(m)) + gminp(pft)
+        gp(m)=(((1.6 * adtmm) / (ca * (1. - lambdam(pft)))) / tsecs(m)) + gminp(pft)
 
       else
 
@@ -284,8 +255,6 @@ end do ! pft
 
 ! ------------------------------------------
 ! calculate daily actual evapotranspiration and soil water balance
-
-wscal_v = 0.
       
 d = 1 ! day of year
 
@@ -331,7 +300,7 @@ do m = 1,12
           if (real(leafondays(pft)) >= (365. * longevity(pft))) then
 
             leafon(pft)      = .false.
-            leafoffdays(pft) = leafoffdays(pft) + 1
+            leafoffdays(pft) = leafoffdays(pft)+1
 
             if (real(leafoffdays(pft)) >= (365. * longevity(pft))) then
 
@@ -348,8 +317,7 @@ do m = 1,12
     end do  ! pft
 
     call waterbalance(d,present,rootprop,w,dgp,dpet,dphen,dgc,dmelt,dprec,ksat,awc,  &
-                      drunoff_drain,drunoff_surf,dwscal,daet,fpc_grid,mat20,         &
-                      dtemp,soilprop,lm_ind,sm_ind,rm_ind,fpc_ind,sla,latosa,tree)
+                      drunoff_drain,drunoff_surf,dwscal,daet,fpc_grid,mat20,idx)
 
     ! Store today's water content in soil layer 1
 
@@ -380,22 +348,10 @@ do m = 1,12
 
         ! Accumulate mean monthly fpc, actual (gc) and minimum (gmin) canopy conductances,
         ! incorporating leaf phenology
-        
 
         meangc(m,pft)   = meangc(m,pft)   + dgc(d,pft) / real(ndaymonth(m))
         meangmin(m,pft) = meangmin(m,pft) + gminp(pft) * dphen(d,pft) / real(ndaymonth(m))
-
-        if (tree(pft)) then
-
-          fpc_ind = 1. - exp(-0.5 * lai_ind(pft))
-
-          meanfpc(m,pft) = meanfpc(m,pft) + fpc_ind(pft) * dphen(d,pft) / real(ndaymonth(m))
-          
-        else
-
-          meanfpc(m,pft) = meanfpc(m,pft) + fpc_grid(pft) * dphen(d,pft) / real(ndaymonth(m)) ! original formulation
-
-        end if
+        meanfpc(m,pft)  = meanfpc(m,pft)  + fpc_grid(pft) * dphen(d,pft) / real(ndaymonth(m))
 
         wscal_v(d,pft) = dwscal(pft)
 
@@ -408,8 +364,6 @@ do m = 1,12
     end do ! pft
      
     d = d + 1
-    
-  ! write(0,'(a,3i5,9f7.3)')'dwscal ',d,m,dm,dwscal
 
   end do ! day of month
 
@@ -434,20 +388,16 @@ do m = 1,12
 
       gpd = tsecs(m) * (meangc(m,pft) - meangmin(m,pft))
 
-!       if (pft == 8) then
-!         write(0,*)'grass fpc',m,meanfpc(m,pft)
-!       end if
-
-      fpar = meanfpc(m,pft)  ! cover including phenology
+      fpar = meanfpc(m,pft)  ! cover including phenology  
 
       if (gpd > 1.e-5) then  ! canopy conductance
             
         ! Implement numerical solution
 
-        x1    = 0.02                  ! minimum bracket of the root
-        x2    = lambdam(pft) + 0.05   ! maximum bracket of the root
-        rtbis = x1                    ! root of the bisection
-        dx    = x2 - x1
+        x1 = 0.02                  ! minimum bracket of the root
+        x2 = lambdam(pft) + 0.05   ! maximum bracket of the root
+        rtbis = x1                 ! root of the bisection
+        dx = x2 - x1
 
         b = 0  ! number of tries towards solution
 
@@ -476,7 +426,7 @@ do m = 1,12
 
 
           ! Evaluate fmid at the point lambda = xmid fmid will be an increasing function with xmid,
-          ! with a solution (fmid = 0) between x1 and x2
+          ! with a solution (fmid=0) between x1 and x2
         
           fmid = adt2 - adt1
 
@@ -526,9 +476,9 @@ do pft = 1,npft
   if (present(pft)) then
 
     if (aleafdays(pft) /= 0) then
-      wscal(pft) = awscal(pft) / real(aleafdays(pft))
+      wscal(pft)=awscal(pft) / real(aleafdays(pft))
     else
-      wscal(pft) = 1.
+      wscal(pft)=1.
     end if
 
   end if
