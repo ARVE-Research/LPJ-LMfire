@@ -384,20 +384,20 @@ area_ha = 1.e-4 * area    ! convert m2 to ha
 ! NOTE 2024.04: in current versions of LPJ input files, slope is provided in units of m m-1
 ! convert to radians for the calculation
 
-if (input%slope > minslope) then ! units in m m-1
-  slopefact = 1. / (100. * atan(input%slope) - 2.)
-else
-  slopefact = 1.
-end if
+! if (input%slope > minslope) then ! units in m m-1
+!   slopefact = 1. / (100. * atan(input%slope) - 2.)
+! else
+!   slopefact = 1.
+! end if
 
 ! write(0,*)'slopefact',slopefact
 
-! if (input%slope >= 1.72) then   ! 0.03 for radians
+if (input%slope >= 1.72) then   ! 0.03 for radians
 !   slopefact = 1. / (100. * input%slope - 2.)              ! slope > 0.03, for slope coming in as radians
-!   slopefact = 1. / (5. / 9. * pi * input%slope - 2)       ! this one for slope coming in in degrees
-! else 
-!    slopefact = 1.
-! end if 
+  slopefact = 1. / (5. / 9. * pi * input%slope - 2)       ! this one for slope coming in in degrees
+else 
+   slopefact = 1.
+end if 
 
 light = met%lght * 0.01 ! convert from km-2 to ha-1
 Ustar = met%wind
