@@ -133,11 +133,11 @@ type inputbuffer
   real(dp) :: lat
   real(sp), dimension(3) :: popd                 ! human population density (person km-2) - three categories
   real(sp) :: lu_turnover                        ! fraction of the land use part of the gridcell that is turned over every year
-  real(sp), allocatable, dimension(:) :: temp    ! mean monthly temperature (degC)
+  real(sp), allocatable, dimension(:) :: tmin    ! mean monthly maximum temperature (degC)
+  real(sp), allocatable, dimension(:) :: tmax    ! mean monthly minimum temperature (degC)
   real(sp), allocatable, dimension(:) :: prec    ! total monthly precipitation (mm)
   real(sp), allocatable, dimension(:) :: cldp    ! mean monthly cloud cover (%)
   real(sp), allocatable, dimension(:) :: wetd    ! total monthly days with precipitation (days)
-  real(sp), allocatable, dimension(:) :: trng    ! diurnal temperature range (degC)
   real(sp), allocatable, dimension(:) :: temp0   ! mean monthly temperature of the previous year (degC)
   real(sp), allocatable, dimension(:) :: wind    ! mean monthly wind speed (m s-1)
   real(sp), allocatable, dimension(:) :: lght    ! total lightning flashes (flashes km-2 day-1)

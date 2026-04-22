@@ -379,9 +379,11 @@ else
   met_out(365) = osv%met  
 end if
 
-temp = in%climate%temp
-tmin = in%climate%temp - 0.5 * in%climate%trng      ! MP: temp is average temperature, trng is temperature range
-tmax = in%climate%temp + 0.5 * in%climate%trng
+tmin = in%climate%tmin
+tmax = in%climate%tmax
+
+temp = tmin + 0.5 * (tmax - tmin)  ! calculated
+
 cldf = in%climate%cldp * 0.01
 lght = in%climate%lght
 wind = in%climate%wind
@@ -465,7 +467,7 @@ osv%met = met_out(365)
 
 Ratm = elev_corr(in%elev)
 
-tcm = minval(in%climate%temp)  ! temperature of the coldest month
+tcm = minval(temp)  ! temperature of the coldest month
 
 call calcPjj(temp,prec,Pjj)  ! precipitation equitability index
 
@@ -549,8 +551,6 @@ dphen   = 0.
 dphen_t = 0.
 
 temp0 = in%climate%temp0
-temp  = in%climate%temp
-prec  = in%climate%prec
 
 ! write(stdout,'(a,12f8.2)')'temp0',temp0
 ! write(stdout,'(a,12f8.2)')'temp ',temp

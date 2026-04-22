@@ -71,31 +71,31 @@ if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
 if (projgrid) then
 
-ncstat = nf90_inq_dimid(cfid,'x',dimid)
-if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
-
-ncstat = nf90_inquire_dimension(cfid,dimid,len=xsize)
-if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
-
-ncstat = nf90_inq_dimid(cfid,'y',dimid)
-if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
-
-ncstat = nf90_inquire_dimension(cfid,dimid,len=ysize)
-if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+  ncstat = nf90_inq_dimid(cfid,'x',dimid)
+  if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+  
+  ncstat = nf90_inquire_dimension(cfid,dimid,len=xsize)
+  if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+  
+  ncstat = nf90_inq_dimid(cfid,'y',dimid)
+  if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+  
+  ncstat = nf90_inquire_dimension(cfid,dimid,len=ysize)
+  if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
 else 
 
-ncstat = nf90_inq_dimid(cfid,'lon',dimid)
-if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
-
-ncstat = nf90_inquire_dimension(cfid,dimid,len=xsize)
-if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
-
-ncstat = nf90_inq_dimid(cfid,'lat',dimid)
-if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
-
-ncstat = nf90_inquire_dimension(cfid,dimid,len=ysize)
-if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+  ncstat = nf90_inq_dimid(cfid,'lon',dimid)
+  if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+  
+  ncstat = nf90_inquire_dimension(cfid,dimid,len=xsize)
+  if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+  
+  ncstat = nf90_inq_dimid(cfid,'lat',dimid)
+  if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+  
+  ncstat = nf90_inquire_dimension(cfid,dimid,len=ysize)
+  if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
 end if
 
@@ -111,11 +111,11 @@ write(stdout,'(a,i0,a)')'climate input data contains ',climateyears,' years of d
 
 !-------------------------
 !retrieve variable IDs, scale factor and add offset
-varname(1) = 'tmp'
-varname(2) = 'pre'
-varname(3) = 'cld'
-varname(4) = 'wet'
-varname(5) = 'dtr'
+varname(1) = 'tmin'
+varname(2) = 'tmax'
+varname(3) = 'pre'
+varname(4) = 'cld'
+varname(5) = 'wet'
 varname(6) = 'wnd'
 varname(7) = 'lght'
 
@@ -148,11 +148,11 @@ if (.not.allocated(ibuf)) then
 
   do j = 1,cnty
     do i = 1,cntx
-      allocate(ibuf(i,j)%temp(timelen))
+      allocate(ibuf(i,j)%tmin(timelen))
+      allocate(ibuf(i,j)%tmax(timelen))
       allocate(ibuf(i,j)%prec(timelen))
       allocate(ibuf(i,j)%cldp(timelen))
       allocate(ibuf(i,j)%wetd(timelen))
-      allocate(ibuf(i,j)%trng(timelen))
       allocate(ibuf(i,j)%temp0(timelen))
       allocate(ibuf(i,j)%lght(timelen))
       allocate(ibuf(i,j)%wind(timelen))

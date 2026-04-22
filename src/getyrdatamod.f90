@@ -281,11 +281,11 @@ do i = 1,ncells
   y = in_master(i)%ypos
 
   in_master(i)%co2          = co2vect(1+firstyear-cal_year)
-  in_master(i)%climate%temp = ibuf(x,y)%temp
+  in_master(i)%climate%tmin = ibuf(x,y)%tmin
+  in_master(i)%climate%tmax = ibuf(x,y)%tmax
   in_master(i)%climate%prec = ibuf(x,y)%prec
   in_master(i)%climate%cldp = ibuf(x,y)%cldp
   in_master(i)%climate%wetd = ibuf(x,y)%wetd
-  in_master(i)%climate%trng = ibuf(x,y)%trng
   in_master(i)%climate%wind = ibuf(x,y)%wind
   in_master(i)%climate%lght = ibuf(x,y)%lght
   in_master(i)%orbit%yrBP   = orbit%yrBP
@@ -383,11 +383,11 @@ t1 = t0 + 11
 do y = 1,cnty
   do x = 1,cntx
 
-    ibuf(x,y)%temp = input_sp(x,y,t0:t1,1)
-    ibuf(x,y)%prec = input_sp(x,y,t0:t1,2)
-    ibuf(x,y)%cldp = input_sp(x,y,t0:t1,3)
-    ibuf(x,y)%wetd = input_sp(x,y,t0:t1,4)
-    ibuf(x,y)%trng = input_sp(x,y,t0:t1,5)
+    ibuf(x,y)%tmin = input_sp(x,y,t0:t1,1)
+    ibuf(x,y)%tmax = input_sp(x,y,t0:t1,2)
+    ibuf(x,y)%prec = input_sp(x,y,t0:t1,3)
+    ibuf(x,y)%cldp = input_sp(x,y,t0:t1,4)
+    ibuf(x,y)%wetd = input_sp(x,y,t0:t1,5)
     ibuf(x,y)%wind = input_sp(x,y,t0:t1,6)
     ibuf(x,y)%lght = input_sp(x,y,t0:t1,7)
     

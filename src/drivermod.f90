@@ -101,8 +101,8 @@ if (dospinup) then
     in_master%spinup = .true.
     in_master%year = year
 
-    do i = 1,12
-      in_master%climate%temp0(i) = in_master%climate%temp(i)  !copy last year's temperature
+    do i = 1,12   !copy last year's temperature
+      in_master%climate%temp0(i) = in_master%climate%tmin(i) + 0.5 * (in_master%climate%tmax(i) - in_master%climate%tmin(i))
     end do
 
     if (.not. dotransient .and. year == spinupyears) lastyear = .true.
@@ -148,8 +148,8 @@ if (dotransient) then
     in_master%spinup = .false.
     in_master%year = year
 
-    do i = 1,12
-      in_master%climate%temp0(i) = in_master%climate%temp(i)  !copy last year's temperature
+    do i = 1,12   !copy last year's temperature
+      in_master%climate%temp0(i) = in_master%climate%tmin(i) + 0.5 * (in_master%climate%tmax(i) - in_master%climate%tmin(i))
     end do
 
     if (year == transientyears) lastyear = .true.

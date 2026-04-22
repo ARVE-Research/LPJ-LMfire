@@ -75,6 +75,8 @@ do i = 1,2
   ncstat = nf90_inquire_dimension(soilfid,i,name=dimname(i))
   if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
+  write(0,*)'soil file dimensions:'dimname(i)
+
 end do
 
 ncstat = nf90_get_att(soilfid,nf90_global,'ProjectedGrid',projectedgrid)
