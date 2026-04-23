@@ -9,6 +9,7 @@ public  :: burnedbiomass
 public  :: managedburn 
 private :: calcROS
 private :: firemortality
+private :: ffrag
 
 real(sp), parameter :: me_lf  =  0.2       ! moisture of extinction for live grass fuels: fractional moisture above which fuel does not burn (fraction) (20%)
 real(sp), parameter :: h      = 18.        ! heat content of fuel (kJ g-1)  5kwh/kgs
@@ -111,8 +112,8 @@ end subroutine managedburn
 
 ! -----------------------------------------------------------------------------------------------------------------------------------------------------
 
-subroutine spitfire(year,i,j,d,input,met,soilwater,snowpack,dphen,wscal,osv,spinup,avg_cont_area,burnedf20,forager_pd20,  &
-                    FDI,omega_o0,omega0,BBpft,Ab,ind)
+subroutine spitfire(year,i,j,d,input,met,soilwater,snowpack,dphen,wscal,osv,spinup,avg_cont_area,burnablef, &
+                    burnedf20,forager_pd20,FDI,omega_o0,omega0,BBpft,Ab,ind)
 
 use parametersmod,   only : pir,npft,pi,pft,pftpar
 use weathergenmod,   only : metvars_out
@@ -135,6 +136,7 @@ real(sp),                      intent(in)    :: snowpack
 real(sp),                      intent(in)    :: burnedf20     ! 20-year running mean of burned fraction
 real(sp),                      intent(in)    :: forager_pd20  ! 20-year running mean forager population density km-1 as calculated by foragersmod
 real(sp),                      intent(in)    :: avg_cont_area ! average contiguous area size of non-used part of the gridcell (m2)
+real(sp),                      intent(in)    :: burnablef     ! fraction of the gridcell that is burnable, i.e., not water/ice and not used land
 real(sp),                      intent(inout) :: FDI
 real(sp),                      intent(inout) :: omega_o0
 real(sp),      dimension(4),   intent(inout) :: omega0        ! moisture content of each fuel class on the previous day
@@ -158,7 +160,7 @@ real(sp), parameter :: min2sec = 1. / 60.
 
 ! real(sp), parameter, dimension(3) :: annburntarget = [ 0.25, 0.05, 0.2 ]  ! desired fraction of the gridcell to burn: foragers, farmers, pastoralists
 
-real(sp), parameter :: minslope = tan(0.03)  ! minimum slope (m m-1) to have an influence on fire area
+real(sp), parameter :: minslope = 0.03 ! was tan(0.03)  ! minimum slope (m m-1) to have an influence on fire area
 
 ! state variables (scalars)
 
@@ -208,6 +210,8 @@ real(sp), intent(inout) :: Ab             ! area burned (ha d-1)
 real(sp) :: Abfrac         ! fractional area burned on the gridcell (fraction)
 real(sp) :: DT             ! length of the major axis of the fire (total distance traveled) (m)
 
+real(sp) :: fabarf         ! fractional area of the mean fire size
+real(sp) :: totburnf       ! fractional area of the gridcell that has already burned this year (reduces burnable area)
 
 real(sp) :: Isurface       ! surface fire intensity (kW m-1)
 real(sp) :: LB
@@ -380,9 +384,28 @@ area  = input%cellarea   ! m2
 
 area_ha = 1.e-4 * area    ! convert m2 to ha
 
+! 2026.04 all slope data is now in radians
 
-! NOTE 2024.04: in current versions of LPJ input files, slope is provided in units of m m-1
-! convert to radians for the calculation
+! ----
+! for radians
+
+if (input%slope >= 0.03) then
+  slopefact = 1. / (100. * input%slope - 2.)
+else 
+   slopefact = 1.
+end if 
+
+! ----
+! for degrees
+
+! if (input%slope >= 1.72) then
+!   slopefact = 1. / (5. / 9. * pi * input%slope - 2)
+! else 
+!    slopefact = 1.
+! end if 
+
+! ----
+! for m m-1
 
 ! if (input%slope > minslope) then ! units in m m-1
 !   slopefact = 1. / (100. * atan(input%slope) - 2.)
@@ -390,14 +413,8 @@ area_ha = 1.e-4 * area    ! convert m2 to ha
 !   slopefact = 1.
 ! end if
 
+! ----
 ! write(0,*)'slopefact',slopefact
-
-if (input%slope >= 1.72) then   ! 0.03 for radians
-!   slopefact = 1. / (100. * input%slope - 2.)              ! slope > 0.03, for slope coming in as radians
-  slopefact = 1. / (5. / 9. * pi * input%slope - 2)       ! this one for slope coming in in degrees
-else 
-   slopefact = 1.
-end if 
 
 light = met%lght * 0.01 ! convert from km-2 to ha-1
 Ustar = met%wind
@@ -607,7 +624,8 @@ end if
 
 Ustar = max(Ustar,0.)
 
-Uforward = 60. * Ustar ! (0.4 * Ustar * treecover + 0.6 * Ustar * grascover)
+! Uforward = 60. * Ustar ! (0.4 * Ustar * treecover + 0.6 * Ustar * grascover)
+Uforward = 60. * (0.4 * Ustar * treecover + 0.6 * Ustar * grascover)
 
 ! Uforward = 3. * Uforward ! FLAG remove! ! ! ! 
 
@@ -695,6 +713,8 @@ end if
 if(input%spinup .and. year < 20) then
   calchumanfire = .false.
 end if
+
+! write(stderr,*)'people fire:',PD,people,group,calchumanfire
 
 ! human ignitions ends here
 
@@ -1097,7 +1117,7 @@ DT = tfire * (ROSfsurface + ROSbsurface)
 
 cont_area = max(avg_cont_area * 1.e-4,10.)
 
-abarf = (pi / (4. * LB) * DT**2) * 0.0001 * slopefact  ! average size of an individual fire (eqn. 11) (ha)
+! abarf = (pi / (4. * LB) * DT**2) * 0.0001 * slopefact  ! average size of an individual fire (eqn. 11) (ha)
 
 ! if (abarf > 0.75 * area_ha) then
 !   write(stdout,*)'abarf',year,i,d,area_ha,Ab,unburneda,cont_area,slopefact
@@ -1105,12 +1125,29 @@ abarf = (pi / (4. * LB) * DT**2) * 0.0001 * slopefact  ! average size of an indi
 ! end if
 
 ! the size of an individual fire is not allowed to be greater than the average contiguous patch size
+! and not larger than the whole gridcell
+
+! abarf = min(abarf,cont_area)
+
+! 2025 UPDATE, now reducing fire size based on empirical relation done with 30m Elmfire simulations
+
+abarf = (pi / (4. * LB) * DT**2) * 0.0001 ! ha
+
+fabarf = min(abarf / area_ha, 1.) * slopefact
+
+totburnf = totburn / area_ha
+
+fabarf = min(fabarf,ffrag(burnablef - totburnf))
+
+! if (fabarf > 0.5) then
+! 
+!   write(0,*)'high abarf',slopefact,fabarf,abarf/area_ha,totburnf,burnablef,LB,DT
+!   
+! end if
+
+abarf = fabarf * area_ha
 
 ! write(0,*)cont_area,abarf,LB,DT,tfire,ROSfsurface,ROSbsurface
-
-
-abarf = min(abarf,cont_area)  
-
 
 
 ! ---------------------------
@@ -1163,13 +1200,15 @@ if (calchumanfire .and. abarf > 0. .and. abarf < 100.) then  ! avoid starting ve
   
   if (nhig == 0) arsonists = 0
   
-!   write(stdout,'(3i12,3f12.4)')people,uniquefires,nhig,abarf,burnedf20,afire_frac
-  
+   ! write(stderr,'(a,3i12,4f12.4)')'spitfire ',people,firewidth,uniquefires,nhig,abarf,burnedf20,afire_frac
+    
 else
 
   nhig = 0
   arsonists = 0
   uniquefires = 0
+  
+!   write(stderr,*)'no human ignitions',calchumanfire
 
 end if
 
@@ -1179,10 +1218,12 @@ nhig = nhig * riskfact        ! reduce number of fires caused when FDI gets abov
 numfires_nat = int(nlig)! * area_ha)  ! lightning fires started on this day
 numfires_hum = nhig                       ! human fires started on this day
 
-
 numfires = numfires_nat + numfires_hum
 
-! write(*,'(a,3i5,4f14.8)')'potential burnday',year,i,d,FDI,NI,light*area_ha,nlig*area_ha
+! if (nhig > 0) then
+!   write(stderr,*)'spitfire',people,nhig
+!   write(stderr,'(a,3i5,4f14.8)')'potential burnday',year,i,d,FDI,NI,light*area_ha,nlig*area_ha
+! end if
 
 ! cumfires = cumfires + numfires             ! accumulate all fire since last time FDI was not zero
 cumfires = cumfires + numfires - nint(burnedf * real(cumfires + numfires))          ! allow naturally-caused fires to carry over from one day to the next
@@ -1887,6 +1928,21 @@ end do
 ! litter_ag_slow = max(litter_ag_slow,0.)
 
 end subroutine burnedbiomass
+
+! -----------------------------------------------------------------------------------------------------------------------------------------------------
+
+real(sp) function ffrag(burnablef)
+
+implicit none
+
+! function based on empirical fit to 95-percentile largest fires as a function of burnable land fraction on a 5km domain
+! Quinn Bitz and Jed Kaplan 2024-2025
+
+real(sp), intent(in) :: burnablef
+
+ffrag = 0.080 * exp(2.483 * burnablef) - 0.073
+
+end function ffrag
 
 ! -----------------------------------------------------------------------------------------------------------------------------------------------------
 

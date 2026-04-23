@@ -284,7 +284,7 @@ do i = 1,ncells
   in_master(i)%climate%tmin = ibuf(x,y)%tmin
   in_master(i)%climate%tmax = ibuf(x,y)%tmax
   in_master(i)%climate%prec = ibuf(x,y)%prec
-  in_master(i)%climate%cldp = ibuf(x,y)%cldp
+  in_master(i)%climate%cldf = ibuf(x,y)%cldf
   in_master(i)%climate%wetd = ibuf(x,y)%wetd
   in_master(i)%climate%wind = ibuf(x,y)%wind
   in_master(i)%climate%lght = ibuf(x,y)%lght
@@ -386,7 +386,7 @@ do y = 1,cnty
     ibuf(x,y)%tmin = input_sp(x,y,t0:t1,1)
     ibuf(x,y)%tmax = input_sp(x,y,t0:t1,2)
     ibuf(x,y)%prec = input_sp(x,y,t0:t1,3)
-    ibuf(x,y)%cldp = input_sp(x,y,t0:t1,4)
+    ibuf(x,y)%cldf = input_sp(x,y,t0:t1,4)
     ibuf(x,y)%wetd = input_sp(x,y,t0:t1,5)
     ibuf(x,y)%wind = input_sp(x,y,t0:t1,6)
     ibuf(x,y)%lght = input_sp(x,y,t0:t1,7)
@@ -804,14 +804,14 @@ real(sp),    dimension(cntx,cnty) :: rvals
 integer :: srtt
 integer, dimension(1) :: tloc
 
-!  -------------------------
-!  get elevation, slope, and land fraction
+real(sp)    :: scale_factor
+real(sp)    :: add_offset
+integer(i2) :: missing
 
-! slope does not change from year to year, so only get it once
-if (year == 1) then
-  ncstat = nf90_get_var(topofid,slopeid,soil%slopeangle,start=[srtx,srty],count=[cntx,cnty])
-  if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
-end if
+!  -------------------------
+! 2026.04 topography and slope data are now stored as packed integers, need to unpack
+
+!  get elevation, slope, and land fraction
 
 ! check to make sure the requested calendar year for the beginning of the run is available in the dataset
 
@@ -829,19 +829,68 @@ srtt = tloc(1)
 
 ! write(stdout,*)'reading topo data',srtx,srty,srtt,cntx,cnty
 
+! ----
+! land fraction
+
+soil%landf = 0.
+
+ncstat = nf90_get_var(topofid,landfid,ivals,start=[srtx,srty,srtt],count=[cntx,cnty,1])
+if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+ncstat = nf90_get_att(topofid,landfid,'scale_factor',scale_factor)
+if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+ncstat = nf90_get_att(topofid,landfid,'add_offset',add_offset)
+if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+ncstat = nf90_get_att(topofid,landfid,'missing_value',missing)
+if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+where (ivals /= missing) soil%landf = real(ivals) * scale_factor + add_offset
+
+write(stdout,*)'land fraction range: ',minval(soil%landf),maxval(soil%landf)
+
+! ----
+! elevation
+
+soil%elv = 0.
+
 ncstat = nf90_get_var(topofid,elvid,ivals,start=[srtx,srty,srtt],count=[cntx,cnty,1])
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
-soil%elv = real(ivals)
+ncstat = nf90_get_att(topofid,elvid,'scale_factor',scale_factor)
+if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
-ncstat = nf90_get_var(topofid,landfid,rvals,start=[srtx,srty,srtt],count=[cntx,cnty,1])
-if (ncstat /= nf90_noerr) call netcdf_err(ncstat) 
+ncstat = nf90_get_att(topofid,elvid,'add_offset',add_offset)
+if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
-where (ieee_is_nan(rvals)) rvals = -9999.
+ncstat = nf90_get_att(topofid,elvid,'missing_value',missing)
+if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
-soil%landf = rvals
+where (ivals /= missing) soil%elv = real(ivals) * scale_factor + add_offset
 
-!  write(stdout,*) 'end of gettopo',soil%landf
+write(stdout,*)'elevation range: ',minval(soil%elv),maxval(soil%elv)
+
+! ----
+! slope
+
+soil%slopeangle = 0.
+
+ncstat = nf90_get_var(topofid,slopeid,ivals,start=[srtx,srty,srtt],count=[cntx,cnty,1])
+if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+ncstat = nf90_get_att(topofid,slopeid,'scale_factor',scale_factor)
+if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+ncstat = nf90_get_att(topofid,slopeid,'add_offset',add_offset)
+if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+ncstat = nf90_get_att(topofid,slopeid,'missing_value',missing)
+if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
+
+where (ivals /= missing) soil%slopeangle = real(ivals) * scale_factor + add_offset
+
+write(stdout,*)'slope range: ',minval(soil%slopeangle),maxval(soil%slopeangle)
 
 end subroutine gettopo
 

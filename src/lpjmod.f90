@@ -308,6 +308,7 @@ integer, dimension(12) :: nosnowdays    ! number of days in a month with temp > 
 
 ! additional local variables
 real(sp) :: avg_cont_area  ! average size of a natural patch at a given landuse fraction of the gridcell, in m2
+real(sp) :: burnablef      ! fraction of the gridcell that is burnable, i.e., not water/ice and not used land
 ! real(sp) :: nolanduse_frac  ! 1. - coverfrac(2)
 
 ! none of these variables are currently used 
@@ -384,7 +385,7 @@ tmax = in%climate%tmax
 
 temp = tmin + 0.5 * (tmax - tmin)  ! calculated
 
-cldf = in%climate%cldp * 0.01
+cldf = in%climate%cldf
 lght = in%climate%lght
 wind = in%climate%wind
 wetd = in%climate%wetd * ndaymonth
@@ -401,20 +402,20 @@ dosoilco2 = in%dosoilco2
 !  write(*,*)
 ! end if
  
-!  if (in%idx == 1 .and. in%year >= 1) then
-!   write(stdout,*) 'year: ', year,in%lon,in%lat
-!   write(stdout,'(12f9.2)')in%climate%temp
-!   write(stdout,'(12f9.2)')in%climate%temp0
-!   write(stdout,'(12f9.2)')in%climate%prec
-!   write(stdout,'(12f9.2)')in%climate%cldp
-!   write(stdout,'(12f9.2)')in%climate%wetd * ndaymonth
-!   write(stdout,'(12f9.2)')in%climate%trng
-!   write(stdout,'(12f9.2)')in%climate%wind
-!   write(stdout,'(12f9.5)')in%climate%lght
-!   write(stdout, *)
-!   read(*,*)
-!   ! stop
-!  end if
+if (in%idx == 1 .and. in%year >= 1) then
+  write(stdout,*) 'year: ', year,in%lon,in%lat
+  write(stdout,'(12f9.2)')in%climate%tmin
+  write(stdout,'(12f9.2)')in%climate%tmax
+  write(stdout,'(12f9.2)')in%climate%temp0
+  write(stdout,'(12f9.2)')in%climate%prec
+  write(stdout,'(12f9.2)')in%climate%cldf
+  write(stdout,'(12f9.2)')in%climate%wetd * ndaymonth
+  write(stdout,'(12f9.2)')in%climate%wind
+  write(stdout,'(12f9.5)')in%climate%lght
+  write(stdout, *)
+  ! read(*,*)
+  ! stop
+end if
 
 !  write(stdout,'(a,12f9.2)')'WIND',in%climate%wind
 
@@ -1075,6 +1076,8 @@ do i = 1,3 ! ntiles
   ! landscape fragmentation, based on assumption that subgrid-kernels will be randomly distributed; calculations based on a testgrid of 10000 sub-kernels
 
   call fragmentation(in%landf,coverfrac,in%cellarea,avg_cont_area,totnat_area,avg_patch_number,median_distance,nbl) 
+
+  burnablef = in%landf - 1. / in%landf * coverfrac(2)
   
   ! ---------------------------------------------------------------------------- 
   
@@ -1165,7 +1168,7 @@ do i = 1,3 ! ntiles
         
         do dm = 1,ndaymonth(m)
         
-          call spitfire(year,i,j,d,in,met_out(d),dw1(d),snowpack(d),dphen(d,:),wscal_v(d,:),osv,spinup,avg_cont_area,  &
+          call spitfire(year,i,j,d,in,met_out(d),dw1(d),snowpack(d),dphen(d,:),wscal_v(d,:),osv,spinup,avg_cont_area,burnablef,  &
                         burnedf20,forager_pd20,FDI,omega_o0,omega0,BBpft,Ab,hclass)
 
           mBBpft(:,m) = mBBpft(:,m) + BBpft  ! accumulate biomass burned totals

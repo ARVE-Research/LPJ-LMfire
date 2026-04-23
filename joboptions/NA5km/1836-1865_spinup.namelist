@@ -37,9 +37,12 @@
 
 ! mpirun -np 2 src/lpj joboptions/NA_spinup_natural.namelist -1770000/-1760000/20000/30000 output/Forks.nc
 ! mpirun -np 2 src/lpj joboptions/NA_transient_MERRA2.namelist -1978000/-1918000/-1128000/-1043000 output/sfbay_landuse.nc
-! mpirun --mca pml ob1 --mca btl ^openib -np 21 src/lpj joboptions/NA_transient_landuse.namelist -2050000/-1590000/-1400000/-480000 output/CAcentral.nc > output/CAcentral.log
+! mpirun --mca pml ob1 --mca btl ^openib -np 21 src/lpj joboptions/NA5km/1836-1865_spinup.namelist -2050000/-1590000/-1400000/-480000 output/CAcentral.nc > output/CAcentral.log
+
+! mpirun --mca pml ob1 --mca btl ^openib -np 35 src/lpj joboptions/NA5km/1836-1865_spinup.namelist 950000/1190000/-920000/-700000 output/LakeMichigan.nc > output/LakeMichigan.log
+! mpirun --mca pml ob1 --mca btl ^openib -np 35 src/lpj joboptions/NA5km/1836-1865_spinup.namelist 2000000/2560000/-730000/-300000 output/NewEngland.nc > output/NewEngland.log
 
 
-! mpirun -np 2 src/lpj joboptions/NA_spinup_natural.namelist -1757500/-102500 output/test1pix.nc  ! CA Sierra Nevada low tree cover
+! mpirun -np 2 src/lpj joboptions/NA5km/1836-1865_spinup.namelist -1757500/-102500 output/test1pix.nc  ! CA Sierra Nevada low tree cover
 ! mpirun -np 2 src/lpj joboptions/NA_spinup_natural.namelist -1887500/-912500 output/test1pix.nc
 ! mpirun -np 2 src/lpj joboptions/NA_spinup_natural.namelist -1887500/-1882500/-920000/-910000 output/test4pix.nc

@@ -69,7 +69,7 @@ real(sp) :: nind_min   ! tree density is set to a minimum of one individual per 
 ! ---------------------------------------------------------
 ! this stress-related mortality only affects woody plants
 
-nind_min = 0. ! EDIT March 2026 testing low grass cover issue 1. / cellarea   ! limit density to one individual per gridcell
+nind_min = 1.e-10 ! this is the value set in establishmentmod
 
 do pft = 1,npft
 
@@ -126,7 +126,7 @@ do pft = 1,npft
     
   end if
   
-  if(nind(pft) < nind_min) then
+  if (nind(pft) < nind_min) then
 
     present(pft)   = .false.
     nind(pft)      = 0.

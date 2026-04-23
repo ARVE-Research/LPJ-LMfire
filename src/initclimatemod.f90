@@ -151,7 +151,7 @@ if (.not.allocated(ibuf)) then
       allocate(ibuf(i,j)%tmin(timelen))
       allocate(ibuf(i,j)%tmax(timelen))
       allocate(ibuf(i,j)%prec(timelen))
-      allocate(ibuf(i,j)%cldp(timelen))
+      allocate(ibuf(i,j)%cldf(timelen))
       allocate(ibuf(i,j)%wetd(timelen))
       allocate(ibuf(i,j)%temp0(timelen))
       allocate(ibuf(i,j)%lght(timelen))

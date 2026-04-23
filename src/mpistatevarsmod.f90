@@ -17,7 +17,7 @@ type climatedata
   real(sp), dimension(12) :: tmin    ! mean monthly minimum temperature (degC)
   real(sp), dimension(12) :: tmax    ! mean monthly maximum temperature (degC)
   real(sp), dimension(12) :: prec    ! total monthly precipitation (mm)
-  real(sp), dimension(12) :: cldp    ! mean monthly bright cloudiness (percent)
+  real(sp), dimension(12) :: cldf    ! mean monthly bright cloudiness (fraction)
   real(sp), dimension(12) :: wetd    ! total monthly days with precipitation (days)
   real(sp), dimension(12) :: wind    ! climatological mean monthly wind speed (m s-1)
   real(sp), dimension(12) :: lght    ! climatological mean monthly lightning flashes (flashes ha-1)
