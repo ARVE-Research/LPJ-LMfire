@@ -152,7 +152,7 @@ if (.not.allocated(ibuf)) then
       allocate(ibuf(i,j)%tmax(timelen))
       allocate(ibuf(i,j)%prec(timelen))
       allocate(ibuf(i,j)%cldf(timelen))
-      allocate(ibuf(i,j)%wetd(timelen))
+      allocate(ibuf(i,j)%wetf(timelen))
       allocate(ibuf(i,j)%temp0(timelen))
       allocate(ibuf(i,j)%lght(timelen))
       allocate(ibuf(i,j)%wind(timelen))
@@ -219,8 +219,7 @@ else
   
   !get chunk sizes
 
-
-  ncstat = nf90_inq_varid(cfid,'tmp',varid)
+  ncstat = nf90_inq_varid(cfid,'tmin',varid)
   if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
   ncstat = nf90_inquire_variable(cfid,varid,chunksizes=chunksizes)

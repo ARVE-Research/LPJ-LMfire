@@ -2,14 +2,14 @@
  cal_year         = 114   ! must be in units cal yr BP (1950)
  dospinup         = .true.
  dotransient      = .false.
- spinupyears      = 1020 ! 36 30-year cycles
+ spinupyears      = 120 ! 1020 36 30-year cycles
  transientyears   = 0
  cfile_spinup     = '/home/terraces/projects/LPJ-LMfire_paleo2025/makeclimate/climate/NA5km/1836-1865_mean_20CR.nc'
  soilfile         = '/home/terraces/datasets/soils/NA5km/makesoil/NAsoils_v2026_soilcalc.nc'
  topofile         = '/home/terraces/datasets/paleogeography/ICE-7G/NA5km/land_00000.nc'
  fixedco2         = 283.7 ! from the file /home/terraces/datasets/dgvm_input/ghg/co2.txt
  pftparsfile      = 'share/pftpars_global.csv'
- nspinyrsout      = 150
+ nspinyrsout      = 1020
  maxmem           = 49152.
  lu_turn_yrs      = 0.
  outputvar     = 'cover','albiomass','livebiomass','litterC_fast','litterC_slow','litterC_bg','soilC_surf',
@@ -28,7 +28,8 @@
 ! Full western U.S. run (includes some neighboring parts of Canada and Mexico)
 ! N boundary expanded to reach approximate northern boundary of great plains, S boundary is southermost Arizona/NM/Mexico border,
 ! E boundary is easternmost Colorado, W boundary to Cape Mendocino
-! mpirun -np 31 src/lpj joboptions/NA_spinup_natural.namelist -2050000/-155000/-2035000/550000 output/NAwest.nc > output/NAwest.log
+
+! mpirun --mca pml ob1 --mca btl ^openib -np 40 src/lpj joboptions/NA5km/1836-1865_spinup.namelist -2050000/-155000/-2035000/550000 output/NAwest.nc > output/NAwest.log
 
 ! SW Oregon area with very high burnedf
 ! mpirun -np 8 src/lpj joboptions/NA_transient_MERRA2.namelist -1848000/-1657000/-718000/-450000 output/SWOregon_MERRA2.nc
@@ -39,10 +40,12 @@
 ! mpirun -np 2 src/lpj joboptions/NA_transient_MERRA2.namelist -1978000/-1918000/-1128000/-1043000 output/sfbay_landuse.nc
 ! mpirun --mca pml ob1 --mca btl ^openib -np 21 src/lpj joboptions/NA5km/1836-1865_spinup.namelist -2050000/-1590000/-1400000/-480000 output/CAcentral.nc > output/CAcentral.log
 
-! mpirun --mca pml ob1 --mca btl ^openib -np 35 src/lpj joboptions/NA5km/1836-1865_spinup.namelist 950000/1190000/-920000/-700000 output/LakeMichigan.nc > output/LakeMichigan.log
+! mpirun --mca pml ob1 --mca btl ^openib -np 32 src/lpj joboptions/NA5km/1836-1865_spinup.namelist 950000/1250000/-920000/0 output/LakeMichigan.nc > output/LakeMichigan.log
 ! mpirun --mca pml ob1 --mca btl ^openib -np 35 src/lpj joboptions/NA5km/1836-1865_spinup.namelist 2000000/2560000/-730000/-300000 output/NewEngland.nc > output/NewEngland.log
 
 
 ! mpirun -np 2 src/lpj joboptions/NA5km/1836-1865_spinup.namelist -1757500/-102500 output/test1pix.nc  ! CA Sierra Nevada low tree cover
 ! mpirun -np 2 src/lpj joboptions/NA_spinup_natural.namelist -1887500/-912500 output/test1pix.nc
 ! mpirun -np 2 src/lpj joboptions/NA_spinup_natural.namelist -1887500/-1882500/-920000/-910000 output/test4pix.nc
+
+! mpirun --mca pml ob1 --mca btl ^openib -np 2 src/lpj joboptions/NA5km/1836-1865_spinup.namelist 1147500/-807500 output/test1pix.nc

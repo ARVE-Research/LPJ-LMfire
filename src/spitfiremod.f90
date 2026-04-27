@@ -115,10 +115,10 @@ end subroutine managedburn
 subroutine spitfire(year,i,j,d,input,met,soilwater,snowpack,dphen,wscal,osv,spinup,avg_cont_area,burnablef, &
                     burnedf20,forager_pd20,FDI,omega_o0,omega0,BBpft,Ab,ind)
 
-use parametersmod,   only : pir,npft,pi,pft,pftpar
+use parametersmod,   only : pir,npft,pi,pir,pft,pftpar
 use weathergenmod,   only : metvars_out
 use mpistatevarsmod, only : inputdata,statevars
-use randomdistmod,   only : randomstate,ranu,rng1,half
+use randomdistmod,   only : randomstate,ranur
 use individualmod,   only : sizeind
 
 implicit none
@@ -171,6 +171,23 @@ real(sp) :: area         ! gridcell area (m2)
 real(sp) :: light        ! frequency of total lighting flashes (ha-1 d-1)
 real(sp) :: dwind        ! wind speed
 
+! ---
+! variables related to the subgrid fire size
+
+real(sp) :: xpos         ! ignition coordinate
+real(sp) :: ypos         ! ignition coordinate
+real(sp) :: xlen         ! horizontal length of gridcell (m)
+real(sp) :: ylen         ! vertical length of gridcell (m)
+real(sp) :: xbnd
+real(sp) :: ybnd
+real(sp) :: fdist
+real(sp) :: bdist
+real(sp) :: DTforward
+real(sp) :: DTback
+real(sp) :: wdir
+
+! ---
+
 real(sp), pointer :: acflux_fire  ! carbon flux from biomass burning (gC m-2 d-1)
 real(sp), pointer :: afire_frac   ! fraction of the gridcell burned
 
@@ -214,7 +231,7 @@ real(sp) :: fabarf         ! fractional area of the mean fire size
 real(sp) :: totburnf       ! fractional area of the gridcell that has already burned this year (reduces burnable area)
 
 real(sp) :: Isurface       ! surface fire intensity (kW m-1)
-real(sp) :: LB
+real(sp) :: LB             ! length-to-breadth ratio of the burn ellipse
 real(sp) :: LBgrass
 real(sp) :: LBtree
 real(sp) :: ROSfsurface    ! overall forward rate of spread of fire (m min-1)
@@ -222,10 +239,21 @@ real(sp) :: ROSfsurface_g  ! forward rate of spread of fire in herbaceous fuel (
 real(sp) :: ROSfsurface_w  ! forward rate of spread of fire in woody fuels (m min-1)
 real(sp) :: ROSfcrown      ! forward rate of spread of fire in crown (m min-1)
 real(sp) :: ROSbsurface    ! backward rate of spread of fire (m min-1)
-real(sp) :: Uforward       ! mean wind speed (m min-1)
 real(sp) :: abarf          ! mean size of an individual fire
 real(sp) :: area_ha        ! gridcell area (ha)
 real(sp) :: kPD
+
+! real(sp) :: Uforward       ! mean wind speed (m min-1)
+
+real(sp) :: z0grass        ! roughness length and mid-flame height for trees and grass 
+real(sp) :: z0trees        ! see below for definitions
+real(sp) :: zref   
+real(sp) :: zftrees
+real(sp) :: zfgrass
+
+real(sp) :: M10            ! 10m windspeed magnitude
+real(sp) :: Uforward_grass ! mean mid-flame wind speed using grass roughness length (m s-1)
+real(sp) :: Uforward_trees ! mean mid-flame wind speed using forest roughness length (m s-1)
 
 real(sp) :: omega_lg       ! relative moisture content of live grass
 real(sp) :: omega_n        ! relative moisture content of the 1-h fuel class
@@ -382,7 +410,7 @@ PD(1) = forager_pd20
 
 area  = input%cellarea   ! m2
 
-area_ha = 1.e-4 * area    ! convert m2 to ha
+area_ha = area * 1.e-4    ! convert m2 to ha
 
 ! 2026.04 all slope data is now in radians
 
@@ -396,7 +424,7 @@ else
 end if 
 
 ! ----
-! for degrees
+! for slope in degrees
 
 ! if (input%slope >= 1.72) then
 !   slopefact = 1. / (5. / 9. * pi * input%slope - 2)
@@ -405,7 +433,7 @@ end if
 ! end if 
 
 ! ----
-! for m m-1
+! for slope in m m-1
 
 ! if (input%slope > minslope) then ! units in m m-1
 !   slopefact = 1. / (100. * atan(input%slope) - 2.)
@@ -417,7 +445,7 @@ end if
 ! write(0,*)'slopefact',slopefact
 
 light = met%lght * 0.01 ! convert from km-2 to ha-1
-Ustar = met%wind
+M10   = met%wind        ! input wind is in 10m windspeed in m s-1
 NI    = met%NI
 
 ! if( .not. spinup .and. year>=114) write(stdout,'(2i4,2f14.4)') year, d, light, light*area_ha
@@ -617,24 +645,23 @@ if (totfuel < 1000. .or. totvcover < 0.5) then
 end if
 
 ! ---------------------------
+! wind speed
 
-! Uforward = 60. * (1. - totvcover) * Ustar + totvcover * (0.4 * Ustar * treecover + 0.6 * Ustar * grascover)
+! input windspeed is 10m windspeed in m s-1. we will reduce this to a 2m estimate that is different for trees and grasses
+! simple log decay function based on Stull (2017) eqn 18.14b
+! because of the big differences in roughness length between trees and grasses, calculate different effective mid-flame windspeeds for each
+! since rate of spread is anyway calculated separately
 
-! from f77 spitfire version - only on the vegetated part of the gridcell
+z0grass =  0.03 ! typical aerodynamic roughness length for forests (Stull, table 18-1)
+z0trees =  1.   ! typical aerodynamic roughness length for forests (Stull, table 18-1)
 
-Ustar = max(Ustar,0.)
+zref    = 10.   ! reference height for input windspeed
+zftrees =  2.   ! mid-flame height for surface fires in forests (m)
+zfgrass =  0.5  ! mid-flame height for surface fires in forests (m)
 
-! Uforward = 60. * Ustar ! (0.4 * Ustar * treecover + 0.6 * Ustar * grascover)
-Uforward = 60. * (0.4 * Ustar * treecover + 0.6 * Ustar * grascover)
+Uforward_grass = M10 * log(zfgrass / z0grass) / log(zref / z0grass)
 
-! Uforward = 3. * Uforward ! FLAG remove! ! ! ! 
-
-! if (totvcover > 0.) then
-!  Uforward = 60. * (0.4 * Ustar * treecover + 0.6 * Ustar * grascover) / totvcover
-! else
-  ! write(stdout,*)'no live vegcover'
-!  Uforward = 60. * Ustar
-! end if
+Uforward_trees = M10 * log(zftrees / z0trees) / log(zref / z0trees)
 
 ! ---------------------------
 ! part 2.2.1, ignition events
@@ -876,6 +903,8 @@ end if
 ! here we say there has to be at least a greater than half probability of lightning stroke in the gridcell to have an ignition
 ! because otherwise with very low densities of lightning there are a lot of ignitions (2023.02)
 
+nlig = 0.
+
 if (light * area_ha > 0.5) then  
 
   ! ignition efficiency is inversely related to already burned area
@@ -884,24 +913,15 @@ if (light * area_ha > 0.5) then
   
   ieff = FDI * 1.0 * (1. - burnedf) / (1. + 25. * burnedf) * ieff_avg
   
-  prob = real(ranu(met%rndst)) * rng1 + half  ! random value from (0,1)
+  prob = ranur(met%rndst)  ! random value from [0,1]
 
-  if (ieff > prob) then
-    nlig = 1. 
-  else
-    nlig = 0.
-  end if
-  
-else
-
-  nlig = 0.
+  if (ieff > prob) nlig = 1. 
 
 end if
 
-! if (nlig > 0.) then
-!   write(0,*)'lightning',light,light*area_ha,FDI,ieff,prob
-! end if
-
+if (nlig > 0.) then
+  write(0,*)'lightning',area_ha,light,light*area_ha,FDI,ieff,prob,nlig
+end if
 
 ! ---------------------------
 ! part 2.2.4, mean fire area (rate of spread)
@@ -973,9 +993,11 @@ if (relmoist < 1.) then
   
   gscale = -0.0848 * min(rho_livegrass,12.) + 1.0848    ! scale factor for bulk density of grass fuel, reduces rate of spread in high bulk density grasses (e.g., tundra)
 
-  ROSfsurface_g = (0.165 + 0.534 * Uforward / 60.) * exp(-0.108 * relmoist * 100.) * gscale * 60.     ! from Mell_etal2008, eqn. 2
+  ROSfsurface_g = (0.165 + 0.534 * Uforward_grass) * exp(-0.108 * relmoist * 100.) * gscale * 60.     ! from Mell et al (2012), eqn. 15.2
   
-  ! write(*,'(a,2i5,6f14.4)') 'grass_ROS :', year, d, Uforward, relmoist, ROSfsurface_g, ROSfsurface_g/Uforward,osv%gdd20,rho_livegrass
+  ! write(0,*)'grass ROS',rho_livegrass,gscale,Uforward_grass,relmoist,ROSfsurface_g
+  
+  ! write(*,'(a,2i5,6f14.4)') 'grass_ROS :', year, d, Uforward_grass, relmoist, ROSfsurface_g, ROSfsurface_g/Uforward_grass,osv%gdd20,rho_livegrass
 
 else
 
@@ -1002,7 +1024,7 @@ if (relmoist < 1.) then       ! FDI not zero for this landscape component
 
   ! write(stdout,*)'calcros',orgf*wn,rho_b,omega_o,relmoist
 
-  call calcROS(orgf*wn,rho_b,sigma,omega_o,relmoist,Uforward,ROSfsurface_w)
+  call calcROS(orgf*wn,rho_b,sigma,omega_o,relmoist,Uforward_trees * 60.,ROSfsurface_w)
 
 else
   ROSfsurface_w = 0.
@@ -1031,7 +1053,7 @@ end if
       sigma = sigma_i(1)
       relmoist = 0.99  ! at moisture content just below extinction fire can spread
 
-      call calcROS(orgf*wn,rho_b,sigma,0.3,relmoist,Uforward,ROSfcrown)
+      call calcROS(orgf*wn,rho_b,sigma,0.3,relmoist,Uforward_trees * 60.,ROSfcrown)
 
     end if
 
@@ -1048,7 +1070,7 @@ end if
   ROSfsurface = (ROSfsurface_w * treecover + ROSfsurface_g * grascover) / (treecover + grascover)
   
 !   if (ROSfsurface_g > 40.) then
-!     write(0,*)'rate of spread: ',ROSfsurface_w,treecover,ROSfsurface_g,grascover,ROSfsurface
+!    write(0,*)'rate of spread: ',ROSfsurface_w,treecover,ROSfsurface_g,grascover,ROSfsurface
 !   end if
   
   ! choose max from above calculations
@@ -1067,16 +1089,16 @@ end if
 ! ---------------------------
 ! backward rate of spread - decreases with stronger wind
 
-ROSbsurface = ROSfsurface * exp(-0.012 * Uforward)
+ROSbsurface = ROSfsurface * exp(-0.012 * Uforward_trees * 60.)
 
 ! write(stdout,*)'done ros,',ROSfsurface,ROSbsurface
 
 ! ---
 ! length-to-breadth ratio of burn ellipse
 
-if (Uforward >= 16.67) then        ! windspeed exceeds 1 km/h
+Ukmh = Uforward_trees * 3.6
 
-  Ukmh = 0.06 * Uforward  ! convert to km h-1 for the following equations
+if (Ukmh > 1.) then        ! windspeed exceeds 1 km/h
 
   LBtree  = 1.  + 8.729 * (1. - exp(-0.03 * Ukmh))**2.155  ! eqn. 12
 
@@ -1099,56 +1121,90 @@ end if
 
 LB = min(LB,8.)  ! limit LB to a maximum of 8 as in f77 code
 
+! write(0,*)'LB',ukmh,LBtree,LBgrass
+
 ! ---
 ! fire duration
 
 tfire = 241. / (1. + 240. * exp(-11.06 * FDI))  ! eqn. 14 (minutes)
 
-! ---
-! total distance traveled (length of the major axis of the fire, m)
+if (tfire > 0. .and. ROSfsurface > 0.) then
 
-DT = tfire * (ROSfsurface + ROSbsurface)
+  ! ------------
+  ! 2026 UPDATE: In situations with small gridcells (e.g. 5km) fires often burn out of the cell in one day,
+  ! i.e. the distance traveled (DT) is larger than the gridcell. This results in an estimated daily fire size
+  ! that can be equal to or even larger than the gridcell area. To address this problem, we choose an ignition
+  ! point randomly as a fraction of the gridcell x and y dimensions, and randomly select a wind direction, 
+  ! and then calculate the distance from the ignition point to the gridcell boundary in both the forward and reverse
+  ! directions. We then set the DT to be the minimum of the calculated DT and the sum of the forward and backward
+  ! distances to the cell boundaries
+  
+  ! randomly draw position of ignition in gridcell and randomly draw wind direction
+  
+  xlen = sqrt(area)
+  ylen = xlen
+  
+  xpos = ranur(met%rndst) * xlen  ! random value from [0,xlen]
+  ypos = ranur(met%rndst) * ylen  ! random value from [0,ylen]
+  wdir = ranur(met%rndst) * 360.  ! random value from [0,360]
+  
+  ! calculate maximum distance to cell boundary in the downwind direction
+  
+  call exitpoint(xlen,ylen,xpos,ypos,wdir,xbnd,ybnd,fdist)
+  
+  ! calculate maximum distance to cell boundary in the upwind direction
+  
+  if (wdir >= 180) then
+    wdir = wdir - 180
+  else
+    wdir = wdir + 180
+  end if
+  
+  call exitpoint(xlen,ylen,xpos,ypos,wdir,xbnd,ybnd,bdist)
+  
+  ! reduce DT to the maximum distance to the gridcell boundaries
+  
+  
+  DTforward = min(fdist,tfire * ROSfsurface)
+  DTback    = min(bdist,tfire * ROSbsurface)
+  
+  ! total distance traveled (length of the major axis of the fire, m)
+  
+  DT = DTforward + DTback
 
-! ---
-! mean fire area
+  ! ---
+  ! mean fire size
+  
+  abarf = (pi / (4. * LB) * DT**2) * 0.0001  ! average size of an individual fire on this day (eqn. 11) (ha)
+  
+  ! ------------
+  ! 2025 UPDATE reduce fire size based on empirical relation done with 30m Elmfire simulations
+  
+  fabarf = min(abarf / area_ha, 1.) * slopefact
+  
+  totburnf = totburn / area_ha
+  
+  fabarf = min(fabarf,ffrag(burnablef - totburnf))
+  
+  if (fabarf > 0.6) then
+  
+    write(0,*)'flag',xpos,ypos,tfire
+    write(0,*)fdist,tfire * ROSfsurface
+    write(0,*)bdist,tfire * ROSbsurface
+    write(0,*)DT
+  
+    write(0,*)'high abarf',slopefact,fabarf,abarf/area_ha,totburnf,burnablef,LB,DT,cont_area,abarf,LB,DT,tfire,ROSfsurface,ROSbsurface,M10,Uforward_trees,Uforward_grass
+  end if
+  
+  abarf = fabarf * area_ha
+  
+  ! write(0,*)cont_area,abarf,LB,DT,tfire,ROSfsurface,ROSbsurface
 
-! assumption is that the smallest possible size of a kernel is 1 ha: nothing will be fractionated to a size less than 1 ha
-! also convert from m2 to ha here because there is a unit mismatch
+else
 
-cont_area = max(avg_cont_area * 1.e-4,10.)
+  abarf = 0.
 
-! abarf = (pi / (4. * LB) * DT**2) * 0.0001 * slopefact  ! average size of an individual fire (eqn. 11) (ha)
-
-! if (abarf > 0.75 * area_ha) then
-!   write(stdout,*)'abarf',year,i,d,area_ha,Ab,unburneda,cont_area,slopefact
-!   write(stdout,*)abarf,LB,DT,ROSfsurface,ROSbsurface,tfire
-! end if
-
-! the size of an individual fire is not allowed to be greater than the average contiguous patch size
-! and not larger than the whole gridcell
-
-! abarf = min(abarf,cont_area)
-
-! 2025 UPDATE, now reducing fire size based on empirical relation done with 30m Elmfire simulations
-
-abarf = (pi / (4. * LB) * DT**2) * 0.0001 ! ha
-
-fabarf = min(abarf / area_ha, 1.) * slopefact
-
-totburnf = totburn / area_ha
-
-fabarf = min(fabarf,ffrag(burnablef - totburnf))
-
-! if (fabarf > 0.5) then
-! 
-!   write(0,*)'high abarf',slopefact,fabarf,abarf/area_ha,totburnf,burnablef,LB,DT
-!   
-! end if
-
-abarf = fabarf * area_ha
-
-! write(0,*)cont_area,abarf,LB,DT,tfire,ROSfsurface,ROSbsurface
-
+end if
 
 ! ---------------------------
 ! human-caused fires
@@ -1283,7 +1339,7 @@ if (Ab == 0.) then
   return
 end if 
 
-! write(stdout,*)'area burned',year,i,d,cumfires,abfrac,ab,slopefact,input%slope
+! write(stdout,*)'area burned',year,i,d,nlig,numfires,cumfires,abfrac,ab,slopefact,input%slope
 
 
 ! ----------------------------------------------
@@ -1386,7 +1442,7 @@ end if
 afire_frac = afire_frac + Abfrac
 
 if (bavard) write(*,'(a16,4i6,29f14.4)') 'BURNDAY', year,i,d,cumfires,Ab,abarf,afire_frac,light*area_ha, nlig*area_ha,PD, area_ha, &
-                   treecover, grascover, DT/1000., tfire/60., ROSfsurface*60./1000., ROSbsurface*60./1000., Uforward*60./1000.,    &
+                   treecover, grascover, DT/1000., tfire/60., ROSfsurface*60./1000., ROSbsurface*60./1000., Uforward_trees,    &
                    LB,LBtree,LBgrass,woi,omega_o,omega_o/me_avg,FDI,Isurface,slopefact,input%slope
 ! if(bavard) write(*,'(a16,4i10,23f14.3)')'BURNDAY', year,i,d,cumfires,AB,abarf,afire_frac,light*area_ha,nlig,FDI,woi,  &
 !                                         omega_o,omega_o/me_avg,Isurface,met%prec,NI,grascover,omega_o,me_avg,omega_nl,me_nl,PD
@@ -1943,6 +1999,143 @@ real(sp), intent(in) :: burnablef
 ffrag = 0.080 * exp(2.483 * burnablef) - 0.073
 
 end function ffrag
+
+! -----------------------------------------------------------------------------------------------------------------------------------------------------
+
+subroutine exitpoint(xlen,ylen,xpos,ypos,wdir,xbnd,ybnd,dist)
+
+! Calculates the point (x,y) at which a vector originating in a rectangle crosses the boundary of the rectangle,
+! and the distance from from the origin to the rectangle boundary. 
+! Based on: Nominal Animal (https://math.stackexchange.com/users/318422/nominal-animal), 
+! intersection of ray starting inside square with that square, 
+! URL (version: 2018-04-16): https://math.stackexchange.com/q/2738727
+
+use parametersmod, only : sp,pir
+
+implicit none
+
+! arguments
+real(sp), intent(in)  :: xlen   ! horizontal length of the rectangular region
+real(sp), intent(in)  :: ylen   ! vertical length of the rectangular region
+real(sp), intent(in)  :: xpos   ! x coordinate of the vector origin
+real(sp), intent(in)  :: ypos   ! y coordinate of the vector origin 
+real(sp), intent(in)  :: wdir   ! wind direction, following meteorological convention (deg)
+real(sp), intent(out) :: xbnd   ! x coordinate where the vector crosses the boundary
+real(sp), intent(out) :: ybnd   ! y coordinate where the vector crosses the boundary
+real(sp), intent(out) :: dist   ! length of the vector from its origin to the boundary
+
+! local variables
+
+real(sp) :: angle  ! wind direction, following mathematical convention (rad)
+real(sp) :: xd     ! cos(angle)
+real(sp) :: yd     ! sin(angle)
+
+real(sp) :: dx
+real(sp) :: dy
+
+integer :: xside
+integer :: yside
+
+character(10) :: xint
+character(10) :: yint
+character(10) :: edge
+
+! -----
+! convert wind direction in degrees to mathematical angle in radians
+
+if (wdir <= 270.) then
+  angle = pir * (270. - wdir)
+else
+  angle = pir * (wdir - 270.)
+end if
+
+xd = cos(angle)
+yd = sin(angle)
+
+if (xd > 0.) then
+
+  xint = 'right'
+  xside = 2
+  
+  dx = (xlen - xpos) / xd
+  
+else if (xd < 0.) then
+
+  xint = 'left'
+  xside = 1
+  
+  dx = -xpos / xd
+  
+else
+
+  xint = 'none'
+  xside = 0
+
+end if
+
+if (yd > 0.) then
+
+  yint = 'top'
+  yside = 2
+  
+  dy = (ylen - ypos) / yd
+  
+else if (yd < 0.) then
+  
+  yint = 'bottom'
+  yside = 1
+  
+  dy = -ypos / yd
+  
+else 
+
+  yint = 'none'
+  yside = 0
+  
+end if
+
+if (xside == 0 .and. yside == 0) then
+
+  stop 'the line does not intersect the boundary'
+  
+else if (xside == 0) then
+
+  edge = yint
+  
+  xbnd = xpos + dy * xd
+  ybnd = ypos + dy * yd
+
+else if (yside == 0) then
+
+  edge = xint
+  xbnd = xpos + dx * xd
+  ybnd = ypos + dy * yd
+
+else
+  if (dx < dy) then
+  
+    edge = xint
+    xbnd = xpos + dx * xd
+    ybnd = ypos + dx * yd
+
+  else if (dx > dy) then
+  
+    edge = yint
+    xbnd = xpos + dy * xd
+    ybnd = ypos + dy * yd 
+  
+  else ! point is exactly on corner
+  
+    edge = 'corner'
+    xbnd = xpos + dx * xd
+    ybnd = ypos + dx * yd
+  
+  end if
+end if
+
+dist = sqrt((xbnd - xpos)**2 + (ybnd - ypos)**2)
+
+end subroutine exitpoint
 
 ! -----------------------------------------------------------------------------------------------------------------------------------------------------
 

@@ -137,7 +137,7 @@ type inputbuffer
   real(sp), allocatable, dimension(:) :: tmax    ! mean monthly minimum temperature (degC)
   real(sp), allocatable, dimension(:) :: prec    ! total monthly precipitation (mm)
   real(sp), allocatable, dimension(:) :: cldf    ! mean monthly cloud cover (fraction)
-  real(sp), allocatable, dimension(:) :: wetd    ! total monthly days with precipitation (days)
+  real(sp), allocatable, dimension(:) :: wetf    ! days in the month with precipitation (fraction)
   real(sp), allocatable, dimension(:) :: temp0   ! mean monthly temperature of the previous year (degC)
   real(sp), allocatable, dimension(:) :: wind    ! mean monthly wind speed (m s-1)
   real(sp), allocatable, dimension(:) :: lght    ! total lightning flashes (flashes km-2 day-1)

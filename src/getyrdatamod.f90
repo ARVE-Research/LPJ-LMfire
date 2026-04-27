@@ -285,7 +285,7 @@ do i = 1,ncells
   in_master(i)%climate%tmax = ibuf(x,y)%tmax
   in_master(i)%climate%prec = ibuf(x,y)%prec
   in_master(i)%climate%cldf = ibuf(x,y)%cldf
-  in_master(i)%climate%wetd = ibuf(x,y)%wetd
+  in_master(i)%climate%wetf = ibuf(x,y)%wetf
   in_master(i)%climate%wind = ibuf(x,y)%wind
   in_master(i)%climate%lght = ibuf(x,y)%lght
   in_master(i)%orbit%yrBP   = orbit%yrBP
@@ -387,7 +387,7 @@ do y = 1,cnty
     ibuf(x,y)%tmax = input_sp(x,y,t0:t1,2)
     ibuf(x,y)%prec = input_sp(x,y,t0:t1,3)
     ibuf(x,y)%cldf = input_sp(x,y,t0:t1,4)
-    ibuf(x,y)%wetd = input_sp(x,y,t0:t1,5)
+    ibuf(x,y)%wetf = input_sp(x,y,t0:t1,5)
     ibuf(x,y)%wind = input_sp(x,y,t0:t1,6)
     ibuf(x,y)%lght = input_sp(x,y,t0:t1,7)
     
@@ -848,7 +848,7 @@ if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
 where (ivals /= missing) soil%landf = real(ivals) * scale_factor + add_offset
 
-write(stdout,*)'land fraction range: ',minval(soil%landf),maxval(soil%landf)
+! write(stdout,*)'land fraction range: ',minval(soil%landf),maxval(soil%landf)
 
 ! ----
 ! elevation
@@ -869,7 +869,7 @@ if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
 where (ivals /= missing) soil%elv = real(ivals) * scale_factor + add_offset
 
-write(stdout,*)'elevation range: ',minval(soil%elv),maxval(soil%elv)
+! write(stdout,*)'elevation range: ',minval(soil%elv),maxval(soil%elv)
 
 ! ----
 ! slope
@@ -890,7 +890,7 @@ if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
 where (ivals /= missing) soil%slopeangle = real(ivals) * scale_factor + add_offset
 
-write(stdout,*)'slope range: ',minval(soil%slopeangle),maxval(soil%slopeangle)
+! write(stdout,*)'slope range: ',minval(soil%slopeangle),maxval(soil%slopeangle)
 
 end subroutine gettopo
 

@@ -89,8 +89,9 @@ real(sp), dimension(12) :: prec   ! total monthly precip (mm)
 real(sp), dimension(12) :: temp   ! mean monthly temperature (degC)
 real(sp), dimension(12) :: tmin   ! mean minimum monthly temperature (degC)
 real(sp), dimension(12) :: tmax   ! mean maximum monthly temperature (degC)
-real(sp), dimension(12) :: cldf   ! cloud cover fraction
-real(sp), dimension(12) :: wetd   ! 
+real(sp), dimension(12) :: cldf   ! cloud cover (fraction)
+real(sp), dimension(12) :: wetf   ! days in the month with precipitation (fraction)
+real(sp), dimension(12) :: wetd   ! days in the month with precipitation (days)
 real(sp), dimension(12) :: lght   ! 
 real(sp), dimension(12) :: wind   ! 
 
@@ -388,7 +389,7 @@ temp = tmin + 0.5 * (tmax - tmin)  ! calculated
 cldf = in%climate%cldf
 lght = in%climate%lght
 wind = in%climate%wind
-wetd = in%climate%wetd * ndaymonth
+wetd = in%climate%wetf * ndaymonth
 prec = in%climate%prec
 
 startyr_foragers = in%startyr_foragers
@@ -402,20 +403,20 @@ dosoilco2 = in%dosoilco2
 !  write(*,*)
 ! end if
  
-if (in%idx == 1 .and. in%year >= 1) then
-  write(stdout,*) 'year: ', year,in%lon,in%lat
-  write(stdout,'(12f9.2)')in%climate%tmin
-  write(stdout,'(12f9.2)')in%climate%tmax
-  write(stdout,'(12f9.2)')in%climate%temp0
-  write(stdout,'(12f9.2)')in%climate%prec
-  write(stdout,'(12f9.2)')in%climate%cldf
-  write(stdout,'(12f9.2)')in%climate%wetd * ndaymonth
-  write(stdout,'(12f9.2)')in%climate%wind
-  write(stdout,'(12f9.5)')in%climate%lght
-  write(stdout, *)
-  ! read(*,*)
-  ! stop
-end if
+! if (in%idx == 1 .and. in%year >= 1) then
+!   write(stdout,*) 'year: ', year,in%lon,in%lat
+!   write(stdout,'(12f9.2)')in%climate%tmin
+!   write(stdout,'(12f9.2)')in%climate%tmax
+!   write(stdout,'(12f9.2)')in%climate%temp0
+!   write(stdout,'(12f9.2)')in%climate%prec
+!   write(stdout,'(12f9.2)')in%climate%cldf
+!   write(stdout,'(12f9.2)')in%climate%wetf * ndaymonth
+!   write(stdout,'(12f9.2)')in%climate%wind
+!   write(stdout,'(12f9.5)')in%climate%lght
+!   write(stdout, *)
+!   ! read(*,*)
+!   ! stop
+! end if
 
 !  write(stdout,'(a,12f9.2)')'WIND',in%climate%wind
 
@@ -1124,7 +1125,7 @@ do i = 1,3 ! ntiles
     
 !    goto 20
 
-    if (dospitfire .and. ((spinup .and. year > 50) .or. .not. spinup)) then
+    if (dospitfire .and. ((spinup .and. year > 0) .or. .not. spinup)) then
       
       burnedf20 = sum(osv%tile(i)%burnedf_buf) / real(climbuf)
       
