@@ -2,14 +2,14 @@
  cal_year         = 114   ! must be in units cal yr BP (1950)
  dospinup         = .true.
  dotransient      = .false.
- spinupyears      = 120 ! 1020 36 30-year cycles
+ spinupyears      = 1020 ! 1020 36 30-year cycles
  transientyears   = 0
  cfile_spinup     = '/home/terraces/projects/LPJ-LMfire_paleo2025/makeclimate/climate/NA5km/1836-1865_mean_20CR.nc'
  soilfile         = '/home/terraces/datasets/soils/NA5km/makesoil/NAsoils_v2026_soilcalc.nc'
  topofile         = '/home/terraces/datasets/paleogeography/ICE-7G/NA5km/land_00000.nc'
  fixedco2         = 283.7 ! from the file /home/terraces/datasets/dgvm_input/ghg/co2.txt
  pftparsfile      = 'share/pftpars_global.csv'
- nspinyrsout      = 1020
+ nspinyrsout      = 180
  maxmem           = 49152.
  lu_turn_yrs      = 0.
  outputvar     = 'cover','albiomass','livebiomass','litterC_fast','litterC_slow','litterC_bg','soilC_surf',
@@ -24,6 +24,10 @@
 ! example
 ! mpirun --mca pml ob1 --mca btl ^openib -np 2 src/lpj joboptions/NA5km/1836-1865_spinup.namelist -90/-89/44/45 output/test.nc
 
+
+! Northern North America run
+
+mpirun --mca pml ob1 --mca btl ^openib -np 41 src/lpj joboptions/NA5km/1836-1865_spinup.namelist -3240000/3350000/-2580000/3787000 output/NorthAm.nc > output/NorthAm.log
 
 ! Full western U.S. run (includes some neighboring parts of Canada and Mexico)
 ! N boundary expanded to reach approximate northern boundary of great plains, S boundary is southermost Arizona/NM/Mexico border,

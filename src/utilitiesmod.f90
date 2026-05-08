@@ -15,6 +15,11 @@ interface pos
   module procedure pos_dp
 end interface
 
+interface roundto
+  module procedure roundto_s
+  module procedure roundto_v
+end interface
+
 contains
 
 ! ------------------------------------------------------------------------------------------------------------------
@@ -218,6 +223,56 @@ real(sp) function area(lat,minutes)
   area = real(cellarea * 1.e6)
 
 end function area
+
+! ------------------------------------------------------------------------------------------------------------------
+
+function roundto_s(val,decimals)
+
+! round a scalar value to a given number of decimal places
+
+use parametersmod, only : sp
+
+implicit none
+
+real(sp), intent(in) :: val       ! the input value
+integer,  intent(in) :: decimals  ! the decimal precision
+
+real(sp) :: roundto_s
+
+real(sp) :: scale
+
+! ----
+
+scale = 10.**decimals
+
+roundto_s = real(nint(val * scale)) / scale
+
+end function roundto_s
+
+! ---------------------------------------------------------
+
+function roundto_v(val,decimals)
+
+! round a vector of values to a given number of decimal places
+
+use parametersmod, only : sp
+
+implicit none
+
+real(sp), dimension(:), intent(in) :: val       ! the input vector
+integer,                intent(in) :: decimals  ! the decimal precision
+
+real(sp), dimension(size(val)) :: roundto_v
+
+real(sp) :: scale
+
+! ----
+
+scale = 10.**decimals
+
+roundto_v = real(nint(val * scale)) / scale
+
+end function roundto_v
 
 ! ------------------------------------------------------------------------------------------------------------------
 

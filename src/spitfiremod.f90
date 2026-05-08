@@ -168,7 +168,7 @@ real(sp), dimension(3) :: PD           ! population density (individuals km-2)  
 real(sp) :: NI           ! Nesterov fuel dryness Index (degC^2)
 real(sp) :: Ustar        ! day mean wind speed (m s-1)
 real(sp) :: area         ! gridcell area (m2)
-real(sp) :: light        ! frequency of total lighting flashes (ha-1 d-1)
+real(sp) :: light        ! total lightning strikes per gridcell
 real(sp) :: dwind        ! wind speed
 
 ! ---
@@ -320,10 +320,11 @@ real(sp), dimension(npft,4) :: dfuelw  ! dead fuel load in 1- 10- 100- and 1000-
 
 real(sp), dimension(nspec) :: Mx     ! trace gas emissions (g x m-2)
 
-integer        :: numfires  ! number of fires started on the grid cell today
-integer               :: numfires_hum
-integer               :: numfires_nat
-integer, save  :: peopfire_account
+integer       :: numfires  ! number of fires started on the grid cell today
+integer       :: numfires_hum
+integer       :: numfires_nat
+integer, save :: peopfire_account
+
 real(sp) :: riskfact         ! FDI dependent factor influencing people's fire behavior; people become more careful when fire danger is high
 
 ! real(sp), parameter, dimension(3) :: max_ig = [15., 2. , 8.]                 ! maximum number of human possible fire ignitions (Mha-1 day-1) 
@@ -375,7 +376,6 @@ real(sp) :: humfire1     ! area one person can burn in one day (ha)
 integer, save :: arsonists
 integer :: group
 
-
 ! ------------------
 ! assignment
 
@@ -388,9 +388,6 @@ emVOC    = pftpar(:,48)
 emTPM    = pftpar(:,49)
 emNOx    = pftpar(:,50) 
 rhobPFT  = pftpar(:,51) 
-
-
-! write(*,'(2i5,2f7.2,f7.1,f7.2)')year,d,met%tmin,met%tmax,met%prec,met%dayl
 
 Ab = 0.
 abarf = 0.
@@ -444,11 +441,14 @@ end if
 ! ----
 ! write(0,*)'slopefact',slopefact
 
-light = met%lght * 0.01 ! convert from km-2 to ha-1
+light = met%lght        ! total strokes, no conversion
 M10   = met%wind        ! input wind is in 10m windspeed in m s-1
 NI    = met%NI
 
-! if( .not. spinup .and. year>=114) write(stdout,'(2i4,2f14.4)') year, d, light, light*area_ha
+
+! write(*,'(2i5,2f7.2,f7.1,f7.2,f7.2)')year,d,met%tmin,met%tmax,met%prec,met%dayl,light
+
+! if( .not. spinup .and. year>=114) write(stdout,'(2i4,2f14.4)') year, d, light, light
 
 omega_s1 = soilwater   ! top layer soil water content
 
@@ -512,7 +512,7 @@ if (d == 1) then
   ! unburneda = area_ha
 
   ! if (cumfires > 0) then
-  !  write(stdout,*) 'BEGIN SPITFIRE: ', year, PD, cumfires ! light * area_ha
+  !  write(stdout,*) 'BEGIN SPITFIRE: ', year, PD, cumfires ! light 
   ! end if
 
 end if
@@ -530,10 +530,9 @@ else
 end if
 
 if ((precsum >= 10. .and. sum(fpc_grid(8:9)) <= 0.6) .or. (precsum >= 3. .and. sum(fpc_grid(8:9)) > 0.6)) then  ! extinguish all currently burning or smoldering fires
-  cumfires = 0 
+  cumfires = 0
+  return    ! cumulative precipitation extinguishes all fire
 end if
-
-  
 
 ! ---
 ! bulk density of standing grass biomass (function of average GDD)
@@ -639,7 +638,7 @@ netfuel = (1. - ST) * sum(woi(1:3))  ! net organic part of the fuel (g m-2)
 totfuel = sum(deadfuel) + sum(livefuel) + cpool_surf(1)
 
 if (totfuel < 1000. .or. totvcover < 0.5) then
-  if(bavard)  write(*,'(a16,4i6,13f14.4)')'no_fuel',year,i,d,cumfires,Ab,abarf,afire_frac,light*area_ha,0.,PD,met%prec,NI,PD
+  if(bavard)  write(*,'(a16,4i6,13f14.4)')'no_fuel',year,i,d,cumfires,Ab,abarf,afire_frac,light,0.,PD,met%prec,NI,PD
   cumfires = 0  
   return  ! no fuel
 end if
@@ -652,12 +651,12 @@ end if
 ! because of the big differences in roughness length between trees and grasses, calculate different effective mid-flame windspeeds for each
 ! since rate of spread is anyway calculated separately
 
-z0grass =  0.03 ! typical aerodynamic roughness length for forests (Stull, table 18-1)
+z0grass =  0.03 ! typical aerodynamic roughness length for grassland (Stull, table 18-1)
 z0trees =  1.   ! typical aerodynamic roughness length for forests (Stull, table 18-1)
 
 zref    = 10.   ! reference height for input windspeed
 zftrees =  2.   ! mid-flame height for surface fires in forests (m)
-zfgrass =  0.5  ! mid-flame height for surface fires in forests (m)
+zfgrass =  1.   ! mid-flame height for surface fires in grass (m)
 
 Uforward_grass = M10 * log(zfgrass / z0grass) / log(zref / z0grass)
 
@@ -702,7 +701,7 @@ latscale = 1.   ! FLAG: we are now already using a climate file that holds the t
 
 ! =========================================================================================================================
 
-! if (met%prec < 10. .and. cumfires == 0 .and. burnedf == 0. .and. light*area_ha >= 1.) then
+! if (met%prec < 10. .and. cumfires == 0 .and. burnedf == 0. .and. light >= 1.) then
 ! if(met%prec < 10.) then 
   ! nlig = light * latscale * ieff  ! 0.1  ! total flashes * 20% cloud-to-ground * 10% ignition efficiency (ha-1 d-1)
   ! nlig = 1./area_ha
@@ -712,6 +711,8 @@ latscale = 1.   ! FLAG: we are now already using a climate file that holds the t
 
 ! --------------------------------------------------------------------------------
 ! human ignitions
+
+PD = 0.
 
 ! number of people on the gridcell who are most active in maintaining the fire regime
 
@@ -879,8 +880,8 @@ end if
 
 ! if (FDI == 0.) then
 !  cumfires = 0        ! extinguish all burning fires
-!  write(*,'(a16,4i6,10f14.4)')'FDI_zero',year,i,d,cumfires,Ab,abarf,afire_frac,light*area_ha,nlig*area_ha, PD,omega_o/me_avg,NI
-!   write(*,'(a16,4i6,29f14.4)') 'FDI_zero', year,i,d,cumfires,Ab,abarf,afire_frac,light*area_ha, nlig*area_ha,PD, area_ha, treecover, grascover, DT/1000., tfire/60., ROSfsurface*60./1000., ROSbsurface*60./1000., Uforward*60./1000.,  &
+!  write(*,'(a16,4i6,10f14.4)')'FDI_zero',year,i,d,cumfires,Ab,abarf,afire_frac,light,nlig*area_ha, PD,omega_o/me_avg,NI
+!   write(*,'(a16,4i6,29f14.4)') 'FDI_zero', year,i,d,cumfires,Ab,abarf,afire_frac,light, nlig*area_ha,PD, area_ha, treecover, grascover, DT/1000., tfire/60., ROSfsurface*60./1000., ROSbsurface*60./1000., Uforward*60./1000.,  &
 !                                 LB,LBtree,LBgrass,woi,omega_o,omega_o/me_avg,FDI,Isurface,slopefact, input%slope
 !  return ! no fire danger, so no burning
 ! end if
@@ -894,24 +895,22 @@ else
   riskfact = 1.
 end if 
 
-
-
-
 ! ---------------------------
 ! lightning ignitions
 
 ! here we say there has to be at least a greater than half probability of lightning stroke in the gridcell to have an ignition
 ! because otherwise with very low densities of lightning there are a lot of ignitions (2023.02)
+! 2026.05 now carrying lightning as strikes per gridcell from weathergenmod
 
 nlig = 0.
 
-if (light * area_ha > 0.5) then  
+if (light >= 1.) then  
 
   ! ignition efficiency is inversely related to already burned area
 
   ! ieff = FDI * (1. - burnedf) * 0.5  ! constant 0.8 for the fact that not all of any landscape is flammable
   
-  ieff = FDI * 1.0 * (1. - burnedf) / (1. + 25. * burnedf) * ieff_avg
+  ieff = FDI * 0.5 * (1. - burnedf) / (1. + 25. * burnedf) * ieff_avg
   
   prob = ranur(met%rndst)  ! random value from [0,1]
 
@@ -919,9 +918,9 @@ if (light * area_ha > 0.5) then
 
 end if
 
-if (nlig > 0.) then
-  write(0,*)'lightning',area_ha,light,light*area_ha,FDI,ieff,prob,nlig
-end if
+! if (nlig > 0.) then
+!   write(0,*)'=== lightning ===',year,d,area_ha,light,FDI,ieff,prob,nlig
+! end if
 
 ! ---------------------------
 ! part 2.2.4, mean fire area (rate of spread)
@@ -1083,8 +1082,6 @@ end if
 !  else
 !    crownfire = .false.
 !  end if
-  
-
 
 ! ---------------------------
 ! backward rate of spread - decreases with stronger wind
@@ -1186,15 +1183,15 @@ if (tfire > 0. .and. ROSfsurface > 0.) then
   
   fabarf = min(fabarf,ffrag(burnablef - totburnf))
   
-  if (fabarf > 0.6) then
-  
-    write(0,*)'flag',xpos,ypos,tfire
-    write(0,*)fdist,tfire * ROSfsurface
-    write(0,*)bdist,tfire * ROSbsurface
-    write(0,*)DT
-  
-    write(0,*)'high abarf',slopefact,fabarf,abarf/area_ha,totburnf,burnablef,LB,DT,cont_area,abarf,LB,DT,tfire,ROSfsurface,ROSbsurface,M10,Uforward_trees,Uforward_grass
-  end if
+!   if (fabarf > 0.6) then
+!   
+!     write(0,*)'flag',xpos,ypos,tfire
+!     write(0,*)fdist,tfire * ROSfsurface
+!     write(0,*)bdist,tfire * ROSbsurface
+!     write(0,*)DT
+!   
+!     write(0,*)'high abarf',slopefact,M10,Uforward_trees,Uforward_grass,ROSfsurface,ROSbsurface,tfire,LB,DT,abarf,fabarf,abarf/area_ha,totburnf,burnablef,cont_area
+!   end if
   
   abarf = fabarf * area_ha
   
@@ -1270,15 +1267,14 @@ end if
 
 nhig = nhig * riskfact        ! reduce number of fires caused when FDI gets above 0.25
 
-! numfires_nat = int(FDI * nlig * area_ha)  ! lightning fires started on this day
-numfires_nat = int(nlig)! * area_ha)  ! lightning fires started on this day
+numfires_nat = int(nlig)  ! lightning fires started on this day
 numfires_hum = nhig                       ! human fires started on this day
 
 numfires = numfires_nat + numfires_hum
 
 ! if (nhig > 0) then
 !   write(stderr,*)'spitfire',people,nhig
-!   write(stderr,'(a,3i5,4f14.8)')'potential burnday',year,i,d,FDI,NI,light*area_ha,nlig*area_ha
+!   write(stderr,'(a,3i5,4f14.8)')'potential burnday',year,i,d,FDI,NI,light,nlig*area_ha
 ! end if
 
 ! cumfires = cumfires + numfires             ! accumulate all fire since last time FDI was not zero
@@ -1297,7 +1293,7 @@ unburneda = max(0.,unburneda)
 
 Ab = max(0.,min(unburneda,cumfires * abarf))  ! ha
 
-
+! if (cumfires > 0) write(0,*)'numfires, Ab',year,d,met%prec,precsum,light,numfires_nat,numfires_hum,cumfires,Ab
 
 ! reduce cumfires by nhig (human caused fires only last for one day)
 
@@ -1332,9 +1328,9 @@ end if
 
 
 if (Ab == 0.) then 
-  if(bavard) write(*,'(a16,4i6,16f14.4)')'Area_burned_zero ', year, i,d,cumfires,Ab,abarf,afire_frac,light*area_ha,nlig,FDI, &
+  if(bavard) write(*,'(a16,4i6,16f14.4)')'Area_burned_zero ', year, i,d,cumfires,Ab,abarf,afire_frac,light,nlig,FDI, &
                                             met%prec, NI, grascover, omega_o, me_avg, omega_nl, me_nl, PD
-!  write(*,'(a16,4i6,29f14.4)') 'Area_burned_zero', year,i,d,cumfires,Ab,abarf,afire_frac,light*area_ha, nlig*area_ha,PD, area_ha, treecover, grascover, DT/1000., tfire/60., ROSfsurface*60./1000., ROSbsurface*60./1000., Uforward*60./1000.,  &
+!  write(*,'(a16,4i6,29f14.4)') 'Area_burned_zero', year,i,d,cumfires,Ab,abarf,afire_frac,light, nlig*area_ha,PD, area_ha, treecover, grascover, DT/1000., tfire/60., ROSfsurface*60./1000., ROSbsurface*60./1000., Uforward*60./1000.,  &
 !                                LB,LBtree,LBgrass,woi,omega_o,omega_o/me_avg,FDI,Isurface,slopefact, input%slope   
   return
 end if 
@@ -1427,9 +1423,9 @@ Isurface = h * sum(FC(1:3)) * ROSfsurface * min2sec  ! eqn. 15
 ! write(stdout,*)'Isurf',isurface
 
 if (Isurface < 50.) then  ! ignitions are extinguished and there is no fire on this day
-  if(bavard)  write(*,'(a16,4i6,19f14.4)')'Isurface_low',year,i,d,cumfires,Ab,abarf,afire_frac,light*area_ha,nlig,FDI,Isurface, &
+  if(bavard)  write(*,'(a16,4i6,19f14.4)')'Isurface_low',year,i,d,cumfires,Ab,abarf,afire_frac,light,nlig,FDI,Isurface, &
                                             met%prec, NI, grascover, omega_o, me_avg, omega_nl, me_nl, PD
-! write(*,'(a16,4i6,29f14.4)') 'Isurface_low', year,i,d,cumfires,Ab,abarf,afire_frac,light*area_ha, nlig*area_ha,PD, area_ha, treecover, grascover, DT/1000., tfire/60., ROSfsurface*60./1000., ROSbsurface*60./1000., Uforward*60./1000.,  &
+! write(*,'(a16,4i6,29f14.4)') 'Isurface_low', year,i,d,cumfires,Ab,abarf,afire_frac,light, nlig*area_ha,PD, area_ha, treecover, grascover, DT/1000., tfire/60., ROSfsurface*60./1000., ROSbsurface*60./1000., Uforward*60./1000.,  &
 !                               LB,LBtree,LBgrass,woi,omega_o,omega_o/me_avg,FDI,Isurface,slopefact, input%slope
   Ab     = 0.
   Abfrac = 0.
@@ -1441,10 +1437,10 @@ end if
 
 afire_frac = afire_frac + Abfrac
 
-if (bavard) write(*,'(a16,4i6,29f14.4)') 'BURNDAY', year,i,d,cumfires,Ab,abarf,afire_frac,light*area_ha, nlig*area_ha,PD, area_ha, &
+if (bavard) write(*,'(a16,4i6,29f14.4)') 'BURNDAY', year,i,d,cumfires,Ab,abarf,afire_frac,light, nlig*area_ha,PD, area_ha, &
                    treecover, grascover, DT/1000., tfire/60., ROSfsurface*60./1000., ROSbsurface*60./1000., Uforward_trees,    &
                    LB,LBtree,LBgrass,woi,omega_o,omega_o/me_avg,FDI,Isurface,slopefact,input%slope
-! if(bavard) write(*,'(a16,4i10,23f14.3)')'BURNDAY', year,i,d,cumfires,AB,abarf,afire_frac,light*area_ha,nlig,FDI,woi,  &
+! if(bavard) write(*,'(a16,4i10,23f14.3)')'BURNDAY', year,i,d,cumfires,AB,abarf,afire_frac,light,nlig,FDI,woi,  &
 !                                         omega_o,omega_o/me_avg,Isurface,met%prec,NI,grascover,omega_o,me_avg,omega_nl,me_nl,PD
 
 ! -------------------------------------------
@@ -1612,7 +1608,7 @@ subroutine calcROS(wn,rho_b,sigma,omega_o,relmoist,Uforward,rateofspread)
 real(sp), intent(in)  :: wn            ! total fuel mass of the organic part of the fuel (mineral fraction subtracted) (g DM m-2)
 real(sp), intent(in)  :: rho_b         ! bulk density of the fuel (kg m-3)
 real(sp), intent(in)  :: sigma         ! surface area to volume ratio of the fuel (cm2 / cm3)
-real(sp), intent(in)  :: omega_o       ! relative moisture content of the fuel (unitless; 0=completely dry fuel)
+real(sp), intent(in)  :: omega_o       ! relative moisture content of the fuel (unitless; 0 = completely dry fuel)
 real(sp), intent(in)  :: relmoist      ! relative moisture content of the fuel relative to its moisture of extinction (unitless; omega_o / m_e)
 real(sp), intent(in)  :: Uforward      ! windspeed (m min-1)
 
@@ -1787,7 +1783,9 @@ p   = pftpar(:,43)
 
 SH = F(pft) * Isurface**0.667       ! scorch height (m)
 
-CK = (SH - ind%height + ind%lcrown) / ind%lcrown      ! proportion of the crown affected by fire (combusted)
+CK = 0.
+
+where (ind%lcrown > 0.) CK = (SH - ind%height + ind%lcrown) / ind%lcrown      ! proportion of the crown affected by fire (combusted)
 
 CK = max(min(CK,1.),0.)            ! keep the proportion between 0 and 1
 

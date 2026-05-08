@@ -185,7 +185,7 @@ real(sp), dimension(365,npft) :: dphen    ! net daily leaf-on fraction
 real(sp), dimension(365,npft) :: dphen_t  ! daily leaf-on fraction due to temperature phenology
 real(sp), dimension(365,npft) :: dphen_w  ! daily leaf-on fraction due to drought phenology
 
-real(sp), dimension(365,npft) :: wscal_v  ! daily supply/demand ratio
+real(sp), dimension(365,npft) :: wscal_v  = 0. ! daily supply/demand ratio
 
 real(sp), dimension(npft) :: wscal_a      ! mean annual wscal by pft
 real(sp), dimension(npft) :: wiltdays     ! count of days with wscal_v < 0.35 (leaf off wscal)
@@ -409,23 +409,20 @@ dosoilco2 = in%dosoilco2
 !   write(stdout,'(12f9.2)')in%climate%tmax
 !   write(stdout,'(12f9.2)')in%climate%temp0
 !   write(stdout,'(12f9.2)')in%climate%prec
-!   write(stdout,'(12f9.2)')in%climate%cldf
 !   write(stdout,'(12f9.2)')in%climate%wetf * ndaymonth
+!   write(stdout,'(12f9.2)')in%climate%cldf
 !   write(stdout,'(12f9.2)')in%climate%wind
 !   write(stdout,'(12f9.5)')in%climate%lght
+ 
 !   write(stdout, *)
-!   ! read(*,*)
-!   ! stop
+! 
+!   write(stdout,*)'initializing soil state, NTILES',ntiles
+!   write(stdout,*)in%soil%sand
+!   write(stdout,*)in%soil%clay
+!   write(stdout,*)in%soil%orgm
+!   write(stdout,*)in%soil%zpos
+
 ! end if
-
-!  write(stdout,'(a,12f9.2)')'WIND',in%climate%wind
-
-
-! write(stdout,*)'initializing soil state, NTILES',ntiles
-! write(stdout,*)in%soil%sand
-! write(stdout,*)in%soil%clay
-! write(stdout,*)in%soil%orgm
-! write(stdout,*)in%soil%zpos
 
 if (year == 1) then  ! initialize the soil state
   do i = 1,ntiles
@@ -450,7 +447,7 @@ call newspline(wind,ndaymonth,[wind(12),wind(1)],dwind,llim=0.)
 
 ! weather generator: disaggregate monthly meteorological variables
 
-call weathergen_driver(dtmn,dtmx,dcld,prec,wetd,lght,met_out)
+call weathergen_driver(in%cellarea*1.e-6,dtmn,dtmx,dcld,prec,wetd,lght,met_out)
 
 ! set the daily precipitation vector
 
@@ -1125,7 +1122,7 @@ do i = 1,3 ! ntiles
     
 !    goto 20
 
-    if (dospitfire .and. ((spinup .and. year > 0) .or. .not. spinup)) then
+    if (dospitfire .and. ((spinup .and. year > 50) .or. .not. spinup)) then
       
       burnedf20 = sum(osv%tile(i)%burnedf_buf) / real(climbuf)
       

@@ -304,10 +304,16 @@ end do ! End of outer loop
 ! -------------------------------------------------------------------------------
 ! Call bounded interpolation adjustment scheme if optional arguments are present
 
-if (present(llim)) call llim_adjust(llim,monthdata,nk,bcond,all_cont,daydata)
+if (present(llim)) then
+  call llim_adjust(llim,monthdata,nk,bcond,all_cont,daydata)
+  daydata = max(daydata,llim)   ! there are cases where the adjustment doesn't quite converge, in this even just truncate to the lower limit
+end if
+
 if (present(ulim)) call ulim_adjust(ulim,monthdata,nk,bcond,all_cont,daydata)
 if (present(alim)) call alim_adjust(alim,monthdata,nk,bcond,all_cont,daydata)
 if (present(plim)) call plim_adjust(plim,monthdata,nk,bcond,all_cont,daydata)
+
+
 
 end subroutine newspline
 
@@ -1048,6 +1054,7 @@ real(sp) :: int_n
 real(sp) :: int_nm1
 real(sp) :: int_np1
 real(sp) :: sip12
+real(sp) :: eps
 
 integer :: len
 integer :: i
@@ -1196,13 +1203,12 @@ do i = 1, len
     ! ---
 
     do j = 1, 1000
+    
+      eps = sum(c_mon(2:nk(i)+1)) / nk(i) - int_n
 
-      if ((int_n > int_nm1 .and. int_n > int_np1) .and. &
-          sum(c_mon(2:nk(i)+1)) / nk(i) - int_n < 0.01) exit
+      if ((int_n > int_nm1 .and. int_n > int_np1) .and. eps < 0.01) exit
 
-      if ((int_n < int_nm1 .and. int_n < int_np1) .and. &
-          sum(c_mon(2:nk(i)+1)) / nk(i) - int_n > 0.01) exit
-
+      if ((int_n < int_nm1 .and. int_n < int_np1) .and. eps > 0.01) exit
 
       do k = 2, nk(i)+1
 

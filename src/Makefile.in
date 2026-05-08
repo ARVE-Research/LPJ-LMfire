@@ -104,11 +104,12 @@ CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
 am_lpj_OBJECTS = parametersmod.$(OBJEXT) randomdistmod.$(OBJEXT) \
-	utilitiesmod.$(OBJEXT) calendarmod.$(OBJEXT) \
-	newsplinemod.$(OBJEXT) weathergenmod.$(OBJEXT) \
-	orbitmod.$(OBJEXT) geohashmod.$(OBJEXT) \
-	mpistatevarsmod.$(OBJEXT) iovariablesmod.$(OBJEXT) \
-	errormod.$(OBJEXT) coordsmod.$(OBJEXT) initsoilmod.$(OBJEXT) \
+	utilitiesmod.$(OBJEXT) statsmod.$(OBJEXT) \
+	calendarmod.$(OBJEXT) newsplinemod.$(OBJEXT) \
+	weathergenmod.$(OBJEXT) orbitmod.$(OBJEXT) \
+	geohashmod.$(OBJEXT) mpistatevarsmod.$(OBJEXT) \
+	iovariablesmod.$(OBJEXT) errormod.$(OBJEXT) \
+	coordsmod.$(OBJEXT) initsoilmod.$(OBJEXT) \
 	initclimatemod.$(OBJEXT) getyrdatamod.$(OBJEXT) \
 	netcdfsetupmod.$(OBJEXT) initjobmod.$(OBJEXT) \
 	radiationmod.$(OBJEXT) bioclimmod.$(OBJEXT) alccmod.$(OBJEXT) \
@@ -356,6 +357,7 @@ lpj_SOURCES = \
   parametersmod.f90         \
   randomdistmod.f90         \
   utilitiesmod.f90          \
+  statsmod.f90              \
   calendarmod.f90           \
   newsplinemod.f90          \
   weathergenmod.f90         \

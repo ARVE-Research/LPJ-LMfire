@@ -77,19 +77,31 @@ type daymetvars
 
 end type daymetvars
 
+
+real(sp), parameter :: p_trans = 5.   ! Threshold for transition from the gamma to gp distribution (mm)
+
+! coefficient to esimate the gamma scale parameter via
+! g_scale = g_scale_coeff * mean_monthly_precip / number_of_wet_days
+! following Geng et al., 1986
+
+real(sp), parameter :: g_scale_coeff = 1.26238637383 ! coefficient to esimate the gamma scale parameter
+
+real(sp), parameter :: gp_shape = 1.5 ! shape parameter for the Generalized Pareto distribution
+
 contains
 
 ! ------------------------------------------------------------------------------------------------------------
 
-subroutine weathergen_driver(dtmin,dtmax,dcldf,prec,wetd,lght,met_out)
+subroutine weathergen_driver(cellarea,dtmin,dtmax,dcldf,prec,wetd,lght,met_out)
 
 use parametersmod, only : sp,ndaymonth
+use utilitiesmod,  only : roundto
 use randomdistmod, only : ranur
 
 implicit none
 
 ! arguments
-
+real(sp),               intent(in) :: cellarea ! input in km2
 real(sp), dimension(:), intent(in) :: dtmin
 real(sp), dimension(:), intent(in) :: dtmax
 real(sp), dimension(:), intent(in) :: dcldf
@@ -108,14 +120,19 @@ integer :: dyr
 integer :: d
 integer :: yesterday
 
-real(sp), dimension(365) :: prob  ! probability of lightning on this day (0-1)
+real(sp), dimension(365) :: lghtf  ! first guess of lightning distributed according to precipitation
 
-real(sp) :: mprec_sim
+real(sp) :: rescale
 
 type(metvars_in) :: met_in
 
 integer :: i
 integer :: wd
+
+real(sp) :: lghtint
+real(sp) :: rem
+
+real(sp) :: dprecsum
 
 ! ------------------------------------------------
 ! copy the random number state from the previous year's last value - passed to this subroutine in met_out(1)
@@ -125,6 +142,7 @@ met_in%rndst = met_out(1)%rndst
 ! initialize lightning to zero
 
 met_out%lght = 0.
+lghtf = 0.
 
 ! calculate daily meteorology
 
@@ -145,63 +163,109 @@ do m = 1,12
   met_in%wetd = wetd(m)
   met_in%wetf = wetd(m) / ndaymonth(m)            ! ++TODO: this doesn't take into account leap years
 
-  i = 1
-  do
-    dyr = a
-    do d = 1,ndaymonth(m)
+  dyr = a
 
-      yesterday = dyr - 1
-      if (yesterday == 0) yesterday = 365
+  do d = 1,ndaymonth(m)
 
-      met_in%tmin  = dtmin(dyr)
-      met_in%tmax  = dtmax(dyr)
-      met_in%cldf  = dcldf(dyr)
-      met_in%NI    = met_out(yesterday)%NI
-      met_in%pday  = met_out(yesterday)%pday
-      met_in%resid = met_out(yesterday)%resid
+    yesterday = dyr - 1
+    if (yesterday == 0) yesterday = 365
 
-      call weathergen(met_in,met_out(dyr))       ! MP: weather generator gets the smoothed pseudo-daily values from rmsmooth
+    met_in%tmin  = dtmin(dyr)
+    met_in%tmax  = dtmax(dyr)
+    met_in%cldf  = dcldf(dyr)
+    met_in%NI    = met_out(yesterday)%NI
+    met_in%pday  = met_out(yesterday)%pday
+    met_in%resid = met_out(yesterday)%resid
 
-      met_in%rndst = met_out(dyr)%rndst
-      
-      dyr = dyr + 1
+    call weathergen(met_in,met_out(dyr))       ! MP: weather generator gets the smoothed pseudo-daily values from rmsmooth
 
-    end do ! days of month loop
-
-    ! enforce a total monthly precip that is within 5% of the input (or 100 iterations)
-
-    mprec_sim = sum(met_out(a:b)%prec)
-
-    if (prec(m) == 0.) exit
-    if (abs((prec(m) - mprec_sim) / prec(m)) < 0.05) exit
-
-    i = i + 1
+    met_in%rndst = met_out(dyr)%rndst
     
-    if (i > 100) exit
+    dyr = dyr + 1
 
-  end do ! end of conditional precip loop
+  end do ! days of month loop
+
+  ! adjust total monthly precip so it matches input
+  
+  dprecsum = sum(met_out(a:b)%prec)
+  
+  if (dprecsum > 0.) then
+  
+    rescale = met_in%prec / sum(met_out(a:b)%prec)
+  
+  else
+  
+   rescale = 1.
+
+  end if
+  
+  met_out(a:b)%prec = roundto(met_out(a:b)%prec * rescale,1)
   
   ! -----------
-  ! disaggregate lightning flashes randomly only on days with precip, only if there is ligtning in the input file in this month
+  ! new 2026.05
+  ! if there is lightning in the input file in this month, disaggregate lightning flashes on days with precip.
+  ! lighting amount is carried as total strikes per gridcell instead of previously used density
+  ! strikes per day are proportional to daily precipitation amount; days with fractional strikes can be rounded up
+  ! to a whole number based on a simple probability
     
-  if (lght(m) > 0.) then
-  
+  if (lght(m) > 0. .and. dprecsum > 0.) then
+    
     do wd = a,b
-      if (met_out(wd)%prec > 0.) then
-        prob(wd) = ranur(met_in%rndst)  ! random real value from [0,1]
-      else
-        prob(wd) = 0.
-      end if
+    
+      ! calculate a simple distribution of lightning based on the daily precip relative to the monthly total
+    
+      lghtf(wd) = cellarea * lght(m) * ndaymonth(m) * met_out(wd)%prec / met_in%prec
+      
     end do
+    
+    do wd = a,b
+        
+      met_out(wd)%lght = floor(lghtf(wd),sp)
+!       
+!       if (ranur(met_in%rndst) > lghtf(wd) - lghtint) then
+!         met_out(wd)%lght = lghtint
+!       else
+!         met_out(wd)%lght = lghtint ! + 1.
+!       end if
+!       
+!       write(0,*)m,wd,met_in%prec,lght(m),met_out(wd)%prec,lghtf(wd),met_out(wd)%lght
+      
+      ! write(0,'(a,i5,f6.1,f8.3)')'lightning ',wd,met_out(wd)%prec,met_out(wd)%lght * 25.
+      
+      ! calculate the remainder of the real number of lightning strokes, this will be the probability of an additional stroke on this day
+      
+      ! draw a uniform random number, if less than the probability, add an additional stroke to this day
+      
+      ! rem = 25 * (met_out(wd)%lght - met_out(wd)%lght) * 25. 
+    
+    end do
+    
+!    int(met_out(a:b)%lght) 
 
-    ! disaggregate
-    do wd = a,b
-      if(sum(prob(a:b)) /= 0.) then     ! there is a likelihood for lightning in this month
-         met_out(wd)%lght = lght(m) * ndaymonth(m) * prob(wd) / sum(prob(a:b)) ! total flashes * fraction of total monthly strikes on this day
-      else
-         met_out(wd)%lght = 0.
-      end if
-    end do
+!     do wd = a,b
+!       if (met_out(wd)%prec > 0.) then
+!         prob(wd) = ranur(met_in%rndst)  ! random real value from [0,1]
+!       else
+!         prob(wd) = 0.
+!       end if
+!     end do
+! 
+!     ! disaggregation based on precipitation amount
+! 
+!     do wd = a,b
+!       if(sum(prob(a:b)) > 0.) then     ! there is a likelihood for lightning in this month
+!          met_out(wd)%lght = lght(m) * ndaymonth(m) * prob(wd) / sum(prob(a:b)) ! total flashes * fraction of total monthly strikes on this day
+! 
+!          write(0,*)'lightning:',wd,met_out(wd)%prec,prob(wd),lght(m) * ndaymonth(m) * prob(wd) / sum(prob(a:b)) * 25.  ! strokes km-2 * 5km gridcell area
+! 
+!       else
+!          met_out(wd)%lght = 0.
+!       end if
+!     end do
+
+  else
+  
+    met_out(a:b)%lght = 0.
 
   end if
 
@@ -216,7 +280,9 @@ end subroutine weathergen_driver
 subroutine weathergen(met_in,met_out)
 
 use parametersmod, only : sp,dp,i4,ndaymonth,tfreeze
-use randomdistmod, only : ranur,ran_normal,ran_gamma
+use statsmod,      only : gamma_cdf,gamma_pdf
+use randomdistmod, only : ranur,ran_normal,ran_gamma_gp
+use utilitiesmod,  only : roundto
 
 implicit none
 
@@ -242,6 +308,8 @@ real(sp), dimension(9), parameter :: corvb = [ 0.781, 0.000, 0.000, &   ! curren
                                                0.238,-0.341, 0.873 ]
 
 real(sp), dimension(3,3), parameter :: cor_b = reshape(corvb,[3,3])
+
+integer, parameter :: maxiter = 100
 
 ! local variables
 
@@ -280,9 +348,16 @@ real(sp) :: NI
 real(sp) :: pbar     ! mean amount of precipitation per wet day (mm)
 real(sp) :: pwd      ! transition probability of a wet day following a dry day (fraction)
 real(sp) :: pww      ! transition probability of a wet day following a wet day (fraction)
-real(sp) :: alpha    ! shape parameter for the precipitation amount function
-real(sp) :: beta     ! shape parameter for the precipitation amount function
+! real(sp) :: alpha    ! shape parameter for the precipitation amount function
+! real(sp) :: beta     ! shape parameter for the precipitation amount function
 real(sp) :: u        ! uniformly distributed random number (0-1)
+
+real(dp) :: cdf_thresh  ! gamma cdf at the threshold
+real(dp) :: pdf_thresh  ! gamma pdf at the threshold
+
+real(sp) :: g_shape     ! shape parameter for the gamma distribution
+real(sp) :: g_scale     ! scale parameter for the gamma distribution
+real(sp) :: gp_scale    ! scale parameter for the generalized pareto distribution
 
 type(daymetvars), target :: dmetvars
 
@@ -353,18 +428,35 @@ if (wetf > 0. .and. pre > 0.) then
 
     pbar = pre / wetd
 
-    if (pbar > pmin) then
-      beta = -2.16 + 1.83 * pbar
-    else
-      beta = pbar
-    end if
+    g_scale = g_scale_coeff * pbar
+    g_shape = pbar / g_scale
 
-    beta  = max(beta,small)   ! put here to avoid infinity values of alpha
-    alpha = pbar / beta 
+    call gamma_cdf(p_trans,0.,g_scale,g_shape,cdf_thresh)
 
-    ! today's precipitation
+    call gamma_pdf(p_trans,0.,g_scale,g_shape,pdf_thresh)
 
-    call ran_gamma(rndst,alpha,beta,.true.,prec)
+    gp_scale = real((1._dp - cdf_thresh) / pdf_thresh)
+
+    i = 1
+    
+    do  ! quality control loop
+
+      prec = ran_gamma_gp(rndst,.true.,g_shape,g_scale,p_trans,gp_shape,gp_scale)
+      
+      prec = roundto(prec,1)
+  
+      ! enforce positive precipitation that is not more than 5% greater than the monthly total
+  
+      if (prec > 0. .and. prec <= 1.05 * pre) exit
+
+      i = i + 1
+
+      if (i > maxiter) then
+        write (0,*)'Could not find good precipitation with ', pre, ' mm and ', wetd, ' wet days'
+        stop
+      end if
+
+    end do
 
   else
       
