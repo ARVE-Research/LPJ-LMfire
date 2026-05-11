@@ -904,17 +904,13 @@ end if
 
 nlig = 0.
 
-if (light >= 1.) then  
+if (light > 0.) then  ! weathergenmod will disaggregate the lightning so it will always be a whole number
 
-  ! ignition efficiency is inversely related to already burned area
+  prob = ranur(met%rndst)
 
-  ! ieff = FDI * (1. - burnedf) * 0.5  ! constant 0.8 for the fact that not all of any landscape is flammable
-  
-  ieff = FDI * 0.5 * (1. - burnedf) / (1. + 25. * burnedf) * ieff_avg
-  
-  prob = ranur(met%rndst)  ! random value from [0,1]
+  ieff = ieff_avg * FDI * (1. - burnedf) / (1. + 25. * burnedf)
 
-  if (ieff > prob) nlig = 1. 
+  if (met%prec < 1. .and. prob < ieff) nlig = 1.
 
 end if
 

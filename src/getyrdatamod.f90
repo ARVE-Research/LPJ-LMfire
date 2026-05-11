@@ -396,10 +396,6 @@ do y = 1,cnty
     else
       cellmask(x,y) = .true.
     end if
-
-!      write(stdout,*)x,y,soil(x,y)%landf,cellmask(x,y)
-    
-    ! if (ibuf(x,y)%temp(1) /= rmissing .and. soil(x,y)%sand(1) >= 0. .and. soil(x,y)%landf > 0.) cellmask(x,y) = .true.  
     
   end do
 end do

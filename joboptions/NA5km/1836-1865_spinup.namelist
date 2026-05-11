@@ -25,6 +25,10 @@
 ! mpirun --mca pml ob1 --mca btl ^openib -np 2 src/lpj joboptions/NA5km/1836-1865_spinup.namelist -90/-89/44/45 output/test.nc
 
 
+! full North America run
+
+mpirun --mca pml ob1 --mca btl ^openib -np 41 src/lpj joboptions/NA5km/1836-1865_spinup.namelist -4350000/3345000/-3885000/3780000 output/NorthAm.nc > output/NorthAm.log
+
 ! Northern North America run
 
 mpirun --mca pml ob1 --mca btl ^openib -np 41 src/lpj joboptions/NA5km/1836-1865_spinup.namelist -3240000/3350000/-2580000/3787000 output/NorthAm.nc > output/NorthAm.log
@@ -53,3 +57,8 @@ mpirun --mca pml ob1 --mca btl ^openib -np 41 src/lpj joboptions/NA5km/1836-1865
 ! mpirun -np 2 src/lpj joboptions/NA_spinup_natural.namelist -1887500/-1882500/-920000/-910000 output/test4pix.nc
 
 ! mpirun --mca pml ob1 --mca btl ^openib -np 2 src/lpj joboptions/NA5km/1836-1865_spinup.namelist 1147500/-807500 output/test1pix.nc
+
+! Central Alaska
+! mpirun --mca pml ob1 --mca btl ^openib -np 2 src/lpj joboptions/NA5km/1836-1865_spinup.namelist -2032500/2517500 output/test1pix.nc
+
+! mpirun --mca pml ob1 --mca btl ^openib -np 35 src/lpj joboptions/NA5km/1836-1865_spinup.namelist -2270000/-1880000/2400000/2720000 output/CentralAlaska.nc > output/CentralAlaska.log

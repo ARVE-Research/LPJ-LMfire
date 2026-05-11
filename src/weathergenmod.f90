@@ -130,7 +130,7 @@ integer :: i
 integer :: wd
 
 real(sp) :: lghtint
-real(sp) :: rem
+real(sp) :: prob
 
 real(sp) :: dprecsum
 
@@ -191,15 +191,17 @@ do m = 1,12
   
   if (dprecsum > 0.) then
   
-    rescale = met_in%prec / sum(met_out(a:b)%prec)
+    rescale = met_in%prec / dprecsum
+    
+    met_out(a:b)%prec = roundto(met_out(a:b)%prec * rescale,1)
+    
+!     write(0,'(a,i5,2f7.1)')'prec ',m,met_in%wetd,met_in%prec
+!     
+!     do d = a,b
+!       write(0,'(i5,f7.1)')d,met_out(d)%prec
+!     end do
   
-  else
-  
-   rescale = 1.
-
   end if
-  
-  met_out(a:b)%prec = roundto(met_out(a:b)%prec * rescale,1)
   
   ! -----------
   ! new 2026.05
@@ -212,57 +214,26 @@ do m = 1,12
     
     do wd = a,b
     
-      ! calculate a simple distribution of lightning based on the daily precip relative to the monthly total
+      ! calculate a simple distribution of lightning probability based on the daily precip relative to the monthly total
     
       lghtf(wd) = cellarea * lght(m) * ndaymonth(m) * met_out(wd)%prec / met_in%prec
       
     end do
     
     do wd = a,b
-        
-      met_out(wd)%lght = floor(lghtf(wd),sp)
-!       
-!       if (ranur(met_in%rndst) > lghtf(wd) - lghtint) then
-!         met_out(wd)%lght = lghtint
-!       else
-!         met_out(wd)%lght = lghtint ! + 1.
-!       end if
-!       
-!       write(0,*)m,wd,met_in%prec,lght(m),met_out(wd)%prec,lghtf(wd),met_out(wd)%lght
+
+      lghtint = floor(lghtf(wd),sp)
       
-      ! write(0,'(a,i5,f6.1,f8.3)')'lightning ',wd,met_out(wd)%prec,met_out(wd)%lght * 25.
+      prob = ranur(met_in%rndst)
       
-      ! calculate the remainder of the real number of lightning strokes, this will be the probability of an additional stroke on this day
-      
-      ! draw a uniform random number, if less than the probability, add an additional stroke to this day
-      
-      ! rem = 25 * (met_out(wd)%lght - met_out(wd)%lght) * 25. 
-    
+      if (prob > lghtf(wd) - lghtint) then
+        met_out(wd)%lght = lghtint
+      else
+        met_out(wd)%lght = lghtint + 1.
+      end if
+
     end do
     
-!    int(met_out(a:b)%lght) 
-
-!     do wd = a,b
-!       if (met_out(wd)%prec > 0.) then
-!         prob(wd) = ranur(met_in%rndst)  ! random real value from [0,1]
-!       else
-!         prob(wd) = 0.
-!       end if
-!     end do
-! 
-!     ! disaggregation based on precipitation amount
-! 
-!     do wd = a,b
-!       if(sum(prob(a:b)) > 0.) then     ! there is a likelihood for lightning in this month
-!          met_out(wd)%lght = lght(m) * ndaymonth(m) * prob(wd) / sum(prob(a:b)) ! total flashes * fraction of total monthly strikes on this day
-! 
-!          write(0,*)'lightning:',wd,met_out(wd)%prec,prob(wd),lght(m) * ndaymonth(m) * prob(wd) / sum(prob(a:b)) * 25.  ! strokes km-2 * 5km gridcell area
-! 
-!       else
-!          met_out(wd)%lght = 0.
-!       end if
-!     end do
-
   else
   
     met_out(a:b)%lght = 0.
@@ -445,7 +416,7 @@ if (wetf > 0. .and. pre > 0.) then
       
       prec = roundto(prec,1)
   
-      ! enforce positive precipitation that is not more than 5% greater than the monthly total
+      ! enforce daily precipitation that is positive and not more than 5% greater than the monthly total
   
       if (prec > 0. .and. prec <= 1.05 * pre) exit
 
