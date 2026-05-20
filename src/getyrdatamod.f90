@@ -107,7 +107,7 @@ tloc = minloc(abs(ghgtime - dt))
 
 srtt = tloc(1)
 
-write(0,*)'getting CO2',cal_year,yearCE,srtt,years
+write(stdout,*)'getting CO2',cal_year,yearCE,srtt,years
 
 ! ! check to make sure the requested calendar year for the beginning of the run is available in the dataset
 ! 
@@ -123,7 +123,8 @@ write(0,*)'getting CO2',cal_year,yearCE,srtt,years
 
 allocate(co2vect(years))
 
-ncstat = nf90_inq_varid(ncid,'co2',varid)
+ncstat = nf90_inq_varid(ncid,'CO2',varid)
+if (ncstat == nf90_enotvar) ncstat = nf90_inq_varid(ncid,'co2',varid)
 if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
   
 ncstat = nf90_get_var(ncid,varid,co2vect,start=[srtt],count=[years])
@@ -811,11 +812,11 @@ integer(i2) :: missing
 
 ! check to make sure the requested calendar year for the beginning of the run is available in the dataset
 
-if (cal_year > topotime(1)) then
-  write(stdout,*)'WARNING: the requested starting year for the run is earlier than the first year of data in the topofile'
-  write(stdout,*)'year cal BP, topotime: ',cal_year,topotime(1)
-  write(stdout,*)'using topo data from nearest year available in data set'
-end if  
+! if (cal_year > topotime(1)) then
+!   write(stdout,*)'WARNING: the requested starting year for the run is earlier than the first year of data in the topofile'
+!   write(stdout,*)'year cal BP, topotime: ',cal_year,topotime(1)
+!   write(stdout,*)'using topo data from nearest year available in data set'
+! end if  
 
 ! scan the time vector to figure out where to start getting the elevation- and landf- vector from 
 

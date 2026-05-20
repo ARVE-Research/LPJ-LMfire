@@ -132,7 +132,7 @@ write(stderr,10)' Timestamp: ',ts(1),'-',ts(2),'-',ts(3),'T',ts(5),':',ts(6),':'
 
 ! initialize variables with a default value if they are not specified in the namelist
 
-spinupyears    = 10
+spinupyears    = -1
 transientyears = -1
 nspinyrsout    = -9999
 ! nolanduse      = .false.  ! not used
@@ -151,11 +151,6 @@ read(10,nml=joboptions)
 close(10)
 
 write(stdout,'(a,a)')' pftpars file: ',pftparsfile
-
-if (spinupyears <= 0) then
-  write(stdout,*)'no years indicated for spinup! '
-  stop
-end if
 
 if (nspinyrsout < 0) then
   nspinyrsout = spinupyears  ! if not specified, write out all years of the spinup
@@ -207,11 +202,14 @@ if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
 
 timeunit_baseyr = tunit2year(timeunit_climate)
 
+if (spinupyears <= 0) then
+  spinupyears = tlen / 12
+  write(stdout,'(a,i0,a)')' running all ',spinupyears,' years of the spinup climate input file'
+end if
+
 ! -------
 
 if (dotransient .and. transientyears < 0) then
-
-  write(stdout,*)'running all years in transient climate file'
 
   ncstat = nf90_open(cfile_transient,nf90_nowrite,cfid2)
   if (ncstat /= nf90_noerr) call netcdf_err(ncstat)
@@ -227,7 +225,7 @@ if (dotransient .and. transientyears < 0) then
   
   transientyears = transmons / 12
 
-  write(stdout,*)'there are ',transientyears,' years of climate in the file'
+  write(stdout,'(a,i0,a)')' running all ',transientyears,' years of the transient climate input file'
 
 end if
 
@@ -336,6 +334,8 @@ write(stdout,*) 'Done reading topofile'
 
 runyears = spinupyears + max(transientyears,0)
 
+write(stdout,'(a,i0,a)')' total length of run: ',runyears,' years'
+
 if (co2file /= '') then
   write(stdout,'(a,a)')'using co2file: ',trim(co2file)
   write(stdout,'(a,2i6)')'cal BP, transientyrs: ',cal_year,transientyears
@@ -374,7 +374,13 @@ else
   ntiles = 1
 end if
 
-write(stdout,'(a,i3)')'WARNING number of land use tiles used in this run: ',ntiles,lucc
+if (lucc) then
+  write(stdout,'(a,i0)')' using land use, number of tiles: ',ntiles
+else if (calcforagers) then
+  write(stdout,'(a)')' forager presence specified, hunter-gatherer fire'
+else
+  write(stdout,'(a)')' no land use specified for this run'
+end if
 
 ! -------------------
 

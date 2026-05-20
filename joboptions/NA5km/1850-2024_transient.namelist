@@ -1,0 +1,37 @@
+&joboptions
+ dospinup         = .true.
+ dotransient      = .true.
+ cfile_spinup     = '/home/terraces/projects/LPJ-LMfire_paleo2025/makeclimate/climate/NA5km/1836-1865_mean_20CR.nc'
+ cfile_transient  = '/home/terraces/datasets/climate/MERRA-2/mergeclimate/NA5km/20CR-MERRA-2_merge_packed.nc'
+ soilfile         = '/home/terraces/datasets/soils/NA5km/makesoil/NAsoils_v2026_soilcalc.nc'
+ topofile         = '/home/terraces/datasets/paleogeography/ICE-7G/NA5km/land_00000.nc'
+ co2file          = '/home/terraces/datasets/dgvm_input/ghg/CO2_25ka-2025.nc'
+ pftparsfile      = 'share/pftpars_global.csv'
+ nspinyrsout      = 180
+ maxmem           = 49152.
+ lu_turn_yrs      = 0.
+ outputvar     = 'cover','albiomass','livebiomass','litterC_fast','litterC_slow','litterC_bg','soilC_surf',
+                 'soilC_fast','soilC_slow','burnedf','coverfrac','tilecarbon','NPP','GPP','nind', 'pftalbiomass',
+                 'NBP','acflux_fire','fireCO2','fireCO','fireCH4','fireVOC','fireTPM','fireNOx','mLAI','mBBpft','mburnedf','height','soilco2'
+ nolanduse     = .true.
+/
+
+! === comments ===
+
+! NB it is no longer necessary to specify a cal_year variable as this is read from the spinup file
+! if transientyears and spinup years are not specified, the model will run all the years in the input files
+
+! mpirun --mca pml ob1 --mca btl ^openib -np 2 src/lpj joboptions/NA5km/1850-2024_transient.namelist -1887500/-1882500/-920000/-910000 output/test4pix.nc
+
+! Full western U.S. run (includes some neighboring parts of Canada and Mexico)
+! N boundary expanded to reach approximate northern boundary of great plains, S boundary is southermost Arizona/NM/Mexico border,
+! E boundary is easternmost Colorado, W boundary to Cape Mendocino
+
+! mpirun --mca pml ob1 --mca btl ^openib -np 41 src/lpj joboptions/NA5km/1850-2024_transient.namelist -2050000/-155000/-2035000/550000 output/NAwest_1850-2024.nc > output/NAwest_1850-2024.log
+
+
+! SW Oregon area with very high burnedf
+! mpirun --mca pml ob1 --mca btl ^openib -np 8 src/lpj joboptions/NA5km/1850-2024_transient.namelist -1848000/-1657000/-718000/-450000 output/SWOregon_transient.nc > output/SWOregon_transient.log
+
+
+! mpirun --mca pml ob1 --mca btl ^openib -np 32 src/lpj joboptions/NA5km/1850-2024_transient.namelist 950000/1250000/-920000/0 output/LakeMichigan.nc > output/LakeMichigan.log

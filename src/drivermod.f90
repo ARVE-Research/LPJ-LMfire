@@ -95,7 +95,7 @@ if (dospinup) then
 
 !    write(stdout,'(a18,3i8,f8.2)')' working on year: ',year,cal_year,yrBP,in_master(1)%co2  !,lyear,co2(1)  !a,3i8,f8.2
     write(stdout,'(a18,2i8,f8.2)')' working on year: ',year,cal_year,in_master(1)%co2 !,year,lyear,co2(1)  !a,3i8,f8.2
-    write(status_msg,'(a,i6,a,i6)')' working on year',year,' out of',spinupyears
+    write(status_msg,'(a,i0,a,i0)')'   working on spinup year ',year,' out of ',spinupyears
     call overprint(status_msg)
 
     in_master%spinup = .true.
@@ -131,6 +131,8 @@ if (dospinup) then
 
 end if
 
+write(stderr,*)
+
 !------------------
 !transient run
 
@@ -157,7 +159,7 @@ if (dotransient) then
     call getdata(ncells,year,cal_year,firstyear,time0,in_master)  !returns gs filled with model input for this year
 
     write(stdout,'(a18,2i8,f8.2)')' working on year: ',year,cal_year,in_master(1)%co2 !,year,lyear,co2(1)  !a,3i8,f8.2
-    write(status_msg,'(a,i6,a,i6)')' working on year',year,' out of',transientyears
+    write(status_msg,'(a,i0,a,i0)')'   working on transient year ',year,' out of ',transientyears
     call overprint(status_msg)
 
     call master(lastyear,ncells,in_master,sv_master)        !sends out and returns filled with model output
@@ -179,6 +181,7 @@ end if
 !------------------
 
 write(stderr,*)
+write(stderr,*)'finished!'
 write(stdout,*)'run finshed successfully'
 
 call cpu_time(time_end)

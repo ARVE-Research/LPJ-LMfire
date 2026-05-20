@@ -1,0 +1,65 @@
+netcdf landcover_NA5km {
+
+dimensions:
+	x = XLEN ;
+	y = YLEN ;
+	time = UNLIMITED ;
+
+variables:
+
+	double x(x) ;
+		x:long_name = "easting" ;
+		x:units = "meters" ;
+		x:actual_range = -3240000., 3345000. ;
+
+	double y(y) ;
+		y:long_name = "northing" ;
+		y:units = "meters" ;
+		y:actual_range = -2580000., 3780000. ;
+
+	double time(time) ;
+		time:long_name = "time" ;
+		time:units = "days since 1836-01-01 00:00:00" ;
+		time:calendar = "proleptic_gregorian" ;
+		time:coordinate_defines = "end" ;
+		time:delta_t = "0001-00-00 00:00:00" ;
+
+	float totalveg(time, y, x) ;
+		totalveg:long_name = "Total vegetation cover fraction" ;
+		totalveg:units = "fraction" ;
+		totalveg:_FillValue = -9999.f ;
+		totalveg:missing_value = -9999.f ;
+		totalveg:_ChunkSizes = 1, YLEN, XLEN ;
+		totalveg:_DeflateLevel = 1 ;
+
+	float treecover(time, y, x) ;
+		treecover:long_name = "Woody cover fraction" ;
+		treecover:units = "fraction" ;
+		treecover:_FillValue = -9999.f ;
+		treecover:missing_value = -9999.f ;
+		treecover:_ChunkSizes = 1, YLEN, XLEN ;
+		treecover:_DeflateLevel = 1 ;
+
+	float grasscover(time, y, x) ;
+		grasscover:long_name = "Herbaceous cover fraction" ;
+		grasscover:units = "fraction" ;
+		grasscover:_FillValue = -9999.f ;
+		grasscover:missing_value = -9999.f ;
+		grasscover:_ChunkSizes = 1, YLEN, XLEN ;
+		grasscover:_DeflateLevel = 1 ;
+
+	float barren(time, y, x) ;
+		barren:long_name = "Barren land fraction" ;
+		barren:units = "fraction" ;
+		barren:_FillValue = -9999.f ;
+		barren:missing_value = -9999.f ;
+		barren:_ChunkSizes = 1, YLEN, XLEN ;
+		barren:_DeflateLevel = 1 ;
+
+// global attributes:
+		:title = "LPJ netCDF output file summary" ;
+		:timestamp = "N/A" ;
+		:Conventions = "COARDS" ;
+		:node_offset = 1 ;
+
+}
