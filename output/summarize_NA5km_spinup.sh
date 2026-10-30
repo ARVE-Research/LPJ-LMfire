@@ -8,13 +8,13 @@ infile=${1}
 
 # ---
 
-tavg=180
+tavg=1801-1850
 
-timeavg=${infile%%.*}_spinup-avg_$tavg.nc
+timeavg=${infile%%.*}_avg_$tavg.nc
 
 echo "make time average" $tavg
 
-ncra -F -O -v cover,burnedf,acflux_fire -d time,,$tavg $infile $timeavg
+ncra -O -v cover,burnedf,acflux_fire -d time,"1801-01-01 00:00:00","1851-01-01 00:00:00" $infile $timeavg
 
 # ---
 
