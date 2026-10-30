@@ -1,0 +1,22 @@
+&joboptions
+  dospinup         = .true.
+  dotransient      = .false.
+  cfile_spinup     = '/home/terraces/projects/LPJ-LMfire_paleo2025/makeclimate/climate/NA5km/LGM_MIROC-ES2L.nc'
+  soilfile         = '/home/terraces/datasets/soils/NA5km/soils_00210.nc'
+  topofile         = '/home/terraces/datasets/paleogeography/ICE-7G/NA5km/land_00210.nc'
+  fixedco2         = 188.1 ! from the file /home/terraces/datasets/dgvm_input/ghg/co2.txt
+  pftparsfile      = 'share/pftpars_global.csv'
+  nolanduse        = .true.
+  nspinyrsout      = 360
+  maxmem           = 49152.
+  lu_turn_yrs      = 0.
+  outputvar     = 'cover','albiomass','livebiomass','litterC_fast','litterC_slow','litterC_bg','soilC_surf',
+                 'soilC_fast','soilC_slow','burnedf','coverfrac','tilecarbon','NPP','GPP','nind', 'pftalbiomass',
+                 'NBP','acflux_fire','fireCO2','fireCO','fireCH4','fireVOC','fireTPM','fireNOx','mLAI','mBBpft','mburnedf','height','soilco2'
+/
+
+! === comments ===
+! NB it is no longer necessary to specify a cal_year variable as the calendar year of the start is read from the spinup file
+! if transientyears and spinup years are not specified, the model will run all the years in the input files
+
+! see script runNorthAm5km.sh for run details
